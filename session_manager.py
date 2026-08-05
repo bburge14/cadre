@@ -114,3 +114,7 @@ def restart(session_id: str) -> dict:
 def restart_all_running() -> list[str]:
     resp = _send({"cmd": "restart_all_running", "session_id": None})
     return resp.get("restarted", [])
+
+
+def create_terminal_token(session_id: str) -> dict:
+    return _send({"cmd": "create_terminal_token", "session_id": session_id})

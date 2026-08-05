@@ -43,6 +43,14 @@
     <div class="source-panel active" id="panel-local">
       <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
       <input name="workdir" placeholder="/home/you/projects/my-repo">
+
+      <label>provider <span class="hint">(which CLI runs this session)</span></label>
+      <select name="provider" id="provider-select" onchange="updateProviderNote()">
+        {% for provider in cli_providers %}
+        <option value="{{ provider.id }}">{{ provider.label }}</option>
+        {% endfor %}
+      </select>
+      <p class="hint" id="provider-remote-note"></p>
     </div>
 
     <div class="source-panel" id="panel-github">
@@ -79,6 +87,12 @@
   </form>
 
 <script>
+{% if not session %}
+const PROVIDER_REMOTE_CONTROL = {
+  {% for provider in cli_providers %}"{{ provider.id }}": {{ provider.remote_control | tojson }}{{ "," if not loop.last }}
+  {% endfor %}
+};
+{% endif %}
 function selectSource(src) {
   document.getElementById('source-field').value = src;
   document.querySelectorAll('.source-tab').forEach(el => el.classList.toggle('active', el.dataset.source === src));
@@ -101,6 +115,18 @@ function loadRepos(url, selectId) {
 }
 {% if not session and github_connected %}
 loadRepos("{{ url_for('github_repos_json') }}", "repo-select-github");
+{% endif %}
+{% if not session %}
+function updateProviderNote() {
+  const select = document.getElementById('provider-select');
+  const note = document.getElementById('provider-remote-note');
+  if (!select || !note) return;
+  const hasRemoteControl = PROVIDER_REMOTE_CONTROL[select.value];
+  note.textContent = hasRemoteControl
+    ? "Reachable from claude.ai/code on any device, plus this dashboard's own terminal."
+    : "No native remote control for this provider yet -- reachable only through this dashboard's own terminal (Open terminal on the session page).";
+}
+updateProviderNote();
 {% endif %}
 {% if not session and gitlab_connected %}
 loadRepos("{{ url_for('gitlab_repos_json') }}", "repo-select-gitlab");

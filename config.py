@@ -30,6 +30,7 @@ INSTANCE_DIR.mkdir(exist_ok=True)
 HOST = os.environ.get("COMMAND_CENTER_HOST", "127.0.0.1")
 PORT = int(os.environ.get("COMMAND_CENTER_PORT", "7420"))
 DAEMON_PORT = int(os.environ.get("COMMAND_CENTER_DAEMON_PORT", "7421"))
+TERMINAL_PORT = int(os.environ.get("COMMAND_CENTER_TERMINAL_PORT", "7422"))
 CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "claude")
 
 _agents_dir_override = os.environ.get("CLAUDE_AGENTS_DIR", "").strip()

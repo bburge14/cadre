@@ -3,4 +3,5 @@ pyyaml
 python-dotenv
 requests
 psutil
+websockets
 pywinpty; sys_platform == "win32"

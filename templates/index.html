@@ -51,10 +51,11 @@
     <a class="btn btn-primary" href="{{ url_for('new_session_form') }}">+ New session</a>
   </div>
   <table>
-    <tr><th>Label</th><th>Working directory</th><th>Status</th><th></th></tr>
+    <tr><th>Label</th><th>Provider</th><th>Working directory</th><th>Status</th><th></th></tr>
     {% for s in sessions %}
     <tr>
       <td><a href="{{ url_for('session_detail', session_id=s.id) }}">{{ s.label }}</a></td>
+      <td>{{ s.get('provider', 'claude') | capitalize }}</td>
       <td class="workdir">{{ s.workdir }}</td>
       <td>
         <span class="status-dot {{ 'status-on' if s.status.running else 'status-off' }}"></span>
@@ -70,7 +71,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="4" style="color:#888;">No sessions yet.</td></tr>
+    <tr><td colspan="5" style="color:#888;">No sessions yet.</td></tr>
     {% endfor %}
   </table>
 

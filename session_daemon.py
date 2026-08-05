@@ -13,19 +13,29 @@ this way the exact same code runs on Linux, macOS, and Windows.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import re
+import secrets
 import socketserver
 import sys
 import threading
+import time
 import uuid as uuid_mod
 from collections import deque
+
+import websockets
+import websockets.exceptions
 
 import config
 import providers
 import pty_compat
 import sessions_store
 import settings
+
+_TOKEN_TTL_SECONDS = 60
+_terminal_tokens: dict[str, tuple[str, float]] = {}
+_ws_loop: asyncio.AbstractEventLoop | None = None
 
 _ANSI_CSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _ANSI_OTHER_RE = re.compile(r"\x1b[^\[]")
@@ -59,6 +69,16 @@ def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: st
                 break
             for line in text.splitlines(keepends=True):
                 rt["output"].append(line)
+            subscribers = list(rt["subscribers"])
+        # Fan out live bytes to any open terminal websockets for this
+        # session. This is the *only* place that reads pty_session -- a
+        # websocket handler never reads the pty directly, since two
+        # independent readers on the same fd would split/lose bytes
+        # unpredictably. call_soon_threadsafe because this thread isn't
+        # the asyncio event loop the subscriber queues belong to.
+        if subscribers and _ws_loop is not None:
+            for queue in subscribers:
+                _ws_loop.call_soon_threadsafe(queue.put_nowait, text)
 
         if not trust_handled:
             trust_check_buffer += text
@@ -120,7 +140,12 @@ def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id:
                 extra_env[provider.api_key_env_var] = key
 
         pty_session = pty_compat.PtySession(args, cwd=workdir, extra_env=extra_env or None)
-        _runtime[session_id] = {"pty": pty_session, "output": deque(maxlen=2000), "provider": provider_id}
+        _runtime[session_id] = {
+            "pty": pty_session,
+            "output": deque(maxlen=2000),
+            "provider": provider_id,
+            "subscribers": [],
+        }
         t = threading.Thread(target=_reader, args=(session_id, pty_session, provider_id), daemon=True)
         t.start()
         return {"ok": True, "already_running": False, "pid": pty_session.pid}
@@ -172,6 +197,90 @@ def restart_all_running() -> list[str]:
     return restarted
 
 
+def create_terminal_token(session_id: str) -> dict:
+    """Short-lived, single-use token authorizing one websocket connection
+    to one session's terminal. The websocket endpoint doesn't share
+    app.py's Flask session cookie, so this is its own auth handoff:
+    app.py only calls this for an already-authenticated dashboard user,
+    then hands the token to the browser to open the websocket with."""
+    token = secrets.token_urlsafe(32)
+    _terminal_tokens[token] = (session_id, time.time() + _TOKEN_TTL_SECONDS)
+    return {"ok": True, "token": token, "port": config.TERMINAL_PORT}
+
+
+def _consume_terminal_token(token: str, session_id: str) -> bool:
+    entry = _terminal_tokens.pop(token, None)
+    if entry is None:
+        return False
+    expected_session_id, expires_at = entry
+    if time.time() > expires_at:
+        return False
+    return secrets.compare_digest(expected_session_id, session_id)
+
+
+async def _terminal_handler(websocket) -> None:
+    try:
+        path = websocket.request.path
+    except AttributeError:
+        path = websocket.path  # older websockets versions
+    parts = path.strip("/").split("?", 1)
+    if len(parts) != 2 or not parts[0].startswith("pty/"):
+        await websocket.close(code=4000, reason="bad path")
+        return
+    session_id = parts[0][len("pty/"):]
+    query = dict(p.split("=", 1) for p in parts[1].split("&") if "=" in p)
+    token = query.get("token", "")
+
+    if not _consume_terminal_token(token, session_id):
+        await websocket.close(code=4001, reason="invalid or expired token")
+        return
+
+    with _lock:
+        rt = _runtime.get(session_id)
+        if rt is None or not rt["pty"].is_alive():
+            await websocket.close(code=4004, reason="session not running")
+            return
+        pty_session = rt["pty"]
+        backlog = "".join(rt["output"])
+        queue: asyncio.Queue = asyncio.Queue()
+        rt["subscribers"].append(queue)
+
+    if backlog:
+        await websocket.send(backlog)
+
+    async def _pump_output():
+        while True:
+            text = await queue.get()
+            await websocket.send(text)
+
+    pump_task = asyncio.ensure_future(_pump_output())
+    try:
+        async for message in websocket:
+            pty_session.write(message.encode("utf-8", errors="replace"))
+    except websockets.exceptions.ConnectionClosed:
+        pass
+    finally:
+        pump_task.cancel()
+        with _lock:
+            rt = _runtime.get(session_id)
+            if rt is not None and queue in rt["subscribers"]:
+                rt["subscribers"].remove(queue)
+
+
+def _run_terminal_server() -> None:
+    global _ws_loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    _ws_loop = loop
+
+    async def _serve():
+        async with websockets.serve(_terminal_handler, config.HOST, config.TERMINAL_PORT):
+            print(f"terminal websocket listening on {config.HOST}:{config.TERMINAL_PORT}")
+            await asyncio.Future()  # run forever
+
+    loop.run_until_complete(_serve())
+
+
 _DISPATCH = {
     "status": lambda a: status(a["session_id"]),
     "get_output": lambda a: {"output": get_output(a["session_id"])},
@@ -180,6 +289,7 @@ _DISPATCH = {
     "restart": lambda a: restart(a["session_id"]),
     "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude")),
     "restart_all_running": lambda a: {"restarted": restart_all_running()},
+    "create_terminal_token": lambda a: create_terminal_token(a["session_id"]),
     "ping": lambda a: {"ok": True},
 }
 
@@ -216,6 +326,10 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+    ws_thread = threading.Thread(target=_run_terminal_server, daemon=True)
+    ws_thread.start()
+
     print(f"session_daemon listening on 127.0.0.1:{config.DAEMON_PORT}")
     server.serve_forever()
 

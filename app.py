@@ -13,6 +13,7 @@ import auth
 import config
 import git_hosts
 import presets
+import providers
 import session_manager
 import sessions_store
 import settings
@@ -294,6 +295,7 @@ def new_session_form():
         github_configured=bool(settings.get("github_client_id")),
         gitlab_connected=bool(git_hosts.get_token("gitlab")),
         gitlab_configured=bool(settings.get("gitlab_client_id")),
+        cli_providers=providers.list_providers(),
     )
 
 
@@ -346,7 +348,8 @@ def create_session():
             flash(f"'{workdir}' is not a directory that exists on this machine.", "error")
             return redirect(url_for("new_session_form"))
 
-    result = session_manager.create(label, workdir)
+    provider_id = request.form.get("provider", "claude") if source == "local" else "claude"
+    result = session_manager.create(label, workdir, provider=provider_id)
     flash(f"Created session '{label}' (pid {result.get('pid')}).", "success")
     return redirect(url_for("index"))
 
@@ -364,6 +367,7 @@ def settings_form():
         github_connected=bool(git_hosts.get_token("github")),
         gitlab_callback_url=url_for("gitlab_oauth_callback", _external=True),
         gitlab_connected=bool(git_hosts.get_token("gitlab")),
+        cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
     )
 
 
@@ -377,9 +381,33 @@ def save_settings():
         gitlab_client_id=request.form.get("gitlab_client_id", ""),
         gitlab_client_secret=request.form.get("gitlab_client_secret", ""),
         projects_root=request.form.get("projects_root", ""),
+        gemini_api_key=request.form.get("gemini_api_key", ""),
+        codex_api_key=request.form.get("codex_api_key", ""),
+        kimi_api_key=request.form.get("kimi_api_key", ""),
     )
     flash("Settings saved.", "success")
     return redirect(url_for("settings_form"))
+
+
+@app.post("/settings/connect-provider")
+@require_auth
+def connect_provider():
+    provider_id = request.form.get("provider_id", "")
+    try:
+        provider = providers.get(provider_id)
+    except ValueError:
+        flash("Unknown provider.", "error")
+        return redirect(url_for("settings_form"))
+    result = session_manager.create(f"{provider.label} Login", str(Path.home()), provider=provider_id)
+    if not result.get("ok"):
+        flash(f"Couldn't start {provider.label} login: {result.get('error')}", "error")
+        return redirect(url_for("settings_form"))
+    flash(
+        f"Started a '{provider.label} Login' session -- open its terminal to complete login, "
+        "then delete it if you don't want it cluttering your session list.",
+        "success",
+    )
+    return redirect(url_for("session_detail", session_id=result["session_id"]))
 
 
 # ---- Git host OAuth ----
@@ -552,6 +580,14 @@ def session_status_json(session_id):
         **session_manager.status(session_id),
         "output": session_manager.get_output(session_id),
     }
+
+
+@app.post("/sessions/<session_id>/terminal-token")
+@require_auth
+def session_terminal_token(session_id):
+    if sessions_store.get(session_id) is None:
+        return {"ok": False, "error": "unknown session"}, 404
+    return session_manager.create_terminal_token(session_id)
 
 
 if __name__ == "__main__":

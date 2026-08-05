@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>{{ session.label }} — Command Center</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
   body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 760px; }
   a { color: #7ab7ff; }
@@ -16,6 +17,9 @@
   .status-off { background: #666; }
   .workdir { color: #888; font-family: ui-monospace, monospace; font-size: 0.85rem; }
   pre#output { background: #111; padding: 0.8rem; border-radius: 6px; max-height: 420px; overflow-y: auto; font-size: 0.78rem; white-space: pre-wrap; margin-top: 1rem; }
+  #terminal-container { display: none; margin-top: 1rem; background: #000; border-radius: 6px; padding: 0.5rem; }
+  #terminal { height: 420px; }
+  .term-status { font-size: 0.78rem; color: #888; margin-top: 0.3rem; }
   .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #333; }
 </style>
 </head>
@@ -33,9 +37,15 @@
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
   <a class="btn" href="{{ url_for('edit_session_form', session_id=session.id) }}">Edit</a>
+  <button class="btn btn-primary" type="button" id="terminal-toggle" onclick="toggleTerminal()">Open terminal</button>
 
   <p style="font-size:0.8rem; color:#888; margin-top:1.2rem;">Output (session URL / QR appears here after starting):</p>
   <pre id="output"></pre>
+
+  <div id="terminal-container">
+    <div id="terminal"></div>
+    <div class="term-status" id="term-status">connecting…</div>
+  </div>
 
   <div class="danger-zone">
     <form method="post" action="{{ url_for('session_action', session_id=session.id, action='delete') }}"
@@ -48,6 +58,7 @@
     </form>
   </div>
 
+<script src="{{ url_for('static', filename='vendor/xterm.js') }}"></script>
 <script>
 async function poll() {
   try {
@@ -56,13 +67,68 @@ async function poll() {
     document.getElementById("status-text").textContent = data.running ? "running" : "stopped";
     document.getElementById("dot").className = "status-dot " + (data.running ? "status-on" : "status-off");
     document.getElementById("pid-text").textContent = data.pid ? "(pid " + data.pid + ")" : "";
-    const out = document.getElementById("output");
-    out.textContent = data.output;
-    out.scrollTop = out.scrollHeight;
+    if (!terminalOpen) {
+      const out = document.getElementById("output");
+      out.textContent = data.output;
+      out.scrollTop = out.scrollHeight;
+    }
   } catch (e) { /* ignore */ }
 }
 poll();
 setInterval(poll, 3000);
+
+let terminalOpen = false;
+let term = null;
+let ws = null;
+
+async function toggleTerminal() {
+  const container = document.getElementById("terminal-container");
+  const output = document.getElementById("output");
+  const btn = document.getElementById("terminal-toggle");
+  terminalOpen = !terminalOpen;
+
+  if (!terminalOpen) {
+    container.style.display = "none";
+    output.style.display = "block";
+    btn.textContent = "Open terminal";
+    if (ws) { ws.close(); ws = null; }
+    return;
+  }
+
+  container.style.display = "block";
+  output.style.display = "none";
+  btn.textContent = "Close terminal";
+
+  if (!term) {
+    term = new Terminal({ convertEol: true, fontSize: 13, theme: { background: "#000000" } });
+    term.open(document.getElementById("terminal"));
+  }
+
+  const statusEl = document.getElementById("term-status");
+  statusEl.textContent = "connecting…";
+
+  const resp = await fetch("{{ url_for('session_terminal_token', session_id=session.id) }}", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "csrf_token=" + encodeURIComponent("{{ csrf_token() }}"),
+  });
+  const data = await resp.json();
+  if (!data.ok) {
+    statusEl.textContent = "Couldn't get a terminal token: " + (data.error || "unknown error");
+    return;
+  }
+
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = proto + "//" + window.location.hostname + ":" + data.port + "/pty/{{ session.id }}?token=" + data.token;
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => { statusEl.textContent = "connected"; };
+  ws.onmessage = (event) => { term.write(event.data); };
+  ws.onclose = () => { statusEl.textContent = "disconnected"; };
+  ws.onerror = () => { statusEl.textContent = "connection error"; };
+  term.onData((data) => {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
+  });
+}
 </script>
 </body>
 </html>
