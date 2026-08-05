@@ -99,8 +99,8 @@ def start(session_id: str) -> dict:
     return _send({"cmd": "start", "session_id": session_id})
 
 
-def create(label: str, workdir: str) -> dict:
-    return _send({"cmd": "create", "label": label, "workdir": workdir})
+def create(label: str, workdir: str, provider: str = "claude") -> dict:
+    return _send({"cmd": "create", "label": label, "workdir": workdir, "provider": provider})
 
 
 def stop(session_id: str) -> dict:

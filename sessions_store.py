@@ -12,7 +12,10 @@ STORE_FILE = config.SESSIONS_FILE
 def _load() -> list[dict]:
     if not STORE_FILE.exists():
         return []
-    return json.loads(STORE_FILE.read_text())
+    sessions = json.loads(STORE_FILE.read_text())
+    for s in sessions:
+        s.setdefault("provider", "claude")
+    return sessions
 
 
 def _save(sessions: list[dict]) -> None:
@@ -31,12 +34,13 @@ def get(session_id: str) -> dict | None:
     return None
 
 
-def add(label: str, workdir: str, session_id: str | None = None) -> dict:
+def add(label: str, workdir: str, session_id: str | None = None, provider: str = "claude") -> dict:
     sessions = _load()
     entry = {
         "id": session_id or str(uuid.uuid4()),
         "label": label,
         "workdir": workdir,
+        "provider": provider,
         "created_at": time.time(),
     }
     sessions.append(entry)

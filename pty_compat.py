@@ -18,8 +18,11 @@ if IS_WINDOWS:
     import winpty  # pywinpty package; import name is winpty
 
     class PtySession:
-        def __init__(self, args: list[str], cwd: str) -> None:
-            self._proc = winpty.PtyProcess.spawn(args, cwd=cwd)
+        def __init__(self, args: list[str], cwd: str, extra_env: dict | None = None) -> None:
+            import os
+
+            env = {**os.environ, **extra_env} if extra_env else None
+            self._proc = winpty.PtyProcess.spawn(args, cwd=cwd, env=env)
 
         def read(self, size: int = 4096) -> bytes:
             try:
@@ -54,11 +57,12 @@ else:
     import subprocess
 
     class PtySession:
-        def __init__(self, args: list[str], cwd: str) -> None:
+        def __init__(self, args: list[str], cwd: str, extra_env: dict | None = None) -> None:
             master_fd, slave_fd = pty.openpty()
+            env = {**os.environ, **extra_env} if extra_env else None
             self._proc = subprocess.Popen(
                 args, cwd=cwd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
-                preexec_fn=os.setsid, close_fds=True,
+                preexec_fn=os.setsid, close_fds=True, env=env,
             )
             os.close(slave_fd)
             self._master_fd = master_fd

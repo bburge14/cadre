@@ -22,21 +22,32 @@ import uuid as uuid_mod
 from collections import deque
 
 import config
+import providers
 import pty_compat
 import sessions_store
-
-CLAUDE_BIN = config.CLAUDE_BIN
+import settings
 
 _ANSI_CSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 _ANSI_OTHER_RE = re.compile(r"\x1b[^\[]")
+
+# Auto-confirm patterns for each provider's first-run trust/consent prompt,
+# matched the same way as Claude's (ANSI-stripped, whitespace-collapsed,
+# since cursor-positioning escapes remove literal spaces from prompt text).
+# Only Claude's is confirmed by direct testing; Gemini/Codex/Kimi may have
+# an equivalent first-run prompt with different wording that isn't handled
+# yet -- expect to add entries here once seen on real hardware.
+TRUST_PROMPT_PATTERNS: dict[str, str] = {
+    "claude": "trustthisfolder",
+}
 
 _lock = threading.Lock()
 _runtime: dict[str, dict] = {}
 
 
-def _reader(session_id: str, pty_session: pty_compat.PtySession) -> None:
+def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: str) -> None:
+    trust_pattern = TRUST_PROMPT_PATTERNS.get(provider_id)
     trust_check_buffer = ""
-    trust_handled = False
+    trust_handled = trust_pattern is None
     while True:
         chunk = pty_session.read(4096)
         if not chunk:
@@ -54,7 +65,7 @@ def _reader(session_id: str, pty_session: pty_compat.PtySession) -> None:
             plain = _ANSI_CSI_RE.sub("", trust_check_buffer)
             plain = _ANSI_OTHER_RE.sub("", plain)
             plain_nospace = re.sub(r"\s+", "", plain).lower()
-            if "trustthisfolder" in plain_nospace:
+            if trust_pattern in plain_nospace:
                 pty_session.write(b"1\r")
                 trust_handled = True
             elif len(trust_check_buffer) > 20000:
@@ -89,7 +100,7 @@ def get_output(session_id: str, max_chars: int = 8000) -> str:
     return text[-max_chars:]
 
 
-def _spawn(session_id: str, workdir: str, label: str, resume: bool) -> dict:
+def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id: str = "claude") -> dict:
     with _lock:
         rt = _runtime.get(session_id)
         if rt is not None and rt["pty"].is_alive():
@@ -99,13 +110,18 @@ def _spawn(session_id: str, workdir: str, label: str, resume: bool) -> dict:
         if externals:
             return {"ok": True, "already_running": True, "pid": externals[0], "externally_managed": True}
 
-        args = [CLAUDE_BIN]
-        args += ["--resume", session_id] if resume else ["--session-id", session_id]
-        args += ["--remote-control", label]
+        provider = providers.get(provider_id)
+        args = provider.resume_args(session_id, label) if resume else provider.new_session_args(session_id, label)
 
-        pty_session = pty_compat.PtySession(args, cwd=workdir)
-        _runtime[session_id] = {"pty": pty_session, "output": deque(maxlen=2000)}
-        t = threading.Thread(target=_reader, args=(session_id, pty_session), daemon=True)
+        extra_env = {}
+        if provider.api_key_env_var:
+            key = settings.get(f"{provider_id}_api_key")
+            if key:
+                extra_env[provider.api_key_env_var] = key
+
+        pty_session = pty_compat.PtySession(args, cwd=workdir, extra_env=extra_env or None)
+        _runtime[session_id] = {"pty": pty_session, "output": deque(maxlen=2000), "provider": provider_id}
+        t = threading.Thread(target=_reader, args=(session_id, pty_session, provider_id), daemon=True)
         t.start()
         return {"ok": True, "already_running": False, "pid": pty_session.pid}
 
@@ -114,13 +130,13 @@ def start(session_id: str) -> dict:
     entry = sessions_store.get(session_id)
     if entry is None:
         return {"ok": False, "error": "unknown session"}
-    return _spawn(session_id, entry["workdir"], entry["label"], resume=True)
+    return _spawn(session_id, entry["workdir"], entry["label"], resume=True, provider_id=entry.get("provider", "claude"))
 
 
-def create(label: str, workdir: str) -> dict:
+def create(label: str, workdir: str, provider_id: str = "claude") -> dict:
     session_id = str(uuid_mod.uuid4())
-    sessions_store.add(label, workdir, session_id=session_id)
-    result = _spawn(session_id, workdir, label, resume=False)
+    sessions_store.add(label, workdir, session_id=session_id, provider=provider_id)
+    result = _spawn(session_id, workdir, label, resume=False, provider_id=provider_id)
     result["session_id"] = session_id
     return result
 
@@ -162,7 +178,7 @@ _DISPATCH = {
     "start": lambda a: start(a["session_id"]),
     "stop": lambda a: stop(a["session_id"]),
     "restart": lambda a: restart(a["session_id"]),
-    "create": lambda a: create(a["label"], a["workdir"]),
+    "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude")),
     "restart_all_running": lambda a: {"restarted": restart_all_running()},
     "ping": lambda a: {"ok": True},
 }
