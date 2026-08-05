@@ -18,7 +18,11 @@ import sessions_store
 import settings
 from auth import require_auth
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=str(config.BUNDLE_DIR / "templates"),
+    static_folder=str(config.BUNDLE_DIR / "static"),
+)
 app.secret_key = config.SECRET_KEY
 app.permanent_session_lifetime = timedelta(days=30)
 app.config.update(

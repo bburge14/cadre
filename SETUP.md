@@ -16,13 +16,17 @@ account system beyond the one admin login you create for yourself below.
 
 ## Prerequisites
 
-- Python 3.10+ (`python3 --version` to check)
+- Python 3.10+ (`python3 --version` / `python --version` on Windows)
 - The `claude` CLI installed and working (`claude --version`), logged into
   your own Anthropic account (`claude`, then `/login`) on a Pro, Max, Team,
   or Enterprise plan — Remote Control isn't available on API-key-only
   setups
 - On Linux, if you want this running as an always-on background service:
   `systemd --user` (already present on basically every modern distro)
+- Runs on Linux, macOS, and Windows. The two processes (below) use a real
+  platform-native pseudo-terminal either way — Python's `pty` module on
+  Linux/macOS, `pywinpty` (wraps Windows' ConPTY) on Windows — installed
+  automatically by `requirements.txt` on whichever OS you're on.
 
 ## Steps (Linux / macOS)
 
@@ -75,6 +79,43 @@ account system beyond the one admin login you create for yourself below.
    enabled; the session's detail page shows the connect URL/QR once it's
    up.
 
+## Steps (Windows)
+
+Same shape as Linux/macOS, PowerShell syntax:
+
+1. **Get the code** (see the private-repo note above):
+   ```powershell
+   git clone <this-repo-url> $env:USERPROFILE\claude-command-center
+   cd $env:USERPROFILE\claude-command-center
+   ```
+
+2. **Create the virtual environment**:
+   ```powershell
+   python -m venv venv
+   venv\Scripts\pip install -r requirements.txt
+   ```
+   This also installs `pywinpty`, which needs a working C++ toolchain to
+   build from source on some setups — if it fails, install the
+   [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+   (or just Visual Studio Community with the "Desktop development with
+   C++" workload) and re-run the `pip install`.
+
+3. **(Optional) copy the config template** — same as Linux/macOS:
+   ```powershell
+   copy .env.example .env
+   ```
+
+4. **Run it**:
+   ```powershell
+   venv\Scripts\python app.py
+   ```
+   Same as Linux/macOS from here — open the printed address in a browser,
+   create your account, land on Agent Stacks, pick a preset, create your
+   first session.
+
+For always-on background operation instead of a terminal window you leave
+open, see "Running it as an always-on background service (Windows)" below.
+
 ## Connecting GitHub / GitLab (optional)
 
 You don't need to touch `.env` for this — go to **Settings** (top-right of
@@ -102,7 +143,10 @@ This app is actually two pieces:
   restart/redeploy this often as you make changes.
 - **`session_daemon.py`** — a separate, much simpler process that actually
   owns each Claude Code session's terminal (a pty) and keeps it alive. It
-  talks to `app.py` over a local Unix socket (`instance/daemon.sock`).
+  talks to `app.py` over a TCP loopback connection (`127.0.0.1`, port from
+  `COMMAND_CENTER_DAEMON_PORT` in `.env`, default `7421`) — not exposed
+  beyond this machine, and a plain TCP port rather than a Unix domain
+  socket specifically so this works identically on Windows.
 
 They're split up deliberately: a session's aliveness depends on *something*
 keeping its pty open continuously, and that something must never be the web
@@ -169,6 +213,52 @@ On macOS, there's no systemd — just run `./venv/bin/python app.py` in a
 terminal you leave open, or wrap it in your own `launchd` plist if you want
 it persistent.
 
+## Running it as an always-on background service (Windows)
+
+There's no systemd on Windows, but the same idea works via Task Scheduler.
+From a normal (non-admin) PowerShell prompt, after the venv is set up:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File windows\install-services.ps1
+```
+
+This registers two scheduled tasks (one per process, mirroring the systemd
+setup above) that start automatically at login and restart on failure, and
+starts both immediately. Check status with:
+```powershell
+Get-ScheduledTask -TaskName "BradsAgentStackCreator-*"
+```
+To remove them later: `windows\uninstall-services.ps1` (same pattern, does
+not touch `instance/` or `.env`).
+
+## Building the actual Windows `.exe` installer
+
+The steps above (clone + venv + `pip install`) work today and are the
+fastest path to running this on Windows. A real double-click installer
+(`Setup.exe`, no Python/git required on the target machine) is also
+buildable, but **this must be built on a Windows machine** — PyInstaller
+doesn't cross-compile from Linux/macOS, so this could only be written and
+documented from here, not actually produced or tested. Treat it as
+unverified until it's been run for real:
+
+1. One-time: `venv\Scripts\pip install pyinstaller`, and install
+   [Inno Setup](https://jrsoftware.org/isinfo.php) (free) so `ISCC.exe` is
+   on your `PATH`.
+2. `powershell -ExecutionPolicy Bypass -File windows\build.ps1` — builds
+   `AgentStackCreatorApp.exe` and `AgentStackCreatorDaemon.exe` via
+   PyInstaller (`windows\app.spec` / `windows\daemon.spec`), then wraps
+   them into `windows\installer-output\BradsAgentStackCreator-Setup-*.exe`
+   via Inno Setup (`windows\installer.iss`).
+3. Running that `Setup.exe` installs to `%LOCALAPPDATA%\BradsAgentStackCreator`
+   (no admin rights needed), registers the same two scheduled tasks as
+   "Running it as an always-on background service (Windows)" above, and
+   opens the dashboard in your browser when done.
+
+If something breaks partway through the freeze (a missing bundled file, an
+import PyInstaller's static analysis didn't catch), that's exactly the kind
+of thing that only surfaces once actually run — expect a debugging pass
+here, most likely in `windows/app.spec`'s `datas`/`hiddenimports` lists.
+
 ## Reaching it from another device (Tailscale/LAN)
 
 By default this only listens on `127.0.0.1` — reachable from this machine
@@ -187,3 +277,5 @@ against being placed directly on the public internet.
 - `CLAUDE_AGENTS_DIR` in `.env` — only needed if you want this instance to
   manage a subagent-definitions directory other than the standard
   `~/.claude/agents`.
+- `COMMAND_CENTER_DAEMON_PORT` in `.env` — only needed if `7421` is already
+  in use by something else on this machine.

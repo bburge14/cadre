@@ -1,11 +1,25 @@
 from __future__ import annotations
 
 import secrets
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).parent
+if getattr(sys, "frozen", False):
+    # Running as a PyInstaller-frozen executable (see windows/*.spec):
+    # bundled read-only data (templates/, presets/, static/) is extracted
+    # to sys._MEIPASS, a transient directory that can be wiped/regenerated
+    # on every launch -- writable state (instance/, .env) must NOT live
+    # there. Keep it in the same stable location a normal source install
+    # already uses, so both packaging methods share one data directory.
+    BUNDLE_DIR = Path(sys._MEIPASS)
+    BASE_DIR = Path.home() / ".claude" / "command-center"
+    BASE_DIR.mkdir(parents=True, exist_ok=True)
+else:
+    BUNDLE_DIR = Path(__file__).parent
+    BASE_DIR = Path(__file__).parent
+
 load_dotenv(BASE_DIR / ".env")
 
 import os
@@ -15,6 +29,7 @@ INSTANCE_DIR.mkdir(exist_ok=True)
 
 HOST = os.environ.get("COMMAND_CENTER_HOST", "127.0.0.1")
 PORT = int(os.environ.get("COMMAND_CENTER_PORT", "7420"))
+DAEMON_PORT = int(os.environ.get("COMMAND_CENTER_DAEMON_PORT", "7421"))
 CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "claude")
 
 _agents_dir_override = os.environ.get("CLAUDE_AGENTS_DIR", "").strip()

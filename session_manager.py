@@ -1,27 +1,36 @@
 """Thin client for session_daemon.py -- see that file for why this is a
 separate process rather than managing ptys/subprocesses in this one.
+Talks to it over a TCP loopback socket (127.0.0.1 only), not a Unix
+domain socket, so this same code works on Windows too.
 """
 from __future__ import annotations
 
 import json
-import os
 import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import config
 
-SOCKET_PATH = config.INSTANCE_DIR / "daemon.sock"
-_DAEMON_SCRIPT = config.BASE_DIR / "session_daemon.py"
+_DAEMON_ADDR = ("127.0.0.1", config.DAEMON_PORT)
+
+
+def _daemon_launch_command() -> list[str]:
+    if getattr(sys, "frozen", False):
+        # Frozen build: the daemon is its own sibling executable (see
+        # windows/*.spec + windows/installer.iss), not a .py script -- there
+        # is no bundled Python interpreter to point at an arbitrary file.
+        daemon_exe = Path(sys.executable).with_name("AgentStackCreatorDaemon.exe")
+        return [str(daemon_exe)]
+    return [sys.executable, str(config.BASE_DIR / "session_daemon.py")]
 
 
 def _send(payload: dict) -> dict:
     for attempt in range(2):
         try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.settimeout(10)
-                s.connect(str(SOCKET_PATH))
+            with socket.create_connection(_DAEMON_ADDR, timeout=10) as s:
                 s.sendall((json.dumps(payload) + "\n").encode("utf-8"))
                 data = b""
                 while not data.endswith(b"\n"):
@@ -39,26 +48,37 @@ def _send(payload: dict) -> dict:
     return {"ok": False, "error": "could not reach session_daemon"}
 
 
+def _daemon_reachable() -> bool:
+    try:
+        with socket.create_connection(_DAEMON_ADDR, timeout=2):
+            return True
+    except OSError:
+        return False
+
+
 def _ensure_daemon_running() -> None:
-    if SOCKET_PATH.exists():
-        try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.settimeout(2)
-                s.connect(str(SOCKET_PATH))
-            return
-        except OSError:
-            pass
+    if _daemon_reachable():
+        return
+
+    kwargs = {}
+    if sys.platform == "win32":
+        kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        import os
+
+        kwargs["preexec_fn"] = os.setsid
+
     subprocess.Popen(
-        [sys.executable, str(_DAEMON_SCRIPT)],
+        _daemon_launch_command(),
         cwd=str(config.BASE_DIR),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-        preexec_fn=os.setsid,
         close_fds=True,
+        **kwargs,
     )
     for _ in range(20):
-        if SOCKET_PATH.exists():
+        if _daemon_reachable():
             return
         time.sleep(0.25)
 

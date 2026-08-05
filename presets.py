@@ -8,7 +8,7 @@ import yaml
 import agents_store
 import config
 
-PRESETS_DIR = config.BASE_DIR / "presets"
+PRESETS_DIR = config.BUNDLE_DIR / "presets"
 MANIFEST_FILE = PRESETS_DIR / "manifest.json"
 
 

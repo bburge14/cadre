@@ -2,3 +2,5 @@ flask
 pyyaml
 python-dotenv
 requests
+psutil
+pywinpty; sys_platform == "win32"
