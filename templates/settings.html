@@ -48,10 +48,14 @@
 
     <h2>GitLab</h2>
     <p class="hint">
-      User Settings &rarr; Applications on your GitLab instance. Callback URL
-      follows the same pattern with <code>/oauth/gitlab/callback</code>.
+      User Settings &rarr; Applications on your GitLab instance (or
+      admin-wide if self-hosted). Set the <strong>Redirect URI</strong> to
+      exactly:<br>
+      <code>{{ gitlab_callback_url }}</code><br>
+      Scopes needed: <code>read_api</code> and <code>read_repository</code>.
       Only change the base URL below if you're using self-hosted GitLab.
     </p>
+    {% if gitlab_connected %}<p class="status">&#10003; Your GitLab account is connected.</p>{% endif %}
     <label>GitLab base URL</label>
     <input name="gitlab_base_url" value="{{ values.gitlab_base_url }}">
     <label>Application ID</label>

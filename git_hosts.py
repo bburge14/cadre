@@ -104,4 +104,71 @@ def github_clone_url_for(full_name: str, repos: list[dict]) -> str:
     raise ValueError(f"Unknown repo: {full_name}")
 
 
-# ---- GitLab (added in Milestone 3) ----
+# ---- GitLab ----
+
+
+def gitlab_authorize_url(redirect_uri: str, state: str) -> str:
+    params = {
+        "client_id": settings.get("gitlab_client_id"),
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "read_api read_repository",
+        "state": state,
+    }
+    query = "&".join(f"{k}={requests.utils.quote(v)}" for k, v in params.items())
+    base = settings.get("gitlab_base_url")
+    return f"{base}/oauth/authorize?{query}"
+
+
+def gitlab_exchange_code(code: str, redirect_uri: str) -> str:
+    base = settings.get("gitlab_base_url")
+    resp = requests.post(
+        f"{base}/oauth/token",
+        data={
+            "client_id": settings.get("gitlab_client_id"),
+            "client_secret": settings.get("gitlab_client_secret"),
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": redirect_uri,
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "access_token" not in data:
+        raise ValueError(f"GitLab token exchange failed: {data}")
+    return data["access_token"]
+
+
+def gitlab_list_repos(token: str) -> list[dict]:
+    repos = []
+    base = settings.get("gitlab_base_url")
+    url = f"{base}/api/v4/projects?membership=true&per_page=100&order_by=last_activity_at"
+    headers = {"Authorization": f"Bearer {token}"}
+    for _ in range(20):  # hard cap on pages, just in case
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+        for repo in resp.json():
+            repos.append(
+                {
+                    "full_name": repo["path_with_namespace"],
+                    "clone_url": repo["http_url_to_repo"],
+                    "private": repo["visibility"] != "public",
+                }
+            )
+        next_url = None
+        next_page = resp.headers.get("X-Next-Page")
+        if next_page:
+            sep = "&" if "?" in url else "?"
+            next_url = f"{base}/api/v4/projects?membership=true&per_page=100&order_by=last_activity_at{sep}page={next_page}"
+        if not next_url:
+            break
+        url = next_url
+    return repos
+
+
+def gitlab_clone_url_for(full_name: str, repos: list[dict]) -> str:
+    for repo in repos:
+        if repo["full_name"] == full_name:
+            return repo["clone_url"]
+    raise ValueError(f"Unknown repo: {full_name}")

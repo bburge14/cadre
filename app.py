@@ -183,6 +183,8 @@ def new_session_form():
         session=None,
         github_connected=bool(git_hosts.get_token("github")),
         github_configured=bool(settings.get("github_client_id")),
+        gitlab_connected=bool(git_hosts.get_token("gitlab")),
+        gitlab_configured=bool(settings.get("gitlab_client_id")),
     )
 
 
@@ -192,15 +194,17 @@ def create_session():
     label = request.form.get("label", "").strip()
     source = request.form.get("source", "local")
 
-    if source == "github":
+    if source in ("github", "gitlab"):
         repo_full_name = request.form.get("repo_full_name", "").strip()
-        token = git_hosts.get_token("github")
+        token = git_hosts.get_token(source)
         if not repo_full_name or not token:
-            flash("Pick a repo to clone from GitHub.", "error")
+            flash(f"Pick a repo to clone from {source.title()}.", "error")
             return redirect(url_for("new_session_form"))
         try:
-            repos = git_hosts.github_list_repos(token)
-            clone_url = git_hosts.github_clone_url_for(repo_full_name, repos)
+            list_repos = git_hosts.github_list_repos if source == "github" else git_hosts.gitlab_list_repos
+            clone_url_for = git_hosts.github_clone_url_for if source == "github" else git_hosts.gitlab_clone_url_for
+            repos = list_repos(token)
+            clone_url = clone_url_for(repo_full_name, repos)
         except Exception as exc:
             flash(f"Couldn't look up that repo: {exc}", "error")
             return redirect(url_for("new_session_form"))
@@ -249,6 +253,8 @@ def settings_form():
         values=settings.get_all(),
         github_callback_url=url_for("github_oauth_callback", _external=True),
         github_connected=bool(git_hosts.get_token("github")),
+        gitlab_callback_url=url_for("gitlab_oauth_callback", _external=True),
+        gitlab_connected=bool(git_hosts.get_token("gitlab")),
     )
 
 
@@ -316,6 +322,57 @@ def github_repos_json():
         return {"repos": [], "connected": False}
     try:
         repos = git_hosts.github_list_repos(token)
+    except Exception as exc:
+        return {"repos": [], "connected": True, "error": str(exc)}
+    return {"repos": repos, "connected": True}
+
+
+@app.get("/oauth/gitlab/start")
+@require_auth
+def gitlab_oauth_start():
+    if not settings.get("gitlab_client_id"):
+        flash("Add a GitLab Application ID/Secret in Settings first.", "error")
+        return redirect(url_for("settings_form"))
+    state = secrets.token_urlsafe(32)
+    session["gitlab_oauth_state"] = state
+    redirect_uri = url_for("gitlab_oauth_callback", _external=True)
+    return redirect(git_hosts.gitlab_authorize_url(redirect_uri, state))
+
+
+@app.get("/oauth/gitlab/callback")
+@require_auth
+def gitlab_oauth_callback():
+    expected_state = session.pop("gitlab_oauth_state", None)
+    got_state = request.args.get("state")
+    if not expected_state or not secrets.compare_digest(expected_state, got_state or ""):
+        flash("GitLab OAuth state mismatch -- please try connecting again.", "error")
+        return redirect(url_for("new_session_form"))
+
+    code = request.args.get("code")
+    if not code:
+        flash("GitLab didn't return an authorization code.", "error")
+        return redirect(url_for("new_session_form"))
+
+    redirect_uri = url_for("gitlab_oauth_callback", _external=True)
+    try:
+        token = git_hosts.gitlab_exchange_code(code, redirect_uri)
+    except Exception as exc:
+        flash(f"GitLab token exchange failed: {exc}", "error")
+        return redirect(url_for("new_session_form"))
+
+    git_hosts.set_token("gitlab", token)
+    flash("GitLab connected.", "success")
+    return redirect(url_for("new_session_form"))
+
+
+@app.get("/oauth/gitlab/repos.json")
+@require_auth
+def gitlab_repos_json():
+    token = git_hosts.get_token("gitlab")
+    if not token:
+        return {"repos": [], "connected": False}
+    try:
+        repos = git_hosts.gitlab_list_repos(token)
     except Exception as exc:
         return {"repos": [], "connected": True, "error": str(exc)}
     return {"repos": repos, "connected": True}

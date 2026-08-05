@@ -37,6 +37,7 @@
     <div class="source-tabs">
       <div class="source-tab active" data-source="local" onclick="selectSource('local')">Local directory</div>
       <div class="source-tab" data-source="github" onclick="selectSource('github')">GitHub repo</div>
+      <div class="source-tab" data-source="gitlab" onclick="selectSource('gitlab')">GitLab repo</div>
     </div>
 
     <div class="source-panel active" id="panel-local">
@@ -51,7 +52,20 @@
       <p class="hint"><a href="{{ url_for('github_oauth_start') }}">Connect your GitHub account</a> to pick a repo here.</p>
       {% else %}
       <label>repository</label>
-      <select name="repo_full_name" id="repo-select">
+      <select name="repo_full_name" id="repo-select-github">
+        <option value="">Loading repos…</option>
+      </select>
+      {% endif %}
+    </div>
+
+    <div class="source-panel" id="panel-gitlab">
+      {% if not gitlab_configured %}
+      <p class="hint">GitLab isn't set up yet — add your Application ID/Secret in <a href="{{ url_for('settings_form') }}">Settings</a>.</p>
+      {% elif not gitlab_connected %}
+      <p class="hint"><a href="{{ url_for('gitlab_oauth_start') }}">Connect your GitLab account</a> to pick a repo here.</p>
+      {% else %}
+      <label>repository</label>
+      <select name="repo_full_name" id="repo-select-gitlab">
         <option value="">Loading repos…</option>
       </select>
       {% endif %}
@@ -62,35 +76,33 @@
     <button class="btn btn-primary" type="submit">{{ 'Save' if session else 'Create & start' }}</button>
   </form>
 
-{% if not session and github_connected %}
 <script>
 function selectSource(src) {
   document.getElementById('source-field').value = src;
   document.querySelectorAll('.source-tab').forEach(el => el.classList.toggle('active', el.dataset.source === src));
-  document.getElementById('panel-local').classList.toggle('active', src === 'local');
-  document.getElementById('panel-github').classList.toggle('active', src === 'github');
-}
-fetch("{{ url_for('github_repos_json') }}").then(r => r.json()).then(data => {
-  const select = document.getElementById('repo-select');
-  if (!select) return;
-  select.innerHTML = '';
-  data.repos.forEach(repo => {
-    const opt = document.createElement('option');
-    opt.value = repo.full_name;
-    opt.textContent = repo.full_name + (repo.private ? ' (private)' : '');
-    select.appendChild(opt);
+  ['local', 'github', 'gitlab'].forEach(s => {
+    document.getElementById('panel-' + s).classList.toggle('active', s === src);
   });
-});
-</script>
-{% else %}
-<script>
-function selectSource(src) {
-  document.getElementById('source-field').value = src;
-  document.querySelectorAll('.source-tab').forEach(el => el.classList.toggle('active', el.dataset.source === src));
-  document.getElementById('panel-local').classList.toggle('active', src === 'local');
-  document.getElementById('panel-github').classList.toggle('active', src === 'github');
 }
-</script>
+function loadRepos(url, selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  fetch(url).then(r => r.json()).then(data => {
+    select.innerHTML = '';
+    data.repos.forEach(repo => {
+      const opt = document.createElement('option');
+      opt.value = repo.full_name;
+      opt.textContent = repo.full_name + (repo.private ? ' (private)' : '');
+      select.appendChild(opt);
+    });
+  });
+}
+{% if not session and github_connected %}
+loadRepos("{{ url_for('github_repos_json') }}", "repo-select-github");
 {% endif %}
+{% if not session and gitlab_connected %}
+loadRepos("{{ url_for('gitlab_repos_json') }}", "repo-select-gitlab");
+{% endif %}
+</script>
 </body>
 </html>
