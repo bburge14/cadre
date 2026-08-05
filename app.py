@@ -218,25 +218,46 @@ def delete_agent(filename):
 
 
 def _resolve_target(target: str):
-    """target is 'global' or a session_id. Returns (agents_dir, session_entry)
-    where agents_dir is None for global, session_entry is None for global."""
+    """target is 'global', a session_id, or a raw absolute directory path
+    (existing or brand new -- created here if it doesn't exist yet, so you
+    can set up a stack for a project before ever creating a session there).
+    Returns (agents_dir, session_id_or_None). agents_dir is None only for
+    'global'. session_id is None for global OR a fresh custom directory
+    with no session yet -- the caller distinguishes those by checking
+    target == 'global' itself."""
     if target == "global" or not target:
         return None, None
     entry = sessions_store.get(target)
-    if entry is None:
-        raise ValueError("Unknown session for that target.")
-    return agents_store.project_agents_dir(entry["workdir"]), entry
+    if entry is not None:
+        return agents_store.project_agents_dir(entry["workdir"]), entry["id"]
+
+    path = Path(target).expanduser()
+    if not path.is_absolute():
+        raise ValueError(f"'{target}' isn't a known session or an absolute directory path.")
+    path.mkdir(parents=True, exist_ok=True)
+    return agents_store.project_agents_dir(str(path)), None
+
+
+def _restart_for_target(target: str, session_id: str | None) -> None:
+    if target == "global":
+        session_manager.restart_all_running()
+    elif session_id:
+        session_manager.restart(session_id)
+    # else: a brand-new custom directory with no session yet -- nothing running there to restart
 
 
 @app.get("/stacks")
 @require_auth
 def stacks_page():
     target = request.args.get("target", "global")
+    session_ids = {s["id"] for s in sessions_store.list_sessions()}
+    is_custom_path = target not in ("global",) and target not in session_ids
     try:
-        agents_dir, _entry = _resolve_target(target)
+        agents_dir, _session_id = _resolve_target(target)
     except ValueError:
         target = "global"
         agents_dir = None
+        is_custom_path = False
     active_names = {a.name for a in agents_store.list_agents(agents_dir=agents_dir)}
     return render_template(
         "stacks.html",
@@ -245,6 +266,7 @@ def stacks_page():
         active_names=active_names,
         sessions=sessions_store.list_sessions(),
         target=target,
+        is_custom_path=is_custom_path,
     )
 
 
@@ -252,18 +274,15 @@ def stacks_page():
 @require_auth
 def activate_preset():
     preset_id = request.form.get("preset_id", "")
-    target = request.form.get("target", "global")
+    target = request.form.get("custom_target", "").strip() or request.form.get("target", "global")
     try:
-        agents_dir, entry = _resolve_target(target)
+        agents_dir, session_id = _resolve_target(target)
         written = presets.activate_preset(preset_id, agents_dir=agents_dir)
     except ValueError as exc:
         flash(str(exc), "error")
         return redirect(url_for("stacks_page"))
-    if entry is not None:
-        session_manager.restart(entry["id"])
-    else:
-        session_manager.restart_all_running()
-    flash(f"Activated {len(written)} agent(s) for {'this project' if entry else 'all sessions (global)'}.", "success")
+    _restart_for_target(target, session_id)
+    flash(f"Activated {len(written)} agent(s) for {'global' if target == 'global' else target}.", "success")
     return redirect(url_for("stacks_page", target=target))
 
 
@@ -271,18 +290,15 @@ def activate_preset():
 @require_auth
 def activate_custom():
     agent_ids = request.form.getlist("agent_ids")
-    target = request.form.get("target", "global")
+    target = request.form.get("custom_target", "").strip() or request.form.get("target", "global")
     try:
-        agents_dir, entry = _resolve_target(target)
+        agents_dir, session_id = _resolve_target(target)
     except ValueError as exc:
         flash(str(exc), "error")
         return redirect(url_for("stacks_page"))
     written = presets.activate(agent_ids, agents_dir=agents_dir)
-    if entry is not None:
-        session_manager.restart(entry["id"])
-    else:
-        session_manager.restart_all_running()
-    flash(f"Activated {len(written)} agent(s) for {'this project' if entry else 'all sessions (global)'}.", "success")
+    _restart_for_target(target, session_id)
+    flash(f"Activated {len(written)} agent(s) for {'global' if target == 'global' else target}.", "success")
     return redirect(url_for("stacks_page", target=target))
 
 

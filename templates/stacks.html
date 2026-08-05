@@ -37,12 +37,22 @@
 
   <div class="target-box">
     <label style="font-size:0.82rem; color:#9a9a9a;">Apply to</label>
-    <select id="target-select" onchange="window.location.href = '{{ url_for('stacks_page') }}?target=' + encodeURIComponent(this.value)">
+    <select id="target-select" onchange="if (this.value !== '__custom__') window.location.href = '{{ url_for('stacks_page') }}?target=' + encodeURIComponent(this.value)">
       <option value="global" {{ 'selected' if target == 'global' else '' }}>Global — every session, everywhere</option>
       {% for s in sessions %}
       <option value="{{ s.id }}" {{ 'selected' if target == s.id else '' }}>{{ s.label }} ({{ s.workdir }})</option>
       {% endfor %}
+      <option value="__custom__" {{ 'selected' if is_custom_path else '' }}>+ New or existing directory&hellip;</option>
     </select>
+    <label style="font-size:0.82rem; color:#9a9a9a; margin-top:0.8rem;">...or set up a stack for any directory directly</label>
+    <input type="text" id="custom-target-input" placeholder="/home/you/projects/my-new-stack"
+           value="{{ target if is_custom_path else '' }}"
+           onkeydown="if (event.key === 'Enter') { event.preventDefault(); window.location.href = '{{ url_for('stacks_page') }}?target=' + encodeURIComponent(this.value); }">
+    <p class="hint" style="color:#888; font-size:0.78rem; margin:0.4rem 0 0;">
+      Doesn't need to exist yet — creating it here sets up the stack before
+      you ever create a session there. Press Enter to load it, or just
+      activate a preset/library selection below and it's created for you.
+    </p>
     <p class="hint" style="color:#888; font-size:0.78rem; margin:0.5rem 0 0;">
       {% if target == 'global' %}
       Writes to <code>~/.claude/agents/</code>, active for every session on this machine.
@@ -70,6 +80,7 @@
       <form method="post" action="{{ url_for('activate_preset') }}">
         <input type="hidden" name="preset_id" value="{{ preset.id }}">
         <input type="hidden" name="target" value="{{ target }}">
+        <input type="hidden" name="custom_target" class="custom-target-hidden" value="">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-primary" type="submit">Activate</button>
       </form>
@@ -81,6 +92,7 @@
   <p class="sub">Pick any individual agents from the full library, or <a href="{{ url_for('new_agent_form') }}">write a wholly new one</a>.</p>
   <form method="post" action="{{ url_for('activate_custom') }}">
     <input type="hidden" name="target" value="{{ target }}">
+        <input type="hidden" name="custom_target" class="custom-target-hidden" value="">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <ul class="agent-list">
       {% for agent in library %}
@@ -96,5 +108,11 @@
     </ul>
     <button class="btn btn-primary" type="submit" style="margin-top:1rem;">Activate selected</button>
   </form>
+
+<script>
+document.getElementById('custom-target-input').addEventListener('input', function () {
+  document.querySelectorAll('.custom-target-hidden').forEach(el => el.value = this.value);
+});
+</script>
 </body>
 </html>
