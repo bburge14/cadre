@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+import secrets
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).parent
+load_dotenv(BASE_DIR / ".env")
+
+import os
+
+INSTANCE_DIR = BASE_DIR / "instance"
+INSTANCE_DIR.mkdir(exist_ok=True)
+
+HOST = os.environ.get("COMMAND_CENTER_HOST", "127.0.0.1")
+PORT = int(os.environ.get("COMMAND_CENTER_PORT", "7420"))
+CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "claude")
+
+_agents_dir_override = os.environ.get("CLAUDE_AGENTS_DIR", "").strip()
+CLAUDE_AGENTS_DIR = Path(_agents_dir_override) if _agents_dir_override else Path.home() / ".claude" / "agents"
+
+SESSIONS_FILE = INSTANCE_DIR / "sessions.json"
+ADMIN_FILE = INSTANCE_DIR / "admin.json"
+SECRET_KEY_FILE = INSTANCE_DIR / "secret_key"
+OAUTH_TOKENS_FILE = INSTANCE_DIR / "oauth_tokens.json"
+SETTINGS_FILE = INSTANCE_DIR / "settings.json"
+
+# GitHub/GitLab OAuth credentials and PROJECTS_ROOT are NOT read here --
+# they're user-editable at runtime via the in-app Settings page, backed by
+# settings.py/instance/settings.json, with these env vars only used as an
+# initial fallback default the first time each is looked up. See settings.py.
+
+
+def _load_or_create_secret_key() -> str:
+    env_key = os.environ.get("FLASK_SECRET_KEY", "").strip()
+    if env_key:
+        return env_key
+    if SECRET_KEY_FILE.exists():
+        return SECRET_KEY_FILE.read_text().strip()
+    key = secrets.token_hex(32)
+    SECRET_KEY_FILE.write_text(key)
+    SECRET_KEY_FILE.chmod(0o600)
+    return key
+
+
+SECRET_KEY = _load_or_create_secret_key()

@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ 'Edit' if agent else 'New' }} agent — Command Center</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; max-width: 760px; }
+  a { color: #7ab7ff; }
+  label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
+  input, select, textarea { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
+  textarea { font-family: ui-monospace, monospace; font-size: 0.85rem; min-height: 320px; }
+  .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 5px; text-decoration: none; font-size: 0.9rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin-top: 1.2rem; }
+  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
+  .hint { color: #888; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+  <p><a href="{{ url_for('index') }}">&larr; back</a></p>
+  <h1 style="font-size:1.2rem;">{{ 'Edit ' + filename if agent else 'New agent' }}</h1>
+
+  <form method="post" action="{{ url_for('save_agent') }}">
+    <input type="hidden" name="filename" value="{{ filename or '' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>name <span class="hint">(lowercase-hyphenated, e.g. rust-engineer)</span></label>
+    <input name="name" value="{{ agent.frontmatter.get('name', '') if agent else '' }}" required>
+
+    <label>description <span class="hint">(what Claude matches your request against to auto-delegate here)</span></label>
+    <input name="description" value="{{ agent.frontmatter.get('description', '') if agent else '' }}" required>
+
+    <label>tools <span class="hint">(comma-separated, e.g. "Read, Edit, Write, Bash, Grep, Glob, Agent(researcher)" — blank = inherit all)</span></label>
+    <input name="tools" value="{{ agent.frontmatter.get('tools', '') if agent else '' }}">
+
+    <label>model</label>
+    <select name="model">
+      {% set current = agent.frontmatter.get('model', 'inherit') if agent else 'inherit' %}
+      {% for opt in ['inherit', 'sonnet', 'opus', 'haiku', 'fable'] %}
+        <option value="{{ opt }}" {{ 'selected' if opt == current else '' }}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+
+    <label>effort</label>
+    <select name="effort">
+      {% set current_effort = agent.frontmatter.get('effort', '') if agent else '' %}
+      <option value="">(default)</option>
+      {% for opt in ['low', 'medium', 'high', 'xhigh', 'max'] %}
+        <option value="{{ opt }}" {{ 'selected' if opt == current_effort else '' }}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+
+    <label>color</label>
+    <select name="color">
+      {% set current_color = agent.frontmatter.get('color', '') if agent else '' %}
+      <option value="">(none)</option>
+      {% for opt in ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'] %}
+        <option value="{{ opt }}" {{ 'selected' if opt == current_color else '' }}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+
+    <label>system prompt (markdown body)</label>
+    <textarea name="body">{{ agent.body if agent else '' }}</textarea>
+
+    <button class="btn btn-primary" type="submit">Save &amp; restart session</button>
+  </form>
+</body>
+</html>

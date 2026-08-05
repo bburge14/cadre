@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Brad's Agent Stack Creator</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; }
+  h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1rem; }
+  .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  a { color: #7ab7ff; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid #333; font-size: 0.9rem; }
+  th { color: #9a9a9a; font-weight: 500; }
+  td.workdir { color: #888; font-size: 0.8rem; font-family: ui-monospace, monospace; }
+  .btn { display: inline-block; padding: 0.35rem 0.8rem; border-radius: 5px; text-decoration: none; font-size: 0.85rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; }
+  .btn:hover { background: #34363a; }
+  .btn-danger { border-color: #6b3030; color: #ff9d9d; }
+  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
+  form.inline { display: inline; }
+  .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .status-on { background: #4caf50; }
+  .status-off { background: #666; }
+  .section-head { display:flex; justify-content:space-between; align-items:center; }
+  .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; }
+  .flash.success { background: #1e3a24; color: #a6e3ad; }
+  .flash.error { background: #3a1e1e; color: #e3a6a6; }
+</style>
+</head>
+<body>
+  <div class="section-head">
+    <h1>Brad's Agent Stack Creator</h1>
+    <div>
+      <a class="btn" href="{{ url_for('settings_form') }}">Settings</a>
+      <a class="btn" href="{{ url_for('logout') }}">Log out</a>
+    </div>
+  </div>
+  <div class="sub">Manage multiple Claude Code sessions (each remotely reachable via claude.ai/code) and the global agent team they all share.</div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="section-head">
+    <h2>Sessions</h2>
+    <a class="btn btn-primary" href="{{ url_for('new_session_form') }}">+ New session</a>
+  </div>
+  <table>
+    <tr><th>Label</th><th>Working directory</th><th>Status</th><th></th></tr>
+    {% for s in sessions %}
+    <tr>
+      <td><a href="{{ url_for('session_detail', session_id=s.id) }}">{{ s.label }}</a></td>
+      <td class="workdir">{{ s.workdir }}</td>
+      <td>
+        <span class="status-dot {{ 'status-on' if s.status.running else 'status-off' }}"></span>
+        {{ 'running' if s.status.running else 'stopped' }}
+        {% if s.status.pid %}(pid {{ s.status.pid }}){% endif %}
+      </td>
+      <td>
+        <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
+        <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
+        <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
+        <a class="btn" href="{{ url_for('edit_session_form', session_id=s.id) }}">Edit</a>
+        <a class="btn" href="{{ url_for('session_detail', session_id=s.id) }}">View</a>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="color:#888;">No sessions yet.</td></tr>
+    {% endfor %}
+  </table>
+
+  <div class="section-head">
+    <h2>Agents</h2>
+    <a class="btn btn-primary" href="{{ url_for('new_agent_form') }}">+ New agent</a>
+  </div>
+  <table>
+    <tr><th>Name</th><th>Description</th><th>Model</th><th></th></tr>
+    {% for agent in agents %}
+    <tr>
+      <td>{{ agent.name }}</td>
+      <td style="color:#bbb;">{{ agent.frontmatter.get('description', '') }}</td>
+      <td>{{ agent.frontmatter.get('model', 'inherit') }}</td>
+      <td>
+        <a class="btn" href="{{ url_for('edit_agent_form', filename=agent.filename) }}">Edit</a>
+        <form class="inline" method="post" action="{{ url_for('delete_agent', filename=agent.filename) }}"
+              onsubmit="return confirm('Delete {{ agent.filename }}?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

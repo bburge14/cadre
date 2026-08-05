@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ session.label }} — Command Center</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; max-width: 760px; }
+  a { color: #7ab7ff; }
+  .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 5px; text-decoration: none; font-size: 0.88rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; }
+  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
+  .btn-danger { border-color: #6b3030; color: #ff9d9d; }
+  form.inline { display: inline; }
+  .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+  .status-on { background: #4caf50; }
+  .status-off { background: #666; }
+  .workdir { color: #888; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+  pre#output { background: #111; padding: 0.8rem; border-radius: 6px; max-height: 420px; overflow-y: auto; font-size: 0.78rem; white-space: pre-wrap; margin-top: 1rem; }
+  .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #333; }
+</style>
+</head>
+<body>
+  <p><a href="{{ url_for('index') }}">&larr; back</a></p>
+  <h1 style="font-size:1.2rem; margin-bottom:0.1rem;">{{ session.label }}</h1>
+  <p class="workdir">{{ session.workdir }}</p>
+  <p style="font-size:0.85rem;">
+    <span class="status-dot {{ 'status-on' if status.running else 'status-off' }}" id="dot"></span>
+    <span id="status-text">{{ 'running' if status.running else 'stopped' }}</span>
+    <span id="pid-text">{% if status.pid %}(pid {{ status.pid }}){% endif %}</span>
+  </p>
+
+  <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
+  <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
+  <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
+  <a class="btn" href="{{ url_for('edit_session_form', session_id=session.id) }}">Edit</a>
+
+  <p style="font-size:0.8rem; color:#888; margin-top:1.2rem;">Output (session URL / QR appears here after starting):</p>
+  <pre id="output"></pre>
+
+  <div class="danger-zone">
+    <form method="post" action="{{ url_for('session_action', session_id=session.id, action='delete') }}"
+          onsubmit="return confirm('Delete session {{ session.label }}? This stops it and removes it from this list.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="font-size:0.85rem; color:#bbb;">
+        <input type="checkbox" name="wipe_history"> also permanently delete its conversation history
+      </label><br>
+      <button class="btn btn-danger" type="submit" style="margin-top:0.6rem;">Delete session</button>
+    </form>
+  </div>
+
+<script>
+async function poll() {
+  try {
+    const res = await fetch("{{ url_for('session_status_json', session_id=session.id) }}");
+    const data = await res.json();
+    document.getElementById("status-text").textContent = data.running ? "running" : "stopped";
+    document.getElementById("dot").className = "status-dot " + (data.running ? "status-on" : "status-off");
+    document.getElementById("pid-text").textContent = data.pid ? "(pid " + data.pid + ")" : "";
+    const out = document.getElementById("output");
+    out.textContent = data.output;
+    out.scrollTop = out.scrollHeight;
+  } catch (e) { /* ignore */ }
+}
+poll();
+setInterval(poll, 3000);
+</script>
+</body>
+</html>
