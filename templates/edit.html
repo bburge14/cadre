@@ -51,6 +51,15 @@
       {% endfor %}
     </select>
 
+    <label>primary AI for this agent's actual work <span class="hint">(Claude always runs the agent container itself — picking another provider here makes its instructions delegate the real work to that provider via Bash and use its output as the answer)</span></label>
+    <select name="primary_provider">
+      {% set current_provider = agent.frontmatter.get('primary_provider', 'claude') if agent else 'claude' %}
+      <option value="claude" {{ 'selected' if current_provider == 'claude' else '' }}>Claude (native, default)</option>
+      {% for provider in cli_providers %}
+      <option value="{{ provider.id }}" {{ 'selected' if current_provider == provider.id else '' }}>{{ provider.label }}</option>
+      {% endfor %}
+    </select>
+
     <label>effort</label>
     <select name="effort">
       {% set current_effort = agent.frontmatter.get('effort', '') if agent else '' %}

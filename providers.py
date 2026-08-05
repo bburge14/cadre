@@ -42,6 +42,19 @@ class Provider:
             return [self.binary, "--session", session_id]
         raise ValueError(f"Unknown provider: {self.id}")
 
+    def consult_command_hint(self) -> str:
+        """The exact non-interactive single-prompt invocation, for embedding
+        in a subagent's own instructions -- confirmed by direct testing on
+        this machine (auth-only failures, syntax verified correct):
+        `gemini -p "..."`, `codex exec "..."`, `kimi -p "..."`."""
+        if self.id == "gemini":
+            return f'{self.binary} -p "<your fully-specified question or task>"'
+        if self.id == "codex":
+            return f'{self.binary} exec "<your fully-specified question or task>"'
+        if self.id == "kimi":
+            return f'{self.binary} -p "<your fully-specified question or task>"'
+        raise ValueError(f"{self.id} has no non-interactive consult mode")
+
     def login_args(self) -> list[str]:
         # Triggers each CLI's own first-run/`/login`-equivalent flow.
         # Confirmed for Kimi (device-code flow on bare invocation); Gemini

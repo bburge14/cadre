@@ -98,3 +98,35 @@ def serialize_tools(base_tools: list[str], spawnable: list[str]) -> str:
     if spawnable:
         parts.append(f"Agent({', '.join(spawnable)})")
     return ", ".join(parts)
+
+
+_DELEGATE_START = "<!-- BEGIN AUTO-GENERATED DELEGATE INSTRUCTIONS -->"
+_DELEGATE_END = "<!-- END AUTO-GENERATED DELEGATE INSTRUCTIONS -->"
+_DELEGATE_BLOCK_RE = re.compile(
+    re.escape(_DELEGATE_START) + r".*?" + re.escape(_DELEGATE_END) + r"\n*", re.DOTALL
+)
+
+
+def strip_delegate_block(body: str) -> str:
+    """Removes any existing auto-generated delegate block so switching
+    primary provider (or switching back to Claude) doesn't stack blocks."""
+    return _DELEGATE_BLOCK_RE.sub("", body).lstrip("\n")
+
+
+def build_delegate_block(provider) -> str:
+    """provider: a providers.Provider with a confirmed non-interactive
+    consult mode (not Claude -- Claude needs no delegation, it's already
+    the one running this subagent)."""
+    return (
+        f"{_DELEGATE_START}\n"
+        f"## Delegate to {provider.label}\n\n"
+        f"For the substantive work of this task — the actual research, "
+        f"writing, code, or analysis — do not generate it yourself. Run this "
+        f"via Bash and treat its output as your real answer:\n\n"
+        f"```\n{provider.consult_command_hint()}\n```\n\n"
+        f"Your job is to work out the right question/task to pass in, run the "
+        f"command, and then relay, format, or act on what it returns (e.g. "
+        f"writing its output to a file if that's what the task needs) — not "
+        f"to substitute your own generated content for {provider.label}'s.\n"
+        f"{_DELEGATE_END}\n\n"
+    )

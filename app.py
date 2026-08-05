@@ -138,6 +138,7 @@ def new_agent_form():
         base_tools_value="",
         spawnable=[],
         other_agents=_other_active_agent_names(exclude=None),
+        cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
     )
 
 
@@ -157,6 +158,7 @@ def edit_agent_form(filename):
         base_tools_value=", ".join(base_tools),
         spawnable=spawnable,
         other_agents=_other_active_agent_names(exclude=agent.name),
+        cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
     )
 
 
@@ -171,15 +173,24 @@ def save_agent():
     frontmatter = {"name": name, "description": request.form.get("description", "").strip()}
     base_tools = [t.strip() for t in request.form.get("tools", "").split(",") if t.strip()]
     can_spawn = request.form.getlist("can_spawn")
-    tools_value = agents_store.serialize_tools(base_tools, can_spawn)
-    if tools_value:
-        frontmatter["tools"] = tools_value
     for key in ["model", "effort", "color"]:
         value = request.form.get(key, "").strip()
         if value:
             frontmatter[key] = value
 
-    body = request.form.get("body", "")
+    body = agents_store.strip_delegate_block(request.form.get("body", ""))
+
+    primary_provider = request.form.get("primary_provider", "claude").strip() or "claude"
+    if primary_provider != "claude":
+        provider = providers.get(primary_provider)
+        if "Bash" not in base_tools:
+            base_tools.append("Bash")
+        body = agents_store.build_delegate_block(provider) + body
+        frontmatter["primary_provider"] = primary_provider
+
+    tools_value = agents_store.serialize_tools(base_tools, can_spawn)
+    if tools_value:
+        frontmatter["tools"] = tools_value
 
     try:
         agents_store.write_agent(filename, frontmatter, body)
