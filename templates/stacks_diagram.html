@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Stack diagram — Brad's Agent Stack Creator</title>
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; }
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 900px; }
   a { color: #7ab7ff; }
   h1 { font-size: 1.2rem; }
   .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
@@ -24,7 +24,7 @@
 </style>
 </head>
 <body>
-  <p><a href="{{ url_for('stacks_page') }}">&larr; back to Agent Stacks</a></p>
+  <p><a class="btn" href="{{ url_for('stacks_page') }}">&larr; back to Agent Stacks</a></p>
   <h1>Stack diagram</h1>
   <div class="sub">Click any agent to change what it's allowed to spawn. Lines from "Coordinator" show every agent you (the top-level session) can delegate to directly; lines between agents show delegation each one can do itself.</div>
 

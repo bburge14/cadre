@@ -81,34 +81,33 @@ account system beyond the one admin login you create for yourself below.
 
 ## Steps (Windows)
 
-Same shape as Linux/macOS, PowerShell syntax:
-
-1. **Get the code** (see the private-repo note above):
+1. **Get the code** (see the private-repo note above). Either `git clone`,
+   or download the ZIP from the repo's Releases page and extract it —
+   either way you end up with a folder containing `app.py`, `windows\`,
+   etc.
    ```powershell
    git clone <this-repo-url> $env:USERPROFILE\claude-command-center
    cd $env:USERPROFILE\claude-command-center
    ```
 
-2. **Create the virtual environment**:
-   ```powershell
-   python -m venv venv
-   venv\Scripts\pip install -r requirements.txt
-   ```
-   This also installs `pywinpty`, which needs a working C++ toolchain to
-   build from source on some setups — if it fails, install the
+2. **Double-click `windows\setup.bat`** (or run it from a terminal). This
+   creates the virtual environment and installs everything from
+   `requirements.txt` — the one step that's easy to miss if you skip
+   straight to running the app. It also installs `pywinpty`, which needs a
+   working C++ toolchain to build from source on some setups — if that
+   step fails, install the
    [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-   (or just Visual Studio Community with the "Desktop development with
-   C++" workload) and re-run the `pip install`.
+   (or Visual Studio Community with the "Desktop development with C++"
+   workload) and re-run `windows\setup.bat`.
 
 3. **(Optional) copy the config template** — same as Linux/macOS:
    ```powershell
    copy .env.example .env
    ```
 
-4. **Run it**:
-   ```powershell
-   venv\Scripts\python app.py
-   ```
+4. **Double-click `windows\start.bat`** to launch the dashboard (same as
+   running `venv\Scripts\python app.py` yourself — this is just
+   double-clickable, and it's what you'd point a desktop shortcut at).
    Same as Linux/macOS from here — open the printed address in a browser,
    create your account, land on Agent Stacks, pick a preset, create your
    first session.

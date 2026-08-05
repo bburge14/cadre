@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Agent Stacks — Brad's Agent Stack Creator</title>
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; max-width: 780px; }
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 780px; }
   a { color: #7ab7ff; }
   h1 { font-size: 1.2rem; margin-bottom: 0.2rem; }
   h2 { font-size: 1rem; margin-top: 2rem; }
@@ -28,9 +28,10 @@
 </style>
 </head>
 <body>
-  <p><a href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
   <h1>Agent Stacks</h1>
-  <div class="sub">Pick a preset to get a starting team, or build a custom one from the library below. Activating adds agents alongside whatever's already active — it's never exclusive. <a href="{{ url_for('stacks_diagram') }}">View stack diagram &rarr;</a></div>
+  <div class="sub">Pick a preset to get a starting team, or build a custom one from the library below. Activating adds agents alongside whatever's already active — it's never exclusive.</div>
+  <p><a class="btn" href="{{ url_for('stacks_diagram') }}">View stack diagram &rarr;</a></p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}

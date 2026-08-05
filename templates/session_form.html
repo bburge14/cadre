@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>{{ 'Edit' if session else 'New' }} session — Command Center</title>
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; max-width: 620px; }
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 620px; }
   a { color: #7ab7ff; }
   label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
   input, select { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
@@ -19,7 +19,7 @@
 </style>
 </head>
 <body>
-  <p><a href="{{ url_for('index') }}">&larr; back</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}">&larr; back</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit session' if session else 'New session' }}</h1>
   {% if not session %}
   <p class="hint">Starts a brand-new Claude Code session (no prior history) in the directory you pick, with Remote Control enabled — it'll show up in claude.ai/code under this label. Uses the same global agent team as every other session.</p>
@@ -49,7 +49,8 @@
       {% if not github_configured %}
       <p class="hint">GitHub isn't set up yet — add your OAuth App's Client ID/Secret in <a href="{{ url_for('settings_form') }}">Settings</a>.</p>
       {% elif not github_connected %}
-      <p class="hint"><a href="{{ url_for('github_oauth_start') }}">Connect your GitHub account</a> to pick a repo here.</p>
+      <p class="hint">Connect your account to pick a repo here.</p>
+      <a class="btn btn-primary" href="{{ url_for('github_oauth_start') }}">Connect your GitHub account</a>
       {% else %}
       <label>repository</label>
       <select name="repo_full_name" id="repo-select-github">
@@ -62,7 +63,8 @@
       {% if not gitlab_configured %}
       <p class="hint">GitLab isn't set up yet — add your Application ID/Secret in <a href="{{ url_for('settings_form') }}">Settings</a>.</p>
       {% elif not gitlab_connected %}
-      <p class="hint"><a href="{{ url_for('gitlab_oauth_start') }}">Connect your GitLab account</a> to pick a repo here.</p>
+      <p class="hint">Connect your account to pick a repo here.</p>
+      <a class="btn btn-primary" href="{{ url_for('gitlab_oauth_start') }}">Connect your GitLab account</a>
       {% else %}
       <label>repository</label>
       <select name="repo_full_name" id="repo-select-gitlab">
