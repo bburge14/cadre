@@ -368,57 +368,51 @@ def create_session():
 # ---- Settings ----
 
 
+SECRET_SETTINGS = {
+    "github_client_secret", "gitlab_client_secret",
+    "gemini_api_key", "codex_api_key", "kimi_api_key",
+}
+
+
 @app.get("/settings")
 @require_auth
 def settings_form():
+    raw = settings.get_all()
+    # Secrets never round-trip into the page -- not even masked in a value
+    # attribute, since that's still plaintext in the HTML source. Only a
+    # boolean "is one set" flag reaches the template.
+    values = {k: ("" if k in SECRET_SETTINGS else v) for k, v in raw.items()}
+    secrets_set = {k: bool(raw[k]) for k in SECRET_SETTINGS}
     return render_template(
         "settings.html",
-        values=settings.get_all(),
+        values=values,
+        secrets_set=secrets_set,
         github_callback_url=url_for("github_oauth_callback", _external=True),
         github_connected=bool(git_hosts.get_token("github")),
         gitlab_callback_url=url_for("gitlab_oauth_callback", _external=True),
         gitlab_connected=bool(git_hosts.get_token("gitlab")),
-        cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
     )
 
 
 @app.post("/settings")
 @require_auth
 def save_settings():
-    settings.update(
-        github_client_id=request.form.get("github_client_id", ""),
-        github_client_secret=request.form.get("github_client_secret", ""),
-        gitlab_base_url=request.form.get("gitlab_base_url", "").rstrip("/") or "https://gitlab.com",
-        gitlab_client_id=request.form.get("gitlab_client_id", ""),
-        gitlab_client_secret=request.form.get("gitlab_client_secret", ""),
-        projects_root=request.form.get("projects_root", ""),
-        gemini_api_key=request.form.get("gemini_api_key", ""),
-        codex_api_key=request.form.get("codex_api_key", ""),
-        kimi_api_key=request.form.get("kimi_api_key", ""),
-    )
+    fields = {
+        "github_client_id": request.form.get("github_client_id", ""),
+        "gitlab_base_url": request.form.get("gitlab_base_url", "").rstrip("/") or "https://gitlab.com",
+        "gitlab_client_id": request.form.get("gitlab_client_id", ""),
+        "projects_root": request.form.get("projects_root", ""),
+    }
+    # Secret fields: the form never shows the existing value, so a blank
+    # submission means "leave it as-is," not "clear it" -- only overwrite
+    # when the user actually typed something.
+    for key in SECRET_SETTINGS:
+        value = request.form.get(key, "").strip()
+        if value:
+            fields[key] = value
+    settings.update(**fields)
     flash("Settings saved.", "success")
     return redirect(url_for("settings_form"))
-
-
-@app.post("/settings/connect-provider")
-@require_auth
-def connect_provider():
-    provider_id = request.form.get("provider_id", "")
-    try:
-        provider = providers.get(provider_id)
-    except ValueError:
-        flash("Unknown provider.", "error")
-        return redirect(url_for("settings_form"))
-    result = session_manager.create(f"{provider.label} Login", str(Path.home()), provider=provider_id)
-    if not result.get("ok"):
-        flash(f"Couldn't start {provider.label} login: {result.get('error')}", "error")
-        return redirect(url_for("settings_form"))
-    flash(
-        f"Started a '{provider.label} Login' session -- open its terminal to complete login, "
-        "then delete it if you don't want it cluttering your session list.",
-        "success",
-    )
-    return redirect(url_for("session_detail", session_id=result["session_id"]))
 
 
 # ---- Git host OAuth ----

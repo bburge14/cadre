@@ -1,11 +1,14 @@
 """Registry of supported AI CLI providers -- what binary to run, how to
 start a fresh session vs resume one, and whether/how API-key auth works.
 
-Login (account-based auth) is NOT handled here: each CLI manages its own
-OS-level credential cache the same way `claude`/`/login` already does.
-This module only needs to know how to *invoke* each one; login itself is
-just running that binary interactively (see session_daemon.py's login
-support), same mechanism as any other session.
+Claude uses its own account login (already required just to run this app
+at all). Gemini/Codex/Kimi are API-key-only here -- their account-login
+flows are baked into each CLI binary itself (each ships its own
+pre-registered OAuth client), so there's no equivalent of the GitHub/GitLab
+OAuth flow a third-party app can implement directly; the only way to
+trigger it is running the CLI interactively, which produced a confusing
+"this looks like it started a whole session" UX for what should be a
+one-off login action. Simpler and clearer: API keys only for these three.
 """
 from __future__ import annotations
 
@@ -54,15 +57,6 @@ class Provider:
         if self.id == "kimi":
             return f'{self.binary} -p "<your fully-specified question or task>"'
         raise ValueError(f"{self.id} has no non-interactive consult mode")
-
-    def login_args(self) -> list[str]:
-        # Triggers each CLI's own first-run/`/login`-equivalent flow.
-        # Confirmed for Kimi (device-code flow on bare invocation); Gemini
-        # and Codex's exact standalone login command is an open question
-        # (see plan) -- bare invocation is the safe default, since all
-        # known agentic CLIs prompt for auth on first use if not already
-        # logged in.
-        return [self.binary]
 
 
 PROVIDERS: dict[str, Provider] = {

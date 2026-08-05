@@ -17,13 +17,12 @@
   .flash.success { background: #1e3a24; color: #a6e3ad; }
   .flash.error { background: #3a1e1e; color: #e3a6a6; }
   .status { font-size: 0.82rem; color: #a6e3ad; margin-top: 0.5rem; }
-  form.inline { display: inline; margin: 0; }
 </style>
 </head>
 <body>
   <p><a class="btn" href="{{ url_for('index') }}">&larr; back</a></p>
   <h1 style="font-size:1.2rem;">Settings</h1>
-  <p class="hint">Nothing here needs a config file or a restart — save, and it takes effect immediately.</p>
+  <p class="hint">Nothing here needs a config file or a restart — save, and it takes effect immediately. Secret fields below never show their current value (not even masked) — leave one blank to keep what's already saved, or type a new value to replace it.</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -45,7 +44,7 @@
     <label>Client ID</label>
     <input name="github_client_id" value="{{ values.github_client_id }}">
     <label>Client Secret</label>
-    <input name="github_client_secret" type="password" value="{{ values.github_client_secret }}">
+    <input name="github_client_secret" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.github_client_secret else 'Not set' }}">
 
     <h2>GitLab</h2>
     <p class="hint">
@@ -62,20 +61,21 @@
     <label>Application ID</label>
     <input name="gitlab_client_id" value="{{ values.gitlab_client_id }}">
     <label>Secret</label>
-    <input name="gitlab_client_secret" type="password" value="{{ values.gitlab_client_secret }}">
+    <input name="gitlab_client_secret" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.gitlab_client_secret else 'Not set' }}">
 
     <h2>AI CLI providers</h2>
     <p class="hint">
-      Account login (recommended) is done per-provider below via "Connect
-      account," not here — these fields are only for API-key auth, an
-      alternative to logging in. Leave blank if you're using account login.
+      API keys only — Gemini/Codex/Kimi's own account-login flows are
+      baked into each CLI binary itself (unlike GitHub/GitLab, there's no
+      OAuth app a third party can register for this), so an API key is the
+      only auth method this dashboard can offer for them.
     </p>
     <label>Gemini API key</label>
-    <input name="gemini_api_key" type="password" value="{{ values.gemini_api_key }}">
+    <input name="gemini_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.gemini_api_key else 'Not set' }}">
     <label>Codex (OpenAI) API key</label>
-    <input name="codex_api_key" type="password" value="{{ values.codex_api_key }}">
+    <input name="codex_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.codex_api_key else 'Not set' }}">
     <label>Kimi (Moonshot) API key</label>
-    <input name="kimi_api_key" type="password" value="{{ values.kimi_api_key }}">
+    <input name="kimi_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.kimi_api_key else 'Not set' }}">
 
     <h2>Sessions</h2>
     <label>Projects root <span class="hint">(where repos get cloned to when you create a session from GitHub/GitLab)</span></label>
@@ -83,21 +83,5 @@
 
     <button class="btn btn-primary" type="submit">Save</button>
   </form>
-
-  <h2>Connect accounts</h2>
-  <p class="hint">
-    Starts a session running that provider's CLI so you can complete its
-    own login flow (browser or device-code) through the interactive
-    terminal — this app never sees or stores those credentials itself,
-    each CLI caches them the same way <code>claude</code>/<code>/login</code>
-    already does.
-  </p>
-  {% for provider in cli_providers %}
-  <form method="post" action="{{ url_for('connect_provider') }}" class="inline">
-    <input type="hidden" name="provider_id" value="{{ provider.id }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn" type="submit" style="margin-top:0;">Connect {{ provider.label }}</button>
-  </form>
-  {% endfor %}
 </body>
 </html>
