@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ 'Edit' if stack else 'New' }} stack — Brad's Agent Stack Creator</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 780px; }
+  a { color: #7ab7ff; }
+  h1 { font-size: 1.2rem; }
+  h2 { font-size: 1rem; margin-top: 2rem; }
+  label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
+  input[type=text] { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
+  .hint { color: #888; font-size: 0.78rem; }
+  .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 5px; text-decoration: none; font-size: 0.9rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 1.2rem 6px 2px 0; }
+  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
+  .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; }
+  .flash.success { background: #1e3a24; color: #a6e3ad; }
+  .flash.error { background: #3a1e1e; color: #e3a6a6; }
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem; }
+  .preset-card { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 0.8rem; cursor: pointer; }
+  .preset-card.selected { border-color: #2d5b8a; background: #1e2d3a; }
+  .preset-card h3 { margin: 0 0 0.3rem; font-size: 0.9rem; }
+  .preset-card p { margin: 0 0 0.4rem; color: #9a9a9a; font-size: 0.8rem; }
+  .preset-card .agents { font-size: 0.76rem; color: #888; }
+  .agent-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+  .agent-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid #2a2b2e; font-size: 0.88rem; }
+  .agent-list .desc { color: #888; font-size: 0.78rem; }
+  .tag { display: inline-block; background: #2a2b2e; border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: #888; margin-left: 0.4rem; }
+  .tag.active { background: #1e3a24; color: #a6e3ad; }
+</style>
+</head>
+<body>
+  <p><a class="btn" href="{{ url_for('stacks_page') }}">&larr; back to Agent Stacks</a></p>
+  <h1>{{ 'Edit ' + stack.name if stack else 'New stack' }}</h1>
+  {% if not stack %}
+  <p class="hint">Creates the directory (if it doesn't exist) and its own <code>.claude/agents/</code> team — Claude Code picks it up automatically for any session rooted there.</p>
+  {% else %}
+  <p class="hint">Changing the directory points this stack at a new location going forward — it doesn't move the old directory's agent files.</p>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('edit_stack', stack_id=stack.id) if stack else url_for('create_stack') }}" id="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="preset_id" id="preset-id-field" value="">
+
+    <label>name</label>
+    <input type="text" name="name" value="{{ stack.name if stack else '' }}" required>
+
+    <label>directory <span class="hint">(absolute path — created automatically if it doesn't exist)</span></label>
+    <input type="text" name="workdir" value="{{ stack.workdir if stack else '' }}" placeholder="/home/you/agent-stacks/coding" required>
+
+    <h2>{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
+    <p class="hint">Click a preset to select it (or leave none selected and just check individual agents below).</p>
+    <div class="preset-grid">
+      {% for preset in stack_presets %}
+      <div class="preset-card" id="preset-card-{{ preset.id }}" onclick="selectPreset('{{ preset.id }}')">
+        <h3>{{ preset.name }}</h3>
+        <p>{{ preset.description }}</p>
+        <div class="agents">{{ preset.agents | join(', ') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <h2>Or pick individual agents from the library</h2>
+    <ul class="agent-list">
+      {% for agent in library %}
+      <li>
+        <input type="checkbox" name="agent_ids" value="{{ agent.filename[:-3] }}" id="lib-{{ agent.filename }}" onchange="clearPresetSelection()">
+        <label for="lib-{{ agent.filename }}" style="margin:0;">
+          <strong>{{ agent.name }}</strong>
+          {% if agent.name in active_names %}<span class="tag active">active</span>{% endif %}
+          <div class="desc">{{ agent.frontmatter.get('description', '') }}</div>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <button class="btn btn-primary" type="submit">{{ 'Save' if stack else 'Create stack' }}</button>
+  </form>
+</body>
+</html>
+
+<script>
+function selectPreset(id) {
+  document.getElementById('preset-id-field').value = id;
+  document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('preset-card-' + id).classList.add('selected');
+  document.querySelectorAll('input[name="agent_ids"]').forEach(el => el.checked = false);
+}
+function clearPresetSelection() {
+  document.getElementById('preset-id-field').value = '';
+  document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
+}
+</script>

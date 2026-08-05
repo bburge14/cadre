@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import shutil
 import subprocess
 from datetime import timedelta
 from pathlib import Path
@@ -17,6 +18,7 @@ import providers
 import session_manager
 import sessions_store
 import settings
+import stacks_store
 from auth import require_auth
 
 app = Flask(
@@ -217,89 +219,133 @@ def delete_agent(filename):
 # ---- Agent stack presets ----
 
 
-def _resolve_target(target: str):
-    """target is 'global', a session_id, or a raw absolute directory path
-    (existing or brand new -- created here if it doesn't exist yet, so you
-    can set up a stack for a project before ever creating a session there).
-    Returns (agents_dir, session_id_or_None). agents_dir is None only for
-    'global'. session_id is None for global OR a fresh custom directory
-    with no session yet -- the caller distinguishes those by checking
-    target == 'global' itself."""
-    if target == "global" or not target:
-        return None, None
-    entry = sessions_store.get(target)
-    if entry is not None:
-        return agents_store.project_agents_dir(entry["workdir"]), entry["id"]
-
-    path = Path(target).expanduser()
-    if not path.is_absolute():
-        raise ValueError(f"'{target}' isn't a known session or an absolute directory path.")
-    path.mkdir(parents=True, exist_ok=True)
-    return agents_store.project_agents_dir(str(path)), None
-
-
-def _restart_for_target(target: str, session_id: str | None) -> None:
-    if target == "global":
-        session_manager.restart_all_running()
-    elif session_id:
-        session_manager.restart(session_id)
-    # else: a brand-new custom directory with no session yet -- nothing running there to restart
+def _activate_selection(agents_dir) -> list[str]:
+    """Shared by create/edit: activates whichever preset or library
+    checkboxes were submitted into agents_dir. Returns filenames written."""
+    preset_id = request.form.get("preset_id", "").strip()
+    agent_ids = request.form.getlist("agent_ids")
+    if preset_id:
+        return presets.activate_preset(preset_id, agents_dir=agents_dir)
+    if agent_ids:
+        return presets.activate(agent_ids, agents_dir=agents_dir)
+    return []
 
 
 @app.get("/stacks")
 @require_auth
 def stacks_page():
-    target = request.args.get("target", "global")
-    session_ids = {s["id"] for s in sessions_store.list_sessions()}
-    is_custom_path = target not in ("global",) and target not in session_ids
-    try:
-        agents_dir, _session_id = _resolve_target(target)
-    except ValueError:
-        target = "global"
-        agents_dir = None
-        is_custom_path = False
-    active_names = {a.name for a in agents_store.list_agents(agents_dir=agents_dir)}
+    stacks = []
+    for s in stacks_store.list_stacks():
+        agents_dir = agents_store.project_agents_dir(s["workdir"])
+        stacks.append({**s, "agent_count": len(agents_store.list_agents(agents_dir=agents_dir))})
+    return render_template("stacks.html", stacks=stacks)
+
+
+@app.get("/stacks/new")
+@require_auth
+def new_stack_form():
     return render_template(
-        "stacks.html",
+        "stack_form.html",
+        stack=None,
         stack_presets=presets.list_presets(),
         library=presets.list_library_agents(),
-        active_names=active_names,
-        sessions=sessions_store.list_sessions(),
-        target=target,
-        is_custom_path=is_custom_path,
+        active_names=set(),
     )
 
 
-@app.post("/stacks/activate-preset")
+@app.post("/stacks/new")
 @require_auth
-def activate_preset():
-    preset_id = request.form.get("preset_id", "")
-    target = request.form.get("custom_target", "").strip() or request.form.get("target", "global")
+def create_stack():
+    name = request.form.get("name", "").strip()
+    workdir = request.form.get("workdir", "").strip()
+    if not name or not workdir:
+        flash("Name and directory are both required.", "error")
+        return redirect(url_for("new_stack_form"))
+    path = Path(workdir).expanduser()
+    if not path.is_absolute():
+        flash("Directory must be an absolute path, e.g. /home/you/agent-stacks/coding.", "error")
+        return redirect(url_for("new_stack_form"))
+    path.mkdir(parents=True, exist_ok=True)
+
     try:
-        agents_dir, session_id = _resolve_target(target)
-        written = presets.activate_preset(preset_id, agents_dir=agents_dir)
+        written = _activate_selection(agents_store.project_agents_dir(str(path)))
     except ValueError as exc:
         flash(str(exc), "error")
-        return redirect(url_for("stacks_page"))
-    _restart_for_target(target, session_id)
-    flash(f"Activated {len(written)} agent(s) for {'global' if target == 'global' else target}.", "success")
-    return redirect(url_for("stacks_page", target=target))
+        return redirect(url_for("new_stack_form"))
+
+    stacks_store.add(name, str(path))
+    flash(f"Created stack '{name}' with {len(written)} agent(s).", "success")
+    return redirect(url_for("stacks_page"))
 
 
-@app.post("/stacks/activate-custom")
+@app.get("/stacks/<stack_id>/edit")
 @require_auth
-def activate_custom():
-    agent_ids = request.form.getlist("agent_ids")
-    target = request.form.get("custom_target", "").strip() or request.form.get("target", "global")
+def edit_stack_form(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    active_names = {a.name for a in agents_store.list_agents(agents_dir=agents_store.project_agents_dir(stack["workdir"]))}
+    return render_template(
+        "stack_form.html",
+        stack=stack,
+        stack_presets=presets.list_presets(),
+        library=presets.list_library_agents(),
+        active_names=active_names,
+    )
+
+
+@app.post("/stacks/<stack_id>/edit")
+@require_auth
+def edit_stack(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+
+    name = request.form.get("name", "").strip()
+    workdir = request.form.get("workdir", "").strip()
+    if not name or not workdir:
+        flash("Name and directory are both required.", "error")
+        return redirect(url_for("edit_stack_form", stack_id=stack_id))
+    path = Path(workdir).expanduser()
+    if not path.is_absolute():
+        flash("Directory must be an absolute path.", "error")
+        return redirect(url_for("edit_stack_form", stack_id=stack_id))
+    path.mkdir(parents=True, exist_ok=True)
+
     try:
-        agents_dir, session_id = _resolve_target(target)
+        written = _activate_selection(agents_store.project_agents_dir(str(path)))
     except ValueError as exc:
         flash(str(exc), "error")
+        return redirect(url_for("edit_stack_form", stack_id=stack_id))
+
+    stacks_store.update(stack_id, name=name, workdir=str(path))
+
+    if written:
+        matching_session = next((s for s in sessions_store.list_sessions() if s["workdir"] == str(path)), None)
+        if matching_session:
+            session_manager.restart(matching_session["id"])
+
+    note = f", activated {len(written)} agent(s)" if written else ""
+    flash(f"Saved '{name}'{note}.", "success")
+    return redirect(url_for("stacks_page"))
+
+
+@app.post("/stacks/<stack_id>/delete")
+@require_auth
+def delete_stack(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
         return redirect(url_for("stacks_page"))
-    written = presets.activate(agent_ids, agents_dir=agents_dir)
-    _restart_for_target(target, session_id)
-    flash(f"Activated {len(written)} agent(s) for {'global' if target == 'global' else target}.", "success")
-    return redirect(url_for("stacks_page", target=target))
+    if request.form.get("wipe_agents") == "on":
+        agents_dir = agents_store.project_agents_dir(stack["workdir"])
+        if agents_dir.exists():
+            shutil.rmtree(agents_dir)
+    stacks_store.remove(stack_id)
+    flash(f"Deleted stack '{stack['name']}'.", "success")
+    return redirect(url_for("stacks_page"))
 
 
 @app.get("/stacks/diagram")

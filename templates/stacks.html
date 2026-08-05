@@ -7,62 +7,34 @@
   body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 780px; }
   a { color: #7ab7ff; }
   h1 { font-size: 1.2rem; margin-bottom: 0.2rem; }
-  h2 { font-size: 1rem; margin-top: 2rem; }
   .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
   .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 5px; text-decoration: none; font-size: 0.88rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 2px 6px 2px 0; }
   .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
-  form.inline { display: inline; }
+  .btn-danger { border-color: #6b3030; color: #ff9d9d; }
+  form.inline { display: inline; margin: 0; }
   .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; }
   .flash.success { background: #1e3a24; color: #a6e3ad; }
   .flash.error { background: #3a1e1e; color: #e3a6a6; }
-  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-  .preset-card { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 1rem; }
-  .preset-card h3 { margin: 0 0 0.3rem; font-size: 0.95rem; }
-  .preset-card p { margin: 0 0 0.6rem; color: #9a9a9a; font-size: 0.82rem; }
-  .preset-card .agents { font-size: 0.78rem; color: #888; margin-bottom: 0.6rem; }
-  .agent-list { list-style: none; padding: 0; margin: 0; }
-  .agent-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid #2a2b2e; font-size: 0.88rem; }
-  .agent-list .desc { color: #888; font-size: 0.78rem; }
-  .tag { display: inline-block; background: #2a2b2e; border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: #888; margin-left: 0.4rem; }
-  .tag.active { background: #1e3a24; color: #a6e3ad; }
-  .target-box { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 1.5rem; }
-  .target-box select { width: 100%; box-sizing: border-box; background: #1b1c1e; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; margin-top: 0.4rem; }
+  .section-head { display:flex; justify-content:space-between; align-items:center; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid #333; font-size: 0.9rem; }
+  th { color: #9a9a9a; font-weight: 500; }
+  td.workdir { color: #888; font-size: 0.8rem; font-family: ui-monospace, monospace; }
 </style>
 </head>
 <body>
   <p><a class="btn" href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
-  <h1>Agent Stacks</h1>
-  <div class="sub">Pick a preset to get a starting team, or build a custom one from the library below. Activating adds agents alongside whatever's already active — it's never exclusive.</div>
-  <p><a class="btn" href="{{ url_for('stacks_diagram') }}">View stack diagram &rarr;</a></p>
-
-  <div class="target-box">
-    <label style="font-size:0.82rem; color:#9a9a9a;">Apply to</label>
-    <select id="target-select" onchange="if (this.value !== '__custom__') window.location.href = '{{ url_for('stacks_page') }}?target=' + encodeURIComponent(this.value)">
-      <option value="global" {{ 'selected' if target == 'global' else '' }}>Global — every session, everywhere</option>
-      {% for s in sessions %}
-      <option value="{{ s.id }}" {{ 'selected' if target == s.id else '' }}>{{ s.label }} ({{ s.workdir }})</option>
-      {% endfor %}
-      <option value="__custom__" {{ 'selected' if is_custom_path else '' }}>+ New or existing directory&hellip;</option>
-    </select>
-    <label style="font-size:0.82rem; color:#9a9a9a; margin-top:0.8rem;">...or set up a stack for any directory directly</label>
-    <input type="text" id="custom-target-input" placeholder="/home/you/projects/my-new-stack"
-           value="{{ target if is_custom_path else '' }}"
-           onkeydown="if (event.key === 'Enter') { event.preventDefault(); window.location.href = '{{ url_for('stacks_page') }}?target=' + encodeURIComponent(this.value); }">
-    <p class="hint" style="color:#888; font-size:0.78rem; margin:0.4rem 0 0;">
-      Doesn't need to exist yet — creating it here sets up the stack before
-      you ever create a session there. Press Enter to load it, or just
-      activate a preset/library selection below and it's created for you.
-    </p>
-    <p class="hint" style="color:#888; font-size:0.78rem; margin:0.5rem 0 0;">
-      {% if target == 'global' %}
-      Writes to <code>~/.claude/agents/</code>, active for every session on this machine.
-      {% else %}
-      Writes to that project's own <code>.claude/agents/</code> folder — Claude Code's
-      native per-project override, active only for sessions rooted there. This is how
-      you keep a separate coding stack, research stack, etc. side by side.
-      {% endif %}
-    </p>
+  <div class="section-head">
+    <h1>Agent Stacks</h1>
+    <a class="btn btn-primary" href="{{ url_for('new_stack_form') }}">+ New stack</a>
   </div>
+  <div class="sub">
+    A stack is one directory's own agent team — Claude Code's native
+    per-project <code>.claude/agents/</code> override, active only for
+    sessions rooted there. Global agents (used everywhere) are managed
+    from the main dashboard instead.
+  </div>
+  <p><a class="btn" href="{{ url_for('stacks_diagram') }}">View global stack diagram &rarr;</a></p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -70,49 +42,25 @@
     {% endfor %}
   {% endwith %}
 
-  <h2>Presets</h2>
-  <div class="preset-grid">
-    {% for preset in stack_presets %}
-    <div class="preset-card">
-      <h3>{{ preset.name }}</h3>
-      <p>{{ preset.description }}</p>
-      <div class="agents">{{ preset.agents | join(', ') }}</div>
-      <form method="post" action="{{ url_for('activate_preset') }}">
-        <input type="hidden" name="preset_id" value="{{ preset.id }}">
-        <input type="hidden" name="target" value="{{ target }}">
-        <input type="hidden" name="custom_target" class="custom-target-hidden" value="">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-primary" type="submit">Activate</button>
-      </form>
-    </div>
+  <table>
+    <tr><th>Name</th><th>Directory</th><th>Agents</th><th></th></tr>
+    {% for stack in stacks %}
+    <tr>
+      <td>{{ stack.name }}</td>
+      <td class="workdir">{{ stack.workdir }}</td>
+      <td>{{ stack.agent_count }}</td>
+      <td>
+        <a class="btn" href="{{ url_for('edit_stack_form', stack_id=stack.id) }}">Edit</a>
+        <form class="inline" method="post" action="{{ url_for('delete_stack', stack_id=stack.id) }}"
+              onsubmit="return confirm('Delete stack {{ stack.name }}?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="color:#888;">No stacks yet — "+ New stack" to create one.</td></tr>
     {% endfor %}
-  </div>
-
-  <h2>Build custom</h2>
-  <p class="sub">Pick any individual agents from the full library, or <a href="{{ url_for('new_agent_form') }}">write a wholly new one</a>.</p>
-  <form method="post" action="{{ url_for('activate_custom') }}">
-    <input type="hidden" name="target" value="{{ target }}">
-        <input type="hidden" name="custom_target" class="custom-target-hidden" value="">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <ul class="agent-list">
-      {% for agent in library %}
-      <li>
-        <input type="checkbox" name="agent_ids" value="{{ agent.filename[:-3] }}" id="lib-{{ agent.filename }}">
-        <label for="lib-{{ agent.filename }}">
-          <strong>{{ agent.name }}</strong>
-          {% if agent.name in active_names %}<span class="tag active">active</span>{% endif %}
-          <div class="desc">{{ agent.frontmatter.get('description', '') }}</div>
-        </label>
-      </li>
-      {% endfor %}
-    </ul>
-    <button class="btn btn-primary" type="submit" style="margin-top:1rem;">Activate selected</button>
-  </form>
-
-<script>
-document.getElementById('custom-target-input').addEventListener('input', function () {
-  document.querySelectorAll('.custom-target-hidden').forEach(el => el.value = this.value);
-});
-</script>
+  </table>
 </body>
 </html>
