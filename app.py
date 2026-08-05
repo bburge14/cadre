@@ -12,6 +12,7 @@ import agents_store
 import auth
 import config
 import git_hosts
+import presets
 import session_manager
 import sessions_store
 import settings
@@ -73,8 +74,9 @@ def setup():
         flash("Password should be at least 8 characters.", "error")
         return redirect(url_for("setup_form"))
     auth.create_admin(username, password)
-    flash("Admin account created. Log in below.", "success")
-    return redirect(url_for("login"))
+    auth.log_in_session(username)
+    flash("Admin account created.", "success")
+    return redirect(url_for("stacks_page"))
 
 
 @app.get("/login")
@@ -117,10 +119,21 @@ def index():
 # ---- Agents ----
 
 
+def _other_active_agent_names(exclude: str | None) -> list[str]:
+    return sorted(a.name for a in agents_store.list_agents() if a.name != exclude)
+
+
 @app.get("/agents/new")
 @require_auth
 def new_agent_form():
-    return render_template("edit.html", agent=None, filename=None)
+    return render_template(
+        "edit.html",
+        agent=None,
+        filename=None,
+        base_tools_value="",
+        spawnable=[],
+        other_agents=_other_active_agent_names(exclude=None),
+    )
 
 
 @app.get("/agents/<filename>/edit")
@@ -131,7 +144,15 @@ def edit_agent_form(filename):
     except (ValueError, FileNotFoundError) as exc:
         flash(str(exc), "error")
         return redirect(url_for("index"))
-    return render_template("edit.html", agent=agent, filename=filename)
+    base_tools, spawnable = agents_store.parse_tools(agent.frontmatter.get("tools", ""))
+    return render_template(
+        "edit.html",
+        agent=agent,
+        filename=filename,
+        base_tools_value=", ".join(base_tools),
+        spawnable=spawnable,
+        other_agents=_other_active_agent_names(exclude=agent.name),
+    )
 
 
 @app.post("/agents/save")
@@ -143,7 +164,12 @@ def save_agent():
         filename = f"{name}.md"
 
     frontmatter = {"name": name, "description": request.form.get("description", "").strip()}
-    for key in ["tools", "model", "effort", "color"]:
+    base_tools = [t.strip() for t in request.form.get("tools", "").split(",") if t.strip()]
+    can_spawn = request.form.getlist("can_spawn")
+    tools_value = agents_store.serialize_tools(base_tools, can_spawn)
+    if tools_value:
+        frontmatter["tools"] = tools_value
+    for key in ["model", "effort", "color"]:
         value = request.form.get(key, "").strip()
         if value:
             frontmatter[key] = value
@@ -170,6 +196,85 @@ def delete_agent(filename):
     note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
     flash(f"Deleted {filename}.{note}", "success")
     return redirect(url_for("index"))
+
+
+# ---- Agent stack presets ----
+
+
+@app.get("/stacks")
+@require_auth
+def stacks_page():
+    active_names = {a.name for a in agents_store.list_agents()}
+    return render_template(
+        "stacks.html",
+        stack_presets=presets.list_presets(),
+        library=presets.list_library_agents(),
+        active_names=active_names,
+    )
+
+
+@app.post("/stacks/activate-preset")
+@require_auth
+def activate_preset():
+    preset_id = request.form.get("preset_id", "")
+    try:
+        written = presets.activate_preset(preset_id)
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("stacks_page"))
+    session_manager.restart_all_running()
+    flash(f"Activated {len(written)} agent(s).", "success")
+    return redirect(url_for("stacks_page"))
+
+
+@app.post("/stacks/activate-custom")
+@require_auth
+def activate_custom():
+    agent_ids = request.form.getlist("agent_ids")
+    written = presets.activate(agent_ids)
+    session_manager.restart_all_running()
+    flash(f"Activated {len(written)} agent(s).", "success")
+    return redirect(url_for("stacks_page"))
+
+
+@app.get("/stacks/diagram")
+@require_auth
+def stacks_diagram():
+    active = agents_store.list_agents()
+    nodes = []
+    for a in active:
+        base_tools, spawnable = agents_store.parse_tools(a.frontmatter.get("tools", ""))
+        nodes.append(
+            {
+                "filename": a.filename,
+                "name": a.name,
+                "spawnable": spawnable,
+                "others": [o.name for o in active if o.name != a.name],
+            }
+        )
+    return render_template("stacks_diagram.html", nodes=nodes)
+
+
+@app.post("/stacks/diagram/set-spawnable")
+@require_auth
+def set_spawnable():
+    filename = request.form.get("agent_filename", "")
+    can_spawn = request.form.getlist("can_spawn")
+    try:
+        agent = agents_store.read_agent(filename)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("stacks_diagram"))
+    base_tools, _old_spawnable = agents_store.parse_tools(agent.frontmatter.get("tools", ""))
+    frontmatter = dict(agent.frontmatter)
+    tools_value = agents_store.serialize_tools(base_tools, can_spawn)
+    if tools_value:
+        frontmatter["tools"] = tools_value
+    else:
+        frontmatter.pop("tools", None)
+    agents_store.write_agent(filename, frontmatter, agent.body)
+    session_manager.restart_all_running()
+    return redirect(url_for("stacks_diagram"))
 
 
 # ---- Sessions ----

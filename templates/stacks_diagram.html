@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Stack diagram — Brad's Agent Stack Creator</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; }
+  a { color: #7ab7ff; }
+  h1 { font-size: 1.2rem; }
+  .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  #diagram { position: relative; min-height: 420px; }
+  svg#lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  svg#lines line { stroke: #3a5b7a; stroke-width: 1.5; }
+  .coordinator-row { display: flex; justify-content: center; margin-bottom: 4rem; }
+  .agent-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2rem; }
+  .node { position: relative; z-index: 1; background: #232427; border: 1px solid #3a3b3e; border-radius: 8px; padding: 0.7rem 1rem; font-size: 0.88rem; cursor: pointer; min-width: 140px; text-align: center; }
+  .node.coordinator { border-color: #2d5b8a; background: #1e2d3a; cursor: default; }
+  .node:hover:not(.coordinator) { border-color: #7ab7ff; }
+  .panel { display: none; position: absolute; z-index: 2; background: #2a2b2e; border: 1px solid #444; border-radius: 8px; padding: 0.8rem; margin-top: 0.5rem; width: 220px; font-size: 0.85rem; }
+  .panel.open { display: block; }
+  .panel label { display: flex; align-items: center; gap: 0.5rem; margin: 0.3rem 0; }
+  .panel input[type=checkbox] { width: auto; }
+  .btn { display: inline-block; padding: 0.35rem 0.8rem; border-radius: 5px; font-size: 0.82rem; border: 1px solid #2d5b8a; background: #2d5b8a; color: #e6e6e6; cursor: pointer; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+  <p><a href="{{ url_for('stacks_page') }}">&larr; back to Agent Stacks</a></p>
+  <h1>Stack diagram</h1>
+  <div class="sub">Click any agent to change what it's allowed to spawn. Lines from "Coordinator" show every agent you (the top-level session) can delegate to directly; lines between agents show delegation each one can do itself.</div>
+
+  <div id="diagram">
+    <svg id="lines"></svg>
+    <div class="coordinator-row">
+      <div class="node coordinator" id="node-coordinator">Coordinator (you)</div>
+    </div>
+    <div class="agent-row">
+      {% for n in nodes %}
+      <div>
+        <div class="node" id="node-{{ n.name }}" onclick="togglePanel('{{ n.name }}')">{{ n.name }}</div>
+        <div class="panel" id="panel-{{ n.name }}">
+          <form method="post" action="{{ url_for('set_spawnable') }}">
+            <input type="hidden" name="agent_filename" value="{{ n.filename }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if n.others %}
+              {% for other in n.others %}
+              <label><input type="checkbox" name="can_spawn" value="{{ other }}" {{ 'checked' if other in n.spawnable else '' }}> {{ other }}</label>
+              {% endfor %}
+            {% else %}
+              <span class="hint">No other agents active yet.</span>
+            {% endif %}
+            <button class="btn" type="submit">Save</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+<script>
+function togglePanel(name) {
+  document.querySelectorAll('.panel').forEach(p => {
+    if (p.id !== 'panel-' + name) p.classList.remove('open');
+  });
+  document.getElementById('panel-' + name).classList.toggle('open');
+}
+
+function drawLines() {
+  const svg = document.getElementById('lines');
+  const container = document.getElementById('diagram');
+  const cRect = container.getBoundingClientRect();
+  svg.innerHTML = '';
+
+  function centerOf(el) {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - cRect.left, y: r.top + r.height / 2 - cRect.top };
+  }
+
+  const coord = document.getElementById('node-coordinator');
+  const coordCenter = centerOf(coord);
+  const nodeData = {{ nodes | tojson }};
+
+  nodeData.forEach(n => {
+    const el = document.getElementById('node-' + n.name);
+    if (!el) return;
+    const c = centerOf(el);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', coordCenter.x); line.setAttribute('y1', coordCenter.y + 18);
+    line.setAttribute('x2', c.x); line.setAttribute('y2', c.y - 20);
+    svg.appendChild(line);
+  });
+
+  nodeData.forEach(n => {
+    const fromEl = document.getElementById('node-' + n.name);
+    if (!fromEl) return;
+    const from = centerOf(fromEl);
+    (n.spawnable || []).forEach(target => {
+      const toEl = document.getElementById('node-' + target);
+      if (!toEl) return;
+      const to = centerOf(toEl);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
+      line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
+      line.setAttribute('stroke', '#7a5b3a');
+      svg.appendChild(line);
+    });
+  });
+}
+
+window.addEventListener('load', drawLines);
+window.addEventListener('resize', drawLines);
+</script>
+</body>
+</html>

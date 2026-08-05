@@ -1,0 +1,32 @@
+[
+  {
+    "id": "coding",
+    "name": "Coding",
+    "description": "Python, frontend (HTML/CSS/JS/TS), everything-else language work, debug/QA, and research.",
+    "agents": ["python-engineer", "frontend-engineer", "generalist-engineer", "debug-qa", "researcher"]
+  },
+  {
+    "id": "content-writing",
+    "name": "Content/Writing",
+    "description": "Draft, edit, and fact-check articles, posts, or copy.",
+    "agents": ["writer", "editor", "researcher"]
+  },
+  {
+    "id": "research-analysis",
+    "name": "Research/Analysis",
+    "description": "Dig into a topic, structure the findings, and produce a written report.",
+    "agents": ["analyst", "writer", "researcher"]
+  },
+  {
+    "id": "devops-infrastructure",
+    "name": "DevOps/Infrastructure",
+    "description": "Infrastructure-as-code, CI/CD pipelines, and production incident response.",
+    "agents": ["infra-engineer", "ci-cd-engineer", "incident-responder", "researcher"]
+  },
+  {
+    "id": "data-science-analytics",
+    "name": "Data Science/Analytics",
+    "description": "Data pipelines, modeling/ML, and dashboards/insights.",
+    "agents": ["data-engineer", "data-scientist", "data-analyst", "researcher"]
+  }
+]

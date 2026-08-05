@@ -28,8 +28,20 @@
     <label>description <span class="hint">(what Claude matches your request against to auto-delegate here)</span></label>
     <input name="description" value="{{ agent.frontmatter.get('description', '') if agent else '' }}" required>
 
-    <label>tools <span class="hint">(comma-separated, e.g. "Read, Edit, Write, Bash, Grep, Glob, Agent(researcher)" — blank = inherit all)</span></label>
-    <input name="tools" value="{{ agent.frontmatter.get('tools', '') if agent else '' }}">
+    <label>tools <span class="hint">(comma-separated built-in tools only, e.g. "Read, Edit, Write, Bash, Grep, Glob" — blank = inherit all. Which agents this one can spawn is set below, not typed here.)</span></label>
+    <input name="tools" value="{{ base_tools_value }}">
+
+    {% if other_agents %}
+    <label>can spawn <span class="hint">(which other active agents this one is allowed to delegate to via the Agent tool)</span></label>
+    <div style="background:#232427; border:1px solid #3a3b3e; border-radius:6px; padding:0.6rem 0.8rem;">
+      {% for name in other_agents %}
+      <label style="display:flex; align-items:center; gap:0.5rem; margin:0.3rem 0; font-size:0.88rem; color:#e6e6e6;">
+        <input type="checkbox" name="can_spawn" value="{{ name }}" {{ 'checked' if name in spawnable else '' }} style="width:auto;">
+        {{ name }}
+      </label>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <label>model</label>
     <select name="model">

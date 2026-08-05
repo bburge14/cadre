@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Agent Stacks — Brad's Agent Stack Creator</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0; padding: 2rem; max-width: 780px; }
+  a { color: #7ab7ff; }
+  h1 { font-size: 1.2rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1rem; margin-top: 2rem; }
+  .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 5px; text-decoration: none; font-size: 0.88rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; }
+  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
+  form.inline { display: inline; }
+  .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; }
+  .flash.success { background: #1e3a24; color: #a6e3ad; }
+  .flash.error { background: #3a1e1e; color: #e3a6a6; }
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  .preset-card { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 1rem; }
+  .preset-card h3 { margin: 0 0 0.3rem; font-size: 0.95rem; }
+  .preset-card p { margin: 0 0 0.6rem; color: #9a9a9a; font-size: 0.82rem; }
+  .preset-card .agents { font-size: 0.78rem; color: #888; margin-bottom: 0.6rem; }
+  .agent-list { list-style: none; padding: 0; margin: 0; }
+  .agent-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid #2a2b2e; font-size: 0.88rem; }
+  .agent-list .desc { color: #888; font-size: 0.78rem; }
+  .tag { display: inline-block; background: #2a2b2e; border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: #888; margin-left: 0.4rem; }
+  .tag.active { background: #1e3a24; color: #a6e3ad; }
+</style>
+</head>
+<body>
+  <p><a href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
+  <h1>Agent Stacks</h1>
+  <div class="sub">Pick a preset to get a starting team, or build a custom one from the library below. Activating adds agents alongside whatever's already active — it's never exclusive. <a href="{{ url_for('stacks_diagram') }}">View stack diagram &rarr;</a></div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <h2>Presets</h2>
+  <div class="preset-grid">
+    {% for preset in stack_presets %}
+    <div class="preset-card">
+      <h3>{{ preset.name }}</h3>
+      <p>{{ preset.description }}</p>
+      <div class="agents">{{ preset.agents | join(', ') }}</div>
+      <form method="post" action="{{ url_for('activate_preset') }}">
+        <input type="hidden" name="preset_id" value="{{ preset.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary" type="submit">Activate</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2>Build custom</h2>
+  <p class="sub">Pick any individual agents from the full library, or <a href="{{ url_for('new_agent_form') }}">write a wholly new one</a>.</p>
+  <form method="post" action="{{ url_for('activate_custom') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <ul class="agent-list">
+      {% for agent in library %}
+      <li>
+        <input type="checkbox" name="agent_ids" value="{{ agent.filename[:-3] }}" id="lib-{{ agent.filename }}">
+        <label for="lib-{{ agent.filename }}">
+          <strong>{{ agent.name }}</strong>
+          {% if agent.name in active_names %}<span class="tag active">active</span>{% endif %}
+          <div class="desc">{{ agent.frontmatter.get('description', '') }}</div>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+    <button class="btn btn-primary" type="submit" style="margin-top:1rem;">Activate selected</button>
+  </form>
+</body>
+</html>
