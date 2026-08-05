@@ -217,15 +217,34 @@ def delete_agent(filename):
 # ---- Agent stack presets ----
 
 
+def _resolve_target(target: str):
+    """target is 'global' or a session_id. Returns (agents_dir, session_entry)
+    where agents_dir is None for global, session_entry is None for global."""
+    if target == "global" or not target:
+        return None, None
+    entry = sessions_store.get(target)
+    if entry is None:
+        raise ValueError("Unknown session for that target.")
+    return agents_store.project_agents_dir(entry["workdir"]), entry
+
+
 @app.get("/stacks")
 @require_auth
 def stacks_page():
-    active_names = {a.name for a in agents_store.list_agents()}
+    target = request.args.get("target", "global")
+    try:
+        agents_dir, _entry = _resolve_target(target)
+    except ValueError:
+        target = "global"
+        agents_dir = None
+    active_names = {a.name for a in agents_store.list_agents(agents_dir=agents_dir)}
     return render_template(
         "stacks.html",
         stack_presets=presets.list_presets(),
         library=presets.list_library_agents(),
         active_names=active_names,
+        sessions=sessions_store.list_sessions(),
+        target=target,
     )
 
 
@@ -233,24 +252,38 @@ def stacks_page():
 @require_auth
 def activate_preset():
     preset_id = request.form.get("preset_id", "")
+    target = request.form.get("target", "global")
     try:
-        written = presets.activate_preset(preset_id)
+        agents_dir, entry = _resolve_target(target)
+        written = presets.activate_preset(preset_id, agents_dir=agents_dir)
     except ValueError as exc:
         flash(str(exc), "error")
         return redirect(url_for("stacks_page"))
-    session_manager.restart_all_running()
-    flash(f"Activated {len(written)} agent(s).", "success")
-    return redirect(url_for("stacks_page"))
+    if entry is not None:
+        session_manager.restart(entry["id"])
+    else:
+        session_manager.restart_all_running()
+    flash(f"Activated {len(written)} agent(s) for {'this project' if entry else 'all sessions (global)'}.", "success")
+    return redirect(url_for("stacks_page", target=target))
 
 
 @app.post("/stacks/activate-custom")
 @require_auth
 def activate_custom():
     agent_ids = request.form.getlist("agent_ids")
-    written = presets.activate(agent_ids)
-    session_manager.restart_all_running()
-    flash(f"Activated {len(written)} agent(s).", "success")
-    return redirect(url_for("stacks_page"))
+    target = request.form.get("target", "global")
+    try:
+        agents_dir, entry = _resolve_target(target)
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("stacks_page"))
+    written = presets.activate(agent_ids, agents_dir=agents_dir)
+    if entry is not None:
+        session_manager.restart(entry["id"])
+    else:
+        session_manager.restart_all_running()
+    flash(f"Activated {len(written)} agent(s) for {'this project' if entry else 'all sessions (global)'}.", "success")
+    return redirect(url_for("stacks_page", target=target))
 
 
 @app.get("/stacks/diagram")

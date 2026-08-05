@@ -25,28 +25,36 @@ class AgentFile:
         return self.frontmatter.get("name", self.filename.removesuffix(".md"))
 
 
-def _path_for(filename: str) -> Path:
+def project_agents_dir(workdir: str) -> Path:
+    """Claude Code's own native per-project agent override location --
+    agents here apply only to sessions rooted at this workdir, layered on
+    top of (or overriding by name) the global ~/.claude/agents/ team."""
+    return Path(workdir) / ".claude" / "agents"
+
+
+def _path_for(filename: str, agents_dir: Path | None = None) -> Path:
     safe = Path(filename).name
     if not safe.endswith(".md"):
         raise ValueError("agent filename must end in .md")
-    return AGENTS_DIR / safe
+    return (agents_dir or AGENTS_DIR) / safe
 
 
-def list_agents() -> list[AgentFile]:
-    AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+def list_agents(agents_dir: Path | None = None) -> list[AgentFile]:
+    target = agents_dir or AGENTS_DIR
+    target.mkdir(parents=True, exist_ok=True)
     agents = []
-    for path in sorted(AGENTS_DIR.glob("*.md")):
+    for path in sorted(target.glob("*.md")):
         if path.name == "README.md":
             continue
         try:
-            agents.append(read_agent(path.name))
+            agents.append(read_agent(path.name, agents_dir=target))
         except ValueError:
             continue
     return agents
 
 
-def read_agent(filename: str) -> AgentFile:
-    path = _path_for(filename)
+def read_agent(filename: str, agents_dir: Path | None = None) -> AgentFile:
+    path = _path_for(filename, agents_dir)
     text = path.read_text()
     match = FRONTMATTER_RE.match(text)
     if not match:
@@ -56,7 +64,7 @@ def read_agent(filename: str) -> AgentFile:
     return AgentFile(filename=path.name, frontmatter=frontmatter, body=body)
 
 
-def write_agent(filename: str, frontmatter: dict, body: str) -> None:
+def write_agent(filename: str, frontmatter: dict, body: str, agents_dir: Path | None = None) -> None:
     name = frontmatter.get("name", "")
     if not NAME_RE.match(name):
         raise ValueError(
@@ -69,12 +77,13 @@ def write_agent(filename: str, frontmatter: dict, body: str) -> None:
     yaml_text = yaml.safe_dump(frontmatter, sort_keys=False, default_flow_style=False)
     content = f"---\n{yaml_text}---\n\n{body.strip()}\n"
 
-    AGENTS_DIR.mkdir(parents=True, exist_ok=True)
-    _path_for(filename).write_text(content)
+    target = agents_dir or AGENTS_DIR
+    target.mkdir(parents=True, exist_ok=True)
+    _path_for(filename, target).write_text(content)
 
 
-def delete_agent(filename: str) -> None:
-    path = _path_for(filename)
+def delete_agent(filename: str, agents_dir: Path | None = None) -> None:
+    path = _path_for(filename, agents_dir)
     if path.exists():
         path.unlink()
 

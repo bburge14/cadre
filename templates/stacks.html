@@ -25,6 +25,8 @@
   .agent-list .desc { color: #888; font-size: 0.78rem; }
   .tag { display: inline-block; background: #2a2b2e; border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: #888; margin-left: 0.4rem; }
   .tag.active { background: #1e3a24; color: #a6e3ad; }
+  .target-box { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 1.5rem; }
+  .target-box select { width: 100%; box-sizing: border-box; background: #1b1c1e; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; margin-top: 0.4rem; }
 </style>
 </head>
 <body>
@@ -32,6 +34,25 @@
   <h1>Agent Stacks</h1>
   <div class="sub">Pick a preset to get a starting team, or build a custom one from the library below. Activating adds agents alongside whatever's already active — it's never exclusive.</div>
   <p><a class="btn" href="{{ url_for('stacks_diagram') }}">View stack diagram &rarr;</a></p>
+
+  <div class="target-box">
+    <label style="font-size:0.82rem; color:#9a9a9a;">Apply to</label>
+    <select id="target-select" onchange="window.location.href = '{{ url_for('stacks_page') }}?target=' + encodeURIComponent(this.value)">
+      <option value="global" {{ 'selected' if target == 'global' else '' }}>Global — every session, everywhere</option>
+      {% for s in sessions %}
+      <option value="{{ s.id }}" {{ 'selected' if target == s.id else '' }}>{{ s.label }} ({{ s.workdir }})</option>
+      {% endfor %}
+    </select>
+    <p class="hint" style="color:#888; font-size:0.78rem; margin:0.5rem 0 0;">
+      {% if target == 'global' %}
+      Writes to <code>~/.claude/agents/</code>, active for every session on this machine.
+      {% else %}
+      Writes to that project's own <code>.claude/agents/</code> folder — Claude Code's
+      native per-project override, active only for sessions rooted there. This is how
+      you keep a separate coding stack, research stack, etc. side by side.
+      {% endif %}
+    </p>
+  </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -48,6 +69,7 @@
       <div class="agents">{{ preset.agents | join(', ') }}</div>
       <form method="post" action="{{ url_for('activate_preset') }}">
         <input type="hidden" name="preset_id" value="{{ preset.id }}">
+        <input type="hidden" name="target" value="{{ target }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-primary" type="submit">Activate</button>
       </form>
@@ -58,6 +80,7 @@
   <h2>Build custom</h2>
   <p class="sub">Pick any individual agents from the full library, or <a href="{{ url_for('new_agent_form') }}">write a wholly new one</a>.</p>
   <form method="post" action="{{ url_for('activate_custom') }}">
+    <input type="hidden" name="target" value="{{ target }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <ul class="agent-list">
       {% for agent in library %}

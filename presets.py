@@ -41,9 +41,9 @@ def list_library_agents() -> list[agents_store.AgentFile]:
     return agents
 
 
-def activate(agent_ids: list[str]) -> list[str]:
-    """Copies each requested template into ~/.claude/agents/. Returns the
-    filenames actually written."""
+def activate(agent_ids: list[str], agents_dir: Path | None = None) -> list[str]:
+    """Copies each requested template into agents_dir (default: the global
+    ~/.claude/agents/). Returns the filenames actually written."""
     written = []
     for agent_id in agent_ids:
         parsed = _read_template(_template_path(agent_id))
@@ -51,13 +51,13 @@ def activate(agent_ids: list[str]) -> list[str]:
             continue
         frontmatter, body = parsed
         filename = f"{agent_id}.md"
-        agents_store.write_agent(filename, frontmatter, body)
+        agents_store.write_agent(filename, frontmatter, body, agents_dir=agents_dir)
         written.append(filename)
     return written
 
 
-def activate_preset(preset_id: str) -> list[str]:
+def activate_preset(preset_id: str, agents_dir: Path | None = None) -> list[str]:
     for preset in list_presets():
         if preset["id"] == preset_id:
-            return activate(preset["agents"])
+            return activate(preset["agents"], agents_dir=agents_dir)
     raise ValueError(f"Unknown preset: {preset_id}")
