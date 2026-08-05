@@ -31,6 +31,10 @@ account system beyond the one admin login you create for yourself below.
    git clone <this-repo-url> ~/.claude/command-center
    cd ~/.claude/command-center
    ```
+   If the repo is private, the new machine needs GitHub access first —
+   either `gh auth login` (if you have the GitHub CLI) or an SSH
+   key/personal access token set up for that account, same as cloning any
+   other private repo.
 
 2. **Create the virtual environment**:
    ```bash
@@ -56,10 +60,16 @@ account system beyond the one admin login you create for yourself below.
 5. **Open it in a browser** at that address. First visit should redirect
    you to an account-creation page — pick a username and password (this is
    the only account this instance will ever have). After creating it,
-   you're redirected to log in, and then land on an empty dashboard: "No
-   sessions yet." That's success.
+   you're automatically logged in and land on **Agent Stacks**: a picker
+   for starting agent-team presets (Coding, Content/Writing, Research/
+   Analysis, DevOps/Infrastructure, Data Science/Analytics) plus a custom
+   library builder. That's success.
 
-6. **Create your first session** via "+ New session" — give it a label and
+6. **Pick a preset** (or hit "back to dashboard" to skip and start with no
+   agents — you can always come back to Agent Stacks later from the nav).
+   Activating a preset writes its agents to `~/.claude/agents/` immediately.
+
+7. **Create your first session** via "+ New session" — give it a label and
    a working directory that already exists on this machine, e.g. a project
    you're working on. It'll launch `claude` there with Remote Control
    enabled; the session's detail page shows the connect URL/QR once it's
