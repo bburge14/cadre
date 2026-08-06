@@ -154,10 +154,26 @@ def docs_page():
 # it just can't be renamed, moved, or deleted, since there's no directory
 # to point elsewhere and no meaningful "delete" for the one true fallback.
 _GLOBAL_STACK_ID = "global"
+_GLOBAL_SEEDED_MARKER = config.INSTANCE_DIR / "global_seeded"
+
+
+def _ensure_global_seeded() -> None:
+    """The default stack shouldn't just be empty scaffolding -- seed it
+    with the Generalist preset the first time it's ever found empty, so a
+    fresh install (or one that's simply never had anything activated into
+    ~/.claude/agents/ yet) has something in it out of the box. Runs once
+    -- marked via a sentinel file so deliberately clearing it out later
+    doesn't cause it to keep coming back."""
+    if _GLOBAL_SEEDED_MARKER.exists():
+        return
+    if not agents_store.list_agents():
+        presets.activate_preset("generalist", agents_dir=agents_store.AGENTS_DIR)
+    _GLOBAL_SEEDED_MARKER.write_text("seeded\n")
 
 
 def _resolve_stack(stack_id: str) -> dict | None:
     if stack_id == _GLOBAL_STACK_ID:
+        _ensure_global_seeded()
         return {"id": _GLOBAL_STACK_ID, "name": "Global (default)", "workdir": None, "is_global": True}
     return stacks_store.get(stack_id)
 
