@@ -4,19 +4,14 @@
 <meta charset="utf-8">
 <title>Set up — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 4rem 2rem; max-width: 420px; }
-  h1 { font-size: 1.15rem; }
-  p.sub { color: #9a9a9a; font-size: 0.85rem; }
-  label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
-  input { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.55rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
-  .btn { width: 100%; padding: 0.55rem 1rem; border-radius: 5px; font-size: 0.9rem; border: 1px solid #2d5b8a; color: #e6e6e6; background: #2d5b8a; cursor: pointer; margin-top: 1.3rem; }
-  .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.85rem; }
-  .flash.error { background: #3a1e1e; color: #e3a6a6; }
+  body { max-width: 420px; padding-top: 4rem; }
+  .btn { width: 100%; margin-top: 1.3rem; justify-content: center; }
 </style>
 </head>
 <body>
-  <h1 style="display:flex; align-items:center; gap:0.6rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="32" height="32">Welcome to Cadre — create your admin account</h1>
+  <h1 class="brand" style="font-size:1.3rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="32" height="32">Welcome to Cadre — create your admin account</h1>
   <p class="sub">This is a one-time step. Whoever creates this account is the only person who can log into this instance.</p>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -26,11 +21,11 @@
   <form method="post" action="{{ url_for('setup') }}">
     <label>username</label>
     <input name="username" required autofocus>
-    <label>password <span style="color:#666;">(at least 8 characters)</span></label>
+    <label>password <span class="hint">(at least 8 characters)</span></label>
     <input name="password" type="password" required minlength="8">
     <label>confirm password</label>
     <input name="confirm" type="password" required minlength="8">
-    <button class="btn" type="submit">Create account</button>
+    <button class="btn btn-primary" type="submit">Create account</button>
   </form>
 </body>
 </html>

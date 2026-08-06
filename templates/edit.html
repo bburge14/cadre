@@ -4,20 +4,14 @@
 <meta charset="utf-8">
 <title>{{ 'Edit' if agent else 'New' }} agent — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 760px; }
-  a { color: #7ab7ff; }
-  label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
-  input, select, textarea { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
-  textarea { font-family: ui-monospace, monospace; font-size: 0.85rem; min-height: 320px; }
-  .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 5px; text-decoration: none; font-size: 0.9rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 1.2rem 6px 2px 0; }
-  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
-  .hint { color: #888; font-size: 0.78rem; }
+  body { max-width: 760px; }
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
-  <h1 style="font-size:1.2rem;">{{ 'Edit ' + filename if agent else 'New agent' }}</h1>
+  <p style="margin-top:1.5rem;"><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
+  <h1>{{ 'Edit ' + filename if agent else 'New agent' }}</h1>
 
   <form method="post" action="{{ save_action }}">
     <input type="hidden" name="filename" value="{{ filename or '' }}">
@@ -34,10 +28,10 @@
 
     {% if other_agents %}
     <label>can spawn <span class="hint">(which other active agents this one is allowed to delegate to via the Agent tool)</span></label>
-    <div style="background:#232427; border:1px solid #3a3b3e; border-radius:6px; padding:0.6rem 0.8rem;">
+    <div class="checklist">
       {% for name in other_agents %}
-      <label style="display:flex; align-items:center; gap:0.5rem; margin:0.3rem 0; font-size:0.88rem; color:#e6e6e6;">
-        <input type="checkbox" name="can_spawn" value="{{ name }}" {{ 'checked' if name in spawnable else '' }} style="width:auto;">
+      <label class="checklist-row">
+        <input type="checkbox" name="can_spawn" value="{{ name }}" {{ 'checked' if name in spawnable else '' }}>
         {{ name }}
       </label>
       {% endfor %}
@@ -47,16 +41,16 @@
     <label>skills <span class="hint">(which skills this agent should use — invoked by name when relevant to what it's doing; different from "can spawn," a skill isn't a separate worker)</span></label>
     {% if available_skills %}
     <input type="text" id="skill-search" placeholder="Search skills..." style="margin-bottom:0.4rem;" oninput="filterSkills()">
-    <div style="background:#232427; border:1px solid #3a3b3e; border-radius:6px; padding:0.6rem 0.8rem; max-height:260px; overflow-y:auto;">
+    <div class="checklist">
       {% for skill in available_skills %}
-      <label class="skill-row" data-search="{{ (skill.name ~ ' ' ~ skill.frontmatter.get('description', '')) | lower }}" style="display:flex; align-items:flex-start; gap:0.5rem; margin:0.5rem 0; font-size:0.88rem; color:#e6e6e6;">
-        <input type="checkbox" name="skill_names" value="{{ skill.name }}" {{ 'checked' if skill.name in selected_skills else '' }} style="width:auto; margin-top:0.2rem; flex-shrink:0;">
+      <label class="checklist-row skill-row" data-search="{{ (skill.name ~ ' ' ~ skill.frontmatter.get('description', '')) | lower }}">
+        <input type="checkbox" name="skill_names" value="{{ skill.name }}" {{ 'checked' if skill.name in selected_skills else '' }}>
         <span><strong>{{ skill.name }}</strong><br><span class="hint">{{ skill.frontmatter.get('description', '') }}</span></span>
       </label>
       {% endfor %}
     </div>
     {% else %}
-    <p class="hint">No skills exist in this stack yet — create one from its page, then come back here to attach it to this agent.</p>
+    <p class="hint">No skills exist yet — <a href="{{ url_for('skills_page') }}">create one</a>, then come back here to attach it to this agent.</p>
     {% endif %}
 
     <label>model</label>
@@ -97,7 +91,7 @@
     <label>system prompt (markdown body)</label>
     <textarea name="body">{{ agent.body if agent else '' }}</textarea>
 
-    <button class="btn btn-primary" type="submit">Save &amp; restart session</button>
+    <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">Save &amp; restart session</button>
   </form>
 
 <script>

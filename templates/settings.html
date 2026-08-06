@@ -4,31 +4,14 @@
 <meta charset="utf-8">
 <title>Settings — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 620px; }
-  a { color: #7ab7ff; }
-  h2 { font-size: 0.95rem; color: #ccc; margin-top: 2rem; border-top: 1px solid #333; padding-top: 1.2rem; }
-  label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
-  input { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
-  .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 5px; text-decoration: none; font-size: 0.9rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 1.2rem 6px 2px 0; }
-  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
-  .hint { color: #888; font-size: 0.78rem; }
-  code { background: #2a2b2e; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.82rem; }
-  .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; }
-  .flash.success { background: #1e3a24; color: #a6e3ad; }
-  .flash.error { background: #3a1e1e; color: #e3a6a6; }
-  .status { font-size: 0.82rem; color: #a6e3ad; margin-top: 0.5rem; }
-  .tabs { display: flex; gap: 0.3rem; border-bottom: 1px solid #333; margin-top: 1.5rem; flex-wrap: wrap; }
-  .tab-btn { background: none; border: none; color: #9a9a9a; font-size: 0.9rem; padding: 0.6rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .tab-btn:hover { color: #e6e6e6; }
-  .tab-btn.active { color: #e6e6e6; border-bottom-color: #2d5b8a; }
-  .tab-panel { display: none; padding-top: 0.2rem; }
-  .tab-panel.active { display: block; }
+  body { max-width: 620px; }
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
-  <h1 style="font-size:1.2rem;">Settings</h1>
+  <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
+  <h1>Settings</h1>
   <p class="hint">Nothing here needs a config file or a restart — save, and it takes effect immediately. Secret fields below never show their current value (not even masked) — leave one blank to keep what's already saved, or type a new value to replace it.</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -45,7 +28,7 @@
   </div>
 
   <div class="tab-panel" id="tab-panel-version">
-  <h2 style="margin-top:0.5rem; border-top:none; padding-top:0;">Version</h2>
+  <h2 style="margin-top:1.1rem;">Version</h2>
   <p class="hint">
     Running <code>v{{ current_version }}</code>. "Update now" pulls the
     latest code (<code>git pull</code> for a git-clone install, or
@@ -57,11 +40,11 @@
   <button class="btn" type="button" id="check-update-btn" onclick="checkForUpdate()">Check for updates</button>
   <button class="btn btn-primary" type="button" id="apply-update-btn" onclick="applyUpdate()" style="display:none;">Update now</button>
   <div id="update-status" class="hint" style="margin-top:0.5rem;"></div>
-  <pre id="update-log" class="hint" style="display:none; margin-top:0.5rem; background:#111; padding:0.6rem 0.8rem; border-radius:6px; max-height:240px; overflow-y:auto; white-space:pre-wrap; font-size:0.76rem;"></pre>
+  <pre id="update-log" class="hint" style="display:none; margin-top:0.5rem; background:var(--surface-2); border:1px solid var(--border); padding:0.6rem 0.8rem; border-radius:6px; max-height:240px; overflow-y:auto; white-space:pre-wrap; font-size:0.76rem;"></pre>
 
   <h2>Claude account <span class="hint">(required — everything in this app runs on top of it)</span></h2>
   {% if not claude_installed %}
-    <p class="hint" style="color:#e3a6a6;">
+    <p class="hint" style="color:var(--danger-text);">
       The <code>claude</code> command-line tool isn't installed on this
       machine yet. Having a Claude/Anthropic account isn't enough by
       itself — the CLI is a separate one-time install, and this app can't
@@ -90,7 +73,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="tab-panel" id="tab-panel-githosts">
-    <h2 style="margin-top:0.5rem;">GitHub</h2>
+    <h2 style="margin-top:1.1rem;">GitHub</h2>
     <p class="hint">
       Register an OAuth App at
       <a href="https://github.com/settings/developers" target="_blank">github.com/settings/developers</a>
@@ -122,28 +105,28 @@
     </div>
 
     <div class="tab-panel" id="tab-panel-providers">
-    <h2 style="margin-top:0.5rem;">AI CLI providers</h2>
+    <h2 style="margin-top:1.1rem;">AI CLI providers</h2>
     <p class="hint">
       API keys only — Gemini/Codex/Kimi's own account-login flows are
       baked into each CLI binary itself (unlike GitHub/GitLab, there's no
       OAuth app a third party can register for this), so an API key is the
       only auth method this dashboard can offer for them.
     </p>
-    <label>Gemini API key {% if not provider_binaries.gemini %}<span class="hint" style="color:#e3a6a6;">— gemini CLI not found on PATH</span>{% endif %}</label>
+    <label>Gemini API key {% if not provider_binaries.gemini %}<span class="hint" style="color:var(--danger-text);">— gemini CLI not found on PATH</span>{% endif %}</label>
     <input name="gemini_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.gemini_api_key else 'Not set' }}">
-    <label>Codex (OpenAI) API key {% if not provider_binaries.codex %}<span class="hint" style="color:#e3a6a6;">— codex CLI not found on PATH</span>{% endif %}</label>
+    <label>Codex (OpenAI) API key {% if not provider_binaries.codex %}<span class="hint" style="color:var(--danger-text);">— codex CLI not found on PATH</span>{% endif %}</label>
     <input name="codex_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.codex_api_key else 'Not set' }}">
-    <label>Kimi (Moonshot) API key {% if not provider_binaries.kimi %}<span class="hint" style="color:#e3a6a6;">— kimi CLI not found on PATH</span>{% endif %}</label>
+    <label>Kimi (Moonshot) API key {% if not provider_binaries.kimi %}<span class="hint" style="color:var(--danger-text);">— kimi CLI not found on PATH</span>{% endif %}</label>
     <input name="kimi_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.kimi_api_key else 'Not set' }}">
     </div>
 
     <div class="tab-panel" id="tab-panel-sessions">
-    <h2 style="margin-top:0.5rem;">Sessions</h2>
+    <h2 style="margin-top:1.1rem;">Sessions</h2>
     <label>Projects root <span class="hint">(where repos get cloned to when you create a session from GitHub/GitLab)</span></label>
     <input name="projects_root" value="{{ values.projects_root }}">
     </div>
 
-    <button class="btn btn-primary" type="submit">Save</button>
+    <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">Save</button>
   </form>
 
 <script>

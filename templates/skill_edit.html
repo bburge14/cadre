@@ -4,21 +4,14 @@
 <meta charset="utf-8">
 <title>{{ 'Edit' if skill else 'New' }} skill — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 760px; }
-  a { color: #7ab7ff; }
-  label { display: block; font-size: 0.82rem; color: #9a9a9a; margin: 1rem 0 0.3rem; }
-  input, textarea { width: 100%; box-sizing: border-box; background: #232427; border: 1px solid #3a3b3e; color: #e6e6e6; border-radius: 6px; padding: 0.5rem 0.6rem; font-size: 0.9rem; font-family: inherit; }
-  input:disabled { color: #888; }
-  textarea { font-family: ui-monospace, monospace; font-size: 0.85rem; min-height: 320px; }
-  .btn { display: inline-block; padding: 0.45rem 1rem; border-radius: 5px; text-decoration: none; font-size: 0.9rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 1.2rem 6px 2px 0; }
-  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
-  .hint { color: #888; font-size: 0.78rem; }
+  body { max-width: 760px; }
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
-  <h1 style="font-size:1.2rem;">{{ 'Edit ' + name if skill else 'New skill' }}</h1>
+  <p style="margin-top:1.5rem;"><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
+  <h1>{{ 'Edit ' + name if skill else 'New skill' }}</h1>
   {% if not skill %}
   <p class="hint">Creates <code>&lt;skills-dir&gt;/&lt;name&gt;/SKILL.md</code> — a packaged set of instructions loaded into whatever session invokes it, not a separate spawned worker like an agent.</p>
   {% endif %}
@@ -35,7 +28,7 @@
     <label>instructions (markdown body)</label>
     <textarea name="body">{{ skill.body if skill else '' }}</textarea>
 
-    <button class="btn btn-primary" type="submit">{{ 'Save' if skill else 'Create skill' }}</button>
+    <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if skill else 'Create skill' }}</button>
   </form>
 </body>
 </html>

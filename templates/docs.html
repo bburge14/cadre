@@ -4,24 +4,18 @@
 <meta charset="utf-8">
 <title>Docs — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 760px; line-height: 1.5; }
-  a { color: #7ab7ff; }
-  h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
-  h2 { font-size: 1.05rem; margin-top: 2.2rem; border-top: 1px solid #333; padding-top: 1.2rem; }
-  h3 { font-size: 0.92rem; color: #ddd; margin: 1.2rem 0 0.4rem; }
-  p, li { font-size: 0.88rem; color: #ccc; }
-  .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
-  code { background: #2a2b2e; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.82rem; color: #e6e6e6; }
-  .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 5px; text-decoration: none; font-size: 0.88rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 2px 6px 2px 0; }
-  .toc { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 0.9rem 1.2rem; margin-top: 1.2rem; }
+  body { max-width: 760px; }
+  h2 { border-top: 1px solid var(--border-soft); padding-top: 1.2rem; border-left: none; padding-left: 0; }
+  p, li { font-size: 0.88rem; color: var(--text-dim); }
+  .toc { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 0.9rem 1.2rem; margin-top: 1.2rem; }
   .toc a { display: block; font-size: 0.85rem; padding: 0.15rem 0; }
-  .note { background: #1e2d3a; border: 1px solid #2d5b8a; border-radius: 6px; padding: 0.6rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
 </style>
 </head>
 <body>
   <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
-  <h1 style="display:flex; align-items:center; gap:0.6rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Cadre docs</h1>
+  <h1 class="brand" style="font-size:1.4rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Cadre docs</h1>
   <div class="sub">Day-to-day usage — creating sessions, agent stacks, and providers. For installing on a new machine, running as a background service, or uninstalling, see <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md on GitHub</a> instead — that's the deeper, less frequently needed stuff.</div>
 
   <div class="toc">
@@ -242,7 +236,7 @@
     this one button.
   </p>
 
-  <p style="margin-top:2.5rem; color:#888;">
+  <p class="hint" style="margin-top:2.5rem;">
     Installing on a new machine, running as a background service,
     uninstalling, or building the Windows installer — see
     <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>

@@ -4,29 +4,24 @@
 <meta charset="utf-8">
 <title>{{ session.label }} — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
-  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 760px; }
-  a { color: #7ab7ff; }
-  .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 5px; text-decoration: none; font-size: 0.88rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 2px 6px 2px 0; }
-  form.inline { margin: 0; }
-  .btn-primary { background: #2d5b8a; border-color: #2d5b8a; }
-  .btn-danger { border-color: #6b3030; color: #ff9d9d; }
-  form.inline { display: inline; }
+  body { max-width: 760px; }
   .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
-  .status-on { background: #4caf50; }
-  .status-off { background: #666; }
-  .workdir { color: #888; font-family: ui-monospace, monospace; font-size: 0.85rem; }
-  pre#output { background: #111; padding: 0.8rem; border-radius: 6px; max-height: 420px; overflow-y: auto; font-size: 0.78rem; white-space: pre-wrap; margin-top: 1rem; }
-  #terminal-container { display: none; margin-top: 1rem; background: #000; border-radius: 6px; padding: 0.5rem; }
+  .status-on { background: var(--success-text); animation: pulse-dot 2s ease-in-out infinite; }
+  .status-off { background: var(--text-faint); }
+  .workdir { color: var(--text-faint); font-family: ui-monospace, monospace; font-size: 0.85rem; }
+  pre#output { background: var(--surface-2); border: 1px solid var(--border); padding: 0.8rem; border-radius: var(--radius-sm); max-height: 420px; overflow-y: auto; font-size: 0.78rem; white-space: pre-wrap; margin-top: 1rem; }
+  #terminal-container { display: none; margin-top: 1rem; background: #000; border-radius: var(--radius-sm); padding: 0.5rem; }
   #terminal { height: 420px; }
-  .term-status { font-size: 0.78rem; color: #888; margin-top: 0.3rem; }
-  .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #333; }
-  .limit-banner { display: none; background: #4a2a10; color: #ffbf80; border: 1px solid #7a4a1a; border-radius: 6px; padding: 0.7rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
+  .term-status { font-size: 0.78rem; color: var(--text-faint); margin-top: 0.3rem; }
+  .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border-soft); }
+  .limit-banner { display: none; background: var(--warning-bg); color: var(--warning-text); border: 1px solid #7a4a1a; border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
+  <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
   <h1 style="font-size:1.2rem; margin-bottom:0.1rem;">{{ session.label }}</h1>
   <p class="workdir">{{ session.workdir }}</p>
   <p style="font-size:0.85rem;">
@@ -37,21 +32,23 @@
 
   <div class="limit-banner" id="limit-banner" style="{{ 'display:block;' if status.limit_hit else '' }}">
     &#9888; This session hit a usage/rate limit and stopped responding on its own — nothing's broken here, it's just paused until the provider allows more requests.
-    <div id="limit-message" style="margin-top:0.4rem; color:#ffdcb3; font-family:ui-monospace,monospace; font-size:0.78rem;">{{ status.limit_message or '' }}</div>
+    <div id="limit-message" style="margin-top:0.4rem; color:var(--warning-text); font-family:ui-monospace,monospace; font-size:0.78rem;">{{ status.limit_message or '' }}</div>
   </div>
 
-  <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
-  <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
-  <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
-  {% if matching_stack %}
-  <a class="btn" href="{{ url_for('edit_stack_form', stack_id=matching_stack.id) }}">View this directory's stack ({{ matching_stack.name }})</a>
-  {% else %}
-  <a class="btn" href="{{ url_for('new_stack_form', workdir=session.workdir, name=session.label) }}">Create a stack for this directory</a>
-  {% endif %}
-  <a class="btn" href="{{ url_for('edit_session_form', session_id=session.id) }}">Edit</a>
-  <button class="btn btn-primary" type="button" id="terminal-toggle" onclick="toggleTerminal()">Open terminal</button>
+  <div class="btn-group" style="margin-top:1rem;">
+    <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
+    <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
+    <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
+    {% if matching_stack %}
+    <a class="btn" href="{{ url_for('edit_stack_form', stack_id=matching_stack.id) }}">View this directory's stack ({{ matching_stack.name }})</a>
+    {% else %}
+    <a class="btn" href="{{ url_for('new_stack_form', workdir=session.workdir, name=session.label) }}">Create a stack for this directory</a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('edit_session_form', session_id=session.id) }}">Edit</a>
+    <button class="btn btn-primary" type="button" id="terminal-toggle" onclick="toggleTerminal()">Open terminal</button>
+  </div>
 
-  <p style="font-size:0.8rem; color:#888; margin-top:1.2rem;">Output (session URL / QR appears here after starting):</p>
+  <p class="hint" style="margin-top:1.2rem;">Output (session URL / QR appears here after starting):</p>
   <pre id="output"></pre>
 
   <div id="terminal-container">
@@ -63,8 +60,8 @@
     <form method="post" action="{{ url_for('session_action', session_id=session.id, action='delete') }}"
           onsubmit="return confirm('Delete session {{ session.label }}? This stops it and removes it from this list.');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label style="font-size:0.85rem; color:#bbb;">
-        <input type="checkbox" name="wipe_history"> also permanently delete its conversation history
+      <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; color:var(--text-dim); margin:0;">
+        <input type="checkbox" name="wipe_history" style="width:auto; accent-color:var(--accent);"> also permanently delete its conversation history
       </label><br>
       <button class="btn btn-danger" type="submit" style="margin-top:0.6rem;">Delete session</button>
     </form>

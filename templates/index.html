@@ -42,11 +42,13 @@
         {% if s.status.limit_hit %}<br><span class="badge badge-warn" title="{{ s.status.limit_message }}" style="margin-top:0.35rem;">limit hit</span>{% endif %}
       </td>
       <td>
+        <div class="btn-group">
         <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
         <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
         <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
         <a class="btn" href="{{ url_for('edit_session_form', session_id=s.id) }}">Edit</a>
         <a class="btn" href="{{ url_for('session_detail', session_id=s.id) }}">View</a>
+        </div>
       </td>
     </tr>
     {% else %}
@@ -73,6 +75,7 @@
       <td class="workdir">{{ stack.workdir if stack.workdir else '~/.claude/agents/' }}</td>
       <td>{{ stack.agent_count }}</td>
       <td>
+        <div class="btn-group">
         <a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">Diagram</a>
         <a class="btn" href="{{ url_for('edit_stack_form', stack_id=stack.id) }}">Edit</a>
         {% if not stack.get('is_global') %}
@@ -82,6 +85,7 @@
           <button class="btn btn-danger">Delete</button>
         </form>
         {% endif %}
+        </div>
       </td>
     </tr>
     {% else %}
