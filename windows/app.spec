@@ -27,7 +27,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='AgentStackCreatorApp',
+    name='CadreApp',
     debug=False,
     strip=False,
     upx=False,

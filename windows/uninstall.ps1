@@ -9,7 +9,7 @@ if ($args -notcontains '-y' -and $args -notcontains '--yes') {
     Write-Host "This will:"
     Write-Host "  - stop the dashboard and session daemon if running (ends any"
     Write-Host "    Claude Code sessions the daemon is currently holding open)"
-    Write-Host "  - remove the BradsAgentStackCreator scheduled tasks, if installed"
+    Write-Host "  - remove the Cadre scheduled tasks, if installed"
     Write-Host "  - delete venv\, instance\ (your admin account, sessions list,"
     Write-Host "    agent stacks, settings), .env, and the Desktop shortcut"
     Write-Host ""
@@ -27,7 +27,7 @@ if ($args -notcontains '-y' -and $args -notcontains '--yes') {
 # running this script -- only remove a task if its own WorkingDirectory
 # actually matches this repo, so a second checkout elsewhere can never
 # reach across and kill a different install's services.
-foreach ($taskName in @("BradsAgentStackCreator-Daemon", "BradsAgentStackCreator-App")) {
+foreach ($taskName in @("Cadre-Daemon", "Cadre-App")) {
     $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($null -eq $task) { continue }
     $taskWorkDir = $task.Actions[0].WorkingDirectory
@@ -49,7 +49,7 @@ Remove-Item -Recurse -Force (Join-Path $repoRoot 'instance') -ErrorAction Silent
 Remove-Item -Force (Join-Path $repoRoot '.env') -ErrorAction SilentlyContinue
 
 $desktop = [Environment]::GetFolderPath('Desktop')
-Remove-Item -Force (Join-Path $desktop 'Start Agent Stack Creator.lnk') -ErrorAction SilentlyContinue
+Remove-Item -Force (Join-Path $desktop 'Start Cadre.lnk') -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "Done. Run windows\setup.bat to reinstall from scratch."

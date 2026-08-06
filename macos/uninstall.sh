@@ -32,7 +32,7 @@ pkill -f "$REPO_DIR/session_daemon.py" 2>/dev/null || true
 echo "Removing venv/, instance/, .env..."
 rm -rf "$REPO_DIR/venv" "$REPO_DIR/instance" "$REPO_DIR/.env"
 
-rm -f "$HOME/Desktop/Start Agent Stack Creator.command"
+rm -f "$HOME/Desktop/Start Cadre.command"
 
 echo
 echo "Done. Run macos/setup.sh to reinstall from scratch."

@@ -22,7 +22,7 @@ def _daemon_launch_command() -> list[str]:
         # Frozen build: the daemon is its own sibling executable (see
         # windows/*.spec + windows/installer.iss), not a .py script -- there
         # is no bundled Python interpreter to point at an arbitrary file.
-        daemon_exe = Path(sys.executable).with_name("AgentStackCreatorDaemon.exe")
+        daemon_exe = Path(sys.executable).with_name("CadreDaemon.exe")
         return [str(daemon_exe)]
     return [sys.executable, str(config.BASE_DIR / "session_daemon.py")]
 

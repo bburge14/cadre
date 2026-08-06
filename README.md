@@ -1,11 +1,11 @@
-# Brad's Agent Stack Creator
+# Cadre
 
 A self-hosted, single-user web app for managing multiple Claude Code
 sessions (each reachable remotely via claude.ai/code) and the global agent
 team at `~/.claude/agents/` that all of them share. See `SETUP.md` to
 install your own copy.
 
-Runs well as a systemd `--user` service (`claude-command-center.service`),
+Runs well as a systemd `--user` service (`cadre-app.service`),
 enabled + lingering, so it's always up — no manual start needed. See
 `SETUP.md` for the unit file.
 

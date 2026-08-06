@@ -14,7 +14,7 @@ if getattr(sys, "frozen", False):
     # there. Keep it in the same stable location a normal source install
     # already uses, so both packaging methods share one data directory.
     BUNDLE_DIR = Path(sys._MEIPASS)
-    BASE_DIR = Path.home() / ".claude" / "command-center"
+    BASE_DIR = Path.home() / ".claude" / "cadre"
     BASE_DIR.mkdir(parents=True, exist_ok=True)
 else:
     BUNDLE_DIR = Path(__file__).parent
@@ -27,10 +27,18 @@ import os
 INSTANCE_DIR = BASE_DIR / "instance"
 INSTANCE_DIR.mkdir(exist_ok=True)
 
-HOST = os.environ.get("COMMAND_CENTER_HOST", "127.0.0.1")
-PORT = int(os.environ.get("COMMAND_CENTER_PORT", "7420"))
-DAEMON_PORT = int(os.environ.get("COMMAND_CENTER_DAEMON_PORT", "7421"))
-TERMINAL_PORT = int(os.environ.get("COMMAND_CENTER_TERMINAL_PORT", "7422"))
+# CADRE_* is the canonical name; COMMAND_CENTER_* (the app's pre-rename
+# name) still works as a fallback so an existing .env from before the
+# rename keeps working untouched.
+def _env(new_key: str, old_key: str, default: str) -> str:
+    return os.environ.get(new_key, os.environ.get(old_key, default))
+
+
+HOST = _env("CADRE_HOST", "COMMAND_CENTER_HOST", "127.0.0.1")
+PORT = int(_env("CADRE_PORT", "COMMAND_CENTER_PORT", "7420"))
+DAEMON_PORT = int(_env("CADRE_DAEMON_PORT", "COMMAND_CENTER_DAEMON_PORT", "7421"))
+TERMINAL_PORT = int(_env("CADRE_TERMINAL_PORT", "COMMAND_CENTER_TERMINAL_PORT", "7422"))
+COOKIE_SECURE = _env("CADRE_COOKIE_SECURE", "COMMAND_CENTER_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
 CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "claude")
 
 _agents_dir_override = os.environ.get("CLAUDE_AGENTS_DIR", "").strip()

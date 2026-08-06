@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import secrets
 import shutil
 import subprocess
@@ -32,8 +31,7 @@ app.permanent_session_lifetime = timedelta(days=30)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("COMMAND_CENTER_COOKIE_SECURE", "false").lower()
-    in ("1", "true", "yes"),
+    SESSION_COOKIE_SECURE=config.COOKIE_SECURE,
 )
 
 
@@ -602,7 +600,7 @@ SECRET_SETTINGS = {
     "gemini_api_key", "codex_api_key", "kimi_api_key",
 }
 
-GITHUB_REPO = "bburge14/brads-agent-stack-creator"
+GITHUB_REPO = "bburge14/cadre"
 
 
 def _read_version() -> str:

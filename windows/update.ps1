@@ -22,12 +22,12 @@ Write-Host "Reinstalling dependencies..."
 
 # Same WorkingDirectory-match safety check as uninstall.ps1 -- a scheduled
 # task name is global, not scoped to whichever checkout runs this script.
-$task = Get-ScheduledTask -TaskName "BradsAgentStackCreator-App" -ErrorAction SilentlyContinue
+$task = Get-ScheduledTask -TaskName "Cadre-App" -ErrorAction SilentlyContinue
 if ($null -ne $task -and $task.Actions[0].WorkingDirectory -eq $repoRoot) {
-    Write-Host "Restarting the BradsAgentStackCreator-App task (the dashboard only)..."
-    Stop-ScheduledTask -TaskName "BradsAgentStackCreator-App" -ErrorAction SilentlyContinue
+    Write-Host "Restarting the Cadre-App task (the dashboard only)..."
+    Stop-ScheduledTask -TaskName "Cadre-App" -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 1
-    Start-ScheduledTask -TaskName "BradsAgentStackCreator-App"
+    Start-ScheduledTask -TaskName "Cadre-App"
 } else {
     Write-Host ""
     Write-Host "No matching scheduled task for this checkout -- restart the"

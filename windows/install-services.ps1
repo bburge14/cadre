@@ -1,4 +1,4 @@
-# Sets up Brad's Agent Stack Creator to run automatically at login, using
+# Sets up Cadre to run automatically at login, using
 # Windows Task Scheduler -- the closest equivalent to the systemd --user
 # services used on Linux/macOS (see SETUP.md). Run this once, from a normal
 # PowerShell prompt (no admin rights needed for a per-user scheduled task).
@@ -8,7 +8,7 @@
 #     requirements.txt` already run): runs venv\Scripts\pythonw.exe against
 #     app.py / session_daemon.py.
 #   - Installed via the .exe installer: runs the standalone
-#     AgentStackCreatorApp.exe / AgentStackCreatorDaemon.exe directly, no
+#     CadreApp.exe / CadreDaemon.exe directly, no
 #     Python installation involved at all.
 #
 # Two separate tasks are created, mirroring the two-process design: the
@@ -20,8 +20,8 @@
 $ErrorActionPreference = "Stop"
 $repoDir = Split-Path -Parent $PSScriptRoot
 $pythonw = Join-Path $repoDir "venv\Scripts\pythonw.exe"
-$appExe = Join-Path $repoDir "AgentStackCreatorApp.exe"
-$daemonExe = Join-Path $repoDir "AgentStackCreatorDaemon.exe"
+$appExe = Join-Path $repoDir "CadreApp.exe"
+$daemonExe = Join-Path $repoDir "CadreDaemon.exe"
 
 if (Test-Path $pythonw) {
     $daemonAction = @{ Execute = $pythonw; Argument = "session_daemon.py" }
@@ -30,7 +30,7 @@ if (Test-Path $pythonw) {
     $daemonAction = @{ Execute = $daemonExe; Argument = "" }
     $appAction = @{ Execute = $appExe; Argument = "" }
 } else {
-    Write-Error "Couldn't find either a venv (venv\Scripts\pythonw.exe) or the installed executables (AgentStackCreatorApp.exe / AgentStackCreatorDaemon.exe) in $repoDir"
+    Write-Error "Couldn't find either a venv (venv\Scripts\pythonw.exe) or the installed executables (CadreApp.exe / CadreDaemon.exe) in $repoDir"
     exit 1
 }
 
@@ -46,16 +46,16 @@ function Install-Task {
     Write-Host "Installed scheduled task: $Name"
 }
 
-Install-Task -Name "BradsAgentStackCreator-Daemon" -ActionSpec $daemonAction
-Install-Task -Name "BradsAgentStackCreator-App" -ActionSpec $appAction
+Install-Task -Name "Cadre-Daemon" -ActionSpec $daemonAction
+Install-Task -Name "Cadre-App" -ActionSpec $appAction
 
 Write-Host ""
 Write-Host "Starting both now (they'll also auto-start at your next login)..."
-Start-ScheduledTask -TaskName "BradsAgentStackCreator-Daemon"
+Start-ScheduledTask -TaskName "Cadre-Daemon"
 Start-Sleep -Seconds 2
-Start-ScheduledTask -TaskName "BradsAgentStackCreator-App"
+Start-ScheduledTask -TaskName "Cadre-App"
 
 Write-Host ""
 Write-Host "Done. Check status with:"
-Write-Host "  Get-ScheduledTask -TaskName 'BradsAgentStackCreator-*'"
+Write-Host "  Get-ScheduledTask -TaskName 'Cadre-*'"
 Write-Host "Dashboard should be reachable shortly at the host/port from your .env (default http://127.0.0.1:7420)."

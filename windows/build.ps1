@@ -1,7 +1,6 @@
-# Builds the actual Windows installer (Setup.exe) for Brad's Agent Stack
-# Creator. Must run ON Windows -- PyInstaller does not cross-compile from
-# Linux/macOS. Run from a normal PowerShell prompt in the repo root or
-# from windows\.
+# Builds the actual Windows installer (Setup.exe) for Cadre. Must run ON
+# Windows -- PyInstaller does not cross-compile from Linux/macOS. Run from
+# a normal PowerShell prompt in the repo root or from windows\.
 #
 # Prerequisites (one-time):
 #   venv already set up (SETUP.md steps 1-2)
@@ -20,10 +19,10 @@ if (-not (Test-Path $pyinstaller)) {
     exit 1
 }
 
-Write-Host "Building AgentStackCreatorApp.exe..."
+Write-Host "Building CadreApp.exe..."
 & $pyinstaller --noconfirm windows\app.spec
 
-Write-Host "Building AgentStackCreatorDaemon.exe..."
+Write-Host "Building CadreDaemon.exe..."
 & $pyinstaller --noconfirm windows\daemon.spec
 
 $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue

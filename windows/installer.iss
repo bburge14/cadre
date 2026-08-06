@@ -1,11 +1,11 @@
-; Inno Setup script for Brad's Agent Stack Creator.
+; Inno Setup script for Cadre.
 ; Build with: ISCC.exe windows\installer.iss
 ; (requires windows\build.ps1 to have already run PyInstaller and produced
-; dist\AgentStackCreatorApp.exe and dist\AgentStackCreatorDaemon.exe)
+; dist\CadreApp.exe and dist\CadreDaemon.exe)
 ;
 ; Get Inno Setup (free) from https://jrsoftware.org/isinfo.php
 
-#define MyAppName "Brad's Agent Stack Creator"
+#define MyAppName "Cadre"
 #define MyAppVersion "0.1.0-alpha"
 #define MyAppPublisher "Bradey Burge"
 #define MyAppURL "http://127.0.0.1:7420"
@@ -15,21 +15,22 @@ AppId={{127B4A60-2B0E-4D48-874C-D3B3EBAEEF4A}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\BradsAgentStackCreator
+DefaultDirName={localappdata}\Cadre
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
+SetupIconFile=cadre-logo.ico
 ; Per-user install, no admin elevation prompt -- matches the systemd
 ; --user (not system-wide) model used on Linux/macOS.
 PrivilegesRequired=lowest
 OutputDir=installer-output
-OutputBaseFilename=BradsAgentStackCreator-Setup-{#MyAppVersion}
+OutputBaseFilename=Cadre-Setup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Files]
-Source: "..\dist\AgentStackCreatorApp.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\AgentStackCreatorDaemon.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\CadreApp.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\CadreDaemon.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\.env.example"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\VERSION"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion

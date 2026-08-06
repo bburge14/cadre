@@ -15,14 +15,14 @@ chmod +x "$REPO_DIR/linux/start.sh"
 
 DESKTOP_DIR="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
 if [ -d "$DESKTOP_DIR" ]; then
-    LAUNCHER="$DESKTOP_DIR/Start Agent Stack Creator.desktop"
+    LAUNCHER="$DESKTOP_DIR/Start Cadre.desktop"
     cat > "$LAUNCHER" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Start Agent Stack Creator
-Comment=Launch Brad's Agent Stack Creator dashboard
+Name=Start Cadre
+Comment=Launch Cadre dashboard
 Exec="$REPO_DIR/linux/start.sh"
-Icon=utilities-terminal
+Icon=$REPO_DIR/static/cadre-logo.png
 Terminal=true
 Categories=Development;
 EOF

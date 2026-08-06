@@ -23,7 +23,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='AgentStackCreatorDaemon',
+    name='CadreDaemon',
     debug=False,
     strip=False,
     upx=False,

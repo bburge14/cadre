@@ -6,7 +6,7 @@
 # actually matches this repo, so a second checkout elsewhere can never
 # reach across and kill a different install's services.
 $repoRoot = Split-Path -Parent $PSScriptRoot
-foreach ($taskName in @("BradsAgentStackCreator-Daemon", "BradsAgentStackCreator-App")) {
+foreach ($taskName in @("Cadre-Daemon", "Cadre-App")) {
     $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($null -eq $task) { continue }
     $taskWorkDir = $task.Actions[0].WorkingDirectory

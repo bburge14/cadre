@@ -2,7 +2,8 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Log in — Brad's Agent Stack Creator</title>
+<title>Log in — Cadre</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
 <style>
   body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 4rem 2rem; max-width: 380px; }
   h1 { font-size: 1.15rem; }
@@ -15,7 +16,7 @@
 </style>
 </head>
 <body>
-  <h1>Brad's Agent Stack Creator</h1>
+  <h1 style="display:flex; align-items:center; gap:0.6rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="32" height="32">Cadre</h1>
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
       <div class="flash {{ category }}">{{ msg }}</div>

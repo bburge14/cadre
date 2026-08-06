@@ -23,7 +23,7 @@ echo "Reinstalling dependencies..."
 
 # Same WorkingDirectory-match safety check as uninstall.sh -- a service
 # name is global, not scoped to whichever checkout runs this script.
-SERVICE_FILE="$HOME/.config/systemd/user/claude-session-daemon.service"
+SERVICE_FILE="$HOME/.config/systemd/user/cadre-daemon.service"
 registered_dir=""
 if [ -f "$SERVICE_FILE" ]; then
     registered_dir="$(grep '^WorkingDirectory=' "$SERVICE_FILE" | head -1 | cut -d= -f2-)"
@@ -31,8 +31,8 @@ if [ -f "$SERVICE_FILE" ]; then
 fi
 
 if [ -n "$registered_dir" ] && [ "$registered_dir" = "$REPO_DIR" ]; then
-    echo "Restarting claude-command-center.service (the dashboard only)..."
-    systemctl --user restart claude-command-center.service
+    echo "Restarting cadre-app.service (the dashboard only)..."
+    systemctl --user restart cadre-app.service
 else
     echo
     echo "No matching systemd service for this checkout -- restart the"

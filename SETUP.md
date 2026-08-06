@@ -1,4 +1,4 @@
-# Brad's Agent Stack Creator — Setup
+# Cadre — Setup
 
 A web dashboard for managing multiple Claude Code sessions (each reachable
 remotely via claude.ai/code) and the global subagent team they all share.
@@ -32,15 +32,15 @@ account system beyond the one admin login you create for yourself below.
 
 1. **Get the code**:
    ```bash
-   git clone https://github.com/bburge14/brads-agent-stack-creator ~/.claude/command-center
-   cd ~/.claude/command-center
+   git clone https://github.com/bburge14/cadre ~/.claude/cadre
+   cd ~/.claude/cadre
    ```
 
 2. **Run the setup script** — `./linux/setup.sh` on Linux, `./macos/setup.sh`
    on macOS. Each creates the virtual environment, installs everything from
-   `requirements.txt`, and drops a double-clickable "Start Agent Stack
-   Creator" launcher on your Desktop (skipped with a message if you don't
-   have a Desktop folder — headless boxes, servers, etc.). Safe to re-run
+   `requirements.txt`, and drops a double-clickable "Start Cadre" launcher
+   on your Desktop (skipped with a message if you don't have a Desktop
+   folder — headless boxes, servers, etc.). Safe to re-run
    any time (e.g. after a `git pull` that changed `requirements.txt`).
 
    Prefer doing it by hand, or the script can't run for some reason? Same
@@ -110,15 +110,15 @@ account system beyond the one admin login you create for yourself below.
    repo's Releases page and extract it — either way you end up with a
    folder containing `app.py`, `windows\`, etc.
    ```powershell
-   git clone https://github.com/bburge14/brads-agent-stack-creator $env:USERPROFILE\claude-command-center
-   cd $env:USERPROFILE\claude-command-center
+   git clone https://github.com/bburge14/cadre $env:USERPROFILE\cadre
+   cd $env:USERPROFILE\cadre
    ```
 
 2. **Double-click `windows\setup.bat`** (or run it from a terminal). This
    creates the virtual environment, installs everything from
    `requirements.txt` — the one step that's easy to miss if you skip
-   straight to running the app — and creates a "Start Agent Stack Creator"
-   shortcut on your Desktop pointing at `windows\start.bat`. It also
+   straight to running the app — and creates a "Start Cadre" shortcut on
+   your Desktop pointing at `windows\start.bat`. It also
    installs `pywinpty`, which needs a working C++ toolchain to build from
    source on some setups — if that step fails, install the
    [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
@@ -218,7 +218,7 @@ This app is actually two pieces:
 - **`session_daemon.py`** — a separate, much simpler process that actually
   owns each Claude Code session's terminal (a pty) and keeps it alive. It
   talks to `app.py` over a TCP loopback connection (`127.0.0.1`, port from
-  `COMMAND_CENTER_DAEMON_PORT` in `.env`, default `7421`) — not exposed
+  `CADRE_DAEMON_PORT` in `.env`, default `7421`) — not exposed
   beyond this machine, and a plain TCP port rather than a Unix domain
   socket specifically so this works identically on Windows.
 
@@ -243,14 +243,14 @@ rarer restarts than the dashboard sees, but it's not zero — a `tmux`/
 ```bash
 mkdir -p ~/.config/systemd/user
 
-cat > ~/.config/systemd/user/claude-session-daemon.service <<'EOF'
+cat > ~/.config/systemd/user/cadre-daemon.service <<'EOF'
 [Unit]
-Description=Brad's Agent Stack Creator - session daemon (owns pty/process lifecycle)
+Description=Cadre - session daemon (owns pty/process lifecycle)
 
 [Service]
 Type=simple
-WorkingDirectory=%h/.claude/command-center
-ExecStart=%h/.claude/command-center/venv/bin/python session_daemon.py
+WorkingDirectory=%h/.claude/cadre
+ExecStart=%h/.claude/cadre/venv/bin/python session_daemon.py
 Restart=on-failure
 RestartSec=3
 
@@ -258,16 +258,16 @@ RestartSec=3
 WantedBy=default.target
 EOF
 
-cat > ~/.config/systemd/user/claude-command-center.service <<'EOF'
+cat > ~/.config/systemd/user/cadre-app.service <<'EOF'
 [Unit]
-Description=Brad's Agent Stack Creator
-Wants=claude-session-daemon.service
-After=claude-session-daemon.service
+Description=Cadre
+Wants=cadre-daemon.service
+After=cadre-daemon.service
 
 [Service]
 Type=simple
-WorkingDirectory=%h/.claude/command-center
-ExecStart=%h/.claude/command-center/venv/bin/python app.py
+WorkingDirectory=%h/.claude/cadre
+ExecStart=%h/.claude/cadre/venv/bin/python app.py
 Restart=on-failure
 RestartSec=3
 
@@ -276,12 +276,12 @@ WantedBy=default.target
 EOF
 
 systemctl --user daemon-reload
-systemctl --user enable --now claude-session-daemon.service claude-command-center.service
+systemctl --user enable --now cadre-daemon.service cadre-app.service
 loginctl enable-linger "$USER"   # keeps both running even when you're logged out
 ```
 
-Check both came up: `systemctl --user status claude-session-daemon.service
-claude-command-center.service` should show `active (running)` for each.
+Check both came up: `systemctl --user status cadre-daemon.service
+cadre-app.service` should show `active (running)` for each.
 
 On macOS, there's no systemd — just run `./venv/bin/python app.py` in a
 terminal you leave open, or wrap it in your own `launchd` plist if you want
@@ -362,7 +362,7 @@ This registers two scheduled tasks (one per process, mirroring the systemd
 setup above) that start automatically at login and restart on failure, and
 starts both immediately. Check status with:
 ```powershell
-Get-ScheduledTask -TaskName "BradsAgentStackCreator-*"
+Get-ScheduledTask -TaskName "Cadre-*"
 ```
 To remove them later: `windows\uninstall-services.ps1` (same pattern, does
 not touch `instance/` or `.env`).
@@ -381,11 +381,11 @@ unverified until it's been run for real:
    [Inno Setup](https://jrsoftware.org/isinfo.php) (free) so `ISCC.exe` is
    on your `PATH`.
 2. `powershell -ExecutionPolicy Bypass -File windows\build.ps1` — builds
-   `AgentStackCreatorApp.exe` and `AgentStackCreatorDaemon.exe` via
+   `CadreApp.exe` and `CadreDaemon.exe` via
    PyInstaller (`windows\app.spec` / `windows\daemon.spec`), then wraps
-   them into `windows\installer-output\BradsAgentStackCreator-Setup-*.exe`
+   them into `windows\installer-output\Cadre-Setup-*.exe`
    via Inno Setup (`windows\installer.iss`).
-3. Running that `Setup.exe` installs to `%LOCALAPPDATA%\BradsAgentStackCreator`
+3. Running that `Setup.exe` installs to `%LOCALAPPDATA%\Cadre`
    (no admin rights needed), registers the same two scheduled tasks as
    "Running it as an always-on background service (Windows)" above, and
    opens the dashboard in your browser when done.
@@ -399,7 +399,7 @@ here, most likely in `windows/app.spec`'s `datas`/`hiddenimports` lists.
 
 By default this only listens on `127.0.0.1` — reachable from this machine
 alone. To reach it from your phone or another device on your Tailscale
-network or LAN, set `COMMAND_CENTER_HOST=0.0.0.0` in `.env` and restart.
+network or LAN, set `CADRE_HOST=0.0.0.0` in `.env` and restart.
 **Do not** additionally expose that port to the open internet without a
 reverse proxy handling TLS — this is a plain-HTTP dev server underneath,
 and while it now has real login/CSRF protection, it was never hardened
@@ -413,5 +413,5 @@ against being placed directly on the public internet.
 - `CLAUDE_AGENTS_DIR` in `.env` — only needed if you want this instance to
   manage a subagent-definitions directory other than the standard
   `~/.claude/agents`.
-- `COMMAND_CENTER_DAEMON_PORT` in `.env` — only needed if `7421` is already
+- `CADRE_DAEMON_PORT` in `.env` — only needed if `7421` is already
   in use by something else on this machine.

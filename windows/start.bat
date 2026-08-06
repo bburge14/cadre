@@ -5,7 +5,7 @@ if not exist "venv\Scripts\python.exe" (
     pause
     exit /b 1
 )
-echo Starting Brad's Agent Stack Creator...
+echo Starting Cadre...
 echo Closing this window will stop the dashboard. The session daemon
 echo (your Claude Code sessions) keeps running independently of it.
 echo.

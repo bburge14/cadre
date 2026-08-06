@@ -5,7 +5,7 @@ if [ ! -x "venv/bin/python" ]; then
     read -p "Press Enter to close..."
     exit 1
 fi
-echo "Starting Brad's Agent Stack Creator..."
+echo "Starting Cadre..."
 echo "Closing this window will stop the dashboard. The session daemon"
 echo "(your Claude Code sessions) keeps running independently of it."
 echo

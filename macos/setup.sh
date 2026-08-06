@@ -15,7 +15,7 @@ chmod +x "$REPO_DIR/macos/start.sh"
 
 DESKTOP_DIR="$HOME/Desktop"
 if [ -d "$DESKTOP_DIR" ]; then
-    LAUNCHER="$DESKTOP_DIR/Start Agent Stack Creator.command"
+    LAUNCHER="$DESKTOP_DIR/Start Cadre.command"
     cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env bash
 "$REPO_DIR/macos/start.sh"
