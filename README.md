@@ -52,12 +52,12 @@ enabled + lingering, so it's always up — no manual start needed. See
   `psutil`-based process discovery, so a session started outside this app
   (desktop icon, manual `claude --resume ... --remote-control`) is
   detected and managed rather than duplicated.
-- **Updating**: Settings shows the running version (`VERSION`) and can
-  check GitHub's releases API for a newer one — check-only, never applies
-  anything itself. `linux/update.sh` / `macos/update.sh` /
-  `windows\update.bat` actually pull and apply one (`git pull` + reinstall
-  deps), restarting only the dashboard, never the session daemon — see
-  "Updating" in `SETUP.md`.
+- **Updating**: Settings shows the running version (`VERSION`), checks
+  GitHub's releases API for a newer one, and can apply it in-place with an
+  "Update now" button (`git pull` + reinstall deps + auto-restart the
+  dashboard once it's back) — never touches the session daemon. Same thing
+  from a terminal via `linux/update.sh` / `macos/update.sh` /
+  `windows\update.bat` — see "Updating" in `SETUP.md`.
 
 ## Operational notes
 

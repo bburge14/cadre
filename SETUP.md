@@ -321,12 +321,21 @@ stop a different one.
 
 ## Updating
 
-**Settings** shows the version you're running (`VERSION` in the repo) with
-a "Check for updates" button — it asks GitHub's public releases API
-whether a newer one exists and links straight to it. It only checks; it
-never downloads or applies anything on its own.
+**Settings** shows the version you're running (`VERSION` in the repo).
+"Check for updates" asks GitHub's public releases API whether a newer one
+exists; if so, an "Update now" button appears right there — click it and
+it runs `git pull`, reinstalls `requirements.txt` (in case it changed),
+and — using the same working-directory match as the uninstall scripts —
+restarts the **dashboard only** if this checkout owns a registered
+service/task, then reloads the page automatically once it's back. The
+session daemon is deliberately never touched by this, since restarting it
+ends any live Claude Code sessions it's holding open; if a given update
+specifically touched `session_daemon.py`, restart that yourself once
+you're ready (or just wait for its next natural restart). If nothing's
+registered (or on macOS, where there's no services concept here at all),
+it tells you to restart the dashboard by hand instead of trying to.
 
-To actually pull in an update, from a terminal:
+The same thing is available from a terminal, if you'd rather:
 
 ```bash
 ./linux/update.sh     # or ./macos/update.sh
@@ -335,19 +344,9 @@ To actually pull in an update, from a terminal:
 windows\update.bat
 ```
 
-Each runs `git pull`, reinstalls `requirements.txt` (in case it changed),
-and — on Linux/Windows, using the same working-directory match as the
-uninstall scripts — restarts the **dashboard only** if this checkout owns
-a registered service/task. The session daemon is deliberately left
-running, since restarting it ends any live Claude Code sessions it's
-holding open; if a given update specifically touched
-`session_daemon.py`, restart that yourself once you're ready (or just
-wait for its next natural restart). If nothing's registered (or on
-macOS, where there's no services concept here at all), it just tells you
-to restart the dashboard by hand.
-
-This only works for a `git clone` install — if you're on the ZIP-download
-path (Windows only), grab the newer ZIP from Releases instead.
+Either path only works for a `git clone` install — if you're on the
+ZIP-download path (Windows only), grab the newer ZIP from Releases
+instead.
 
 ## Running it as an always-on background service (Windows)
 

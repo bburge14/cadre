@@ -3,6 +3,9 @@ from __future__ import annotations
 import secrets
 import shutil
 import subprocess
+import sys
+import threading
+import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -656,6 +659,109 @@ def check_update():
         "up_to_date": latest == current,
         "release_url": f"https://github.com/{GITHUB_REPO}/releases/tag/v{latest}",
     }
+
+
+def _matching_dashboard_service() -> str | None:
+    """Whether *this exact checkout* owns a registered dashboard
+    service/task -- same WorkingDirectory-match safety check as the
+    uninstall/update scripts, reimplemented here since this runs from
+    inside the app rather than a shell script. Only ever looks at the
+    dashboard service, never the daemon -- restarting the daemon ends live
+    Claude Code sessions, which this feature must never do unprompted."""
+    if sys.platform == "win32":
+        try:
+            out = subprocess.run(
+                ["schtasks", "/Query", "/TN", "Cadre-App", "/V", "/FO", "LIST"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if out.returncode != 0:
+                return None
+            for line in out.stdout.splitlines():
+                if line.strip().startswith("Start In:"):
+                    work_dir = line.split(":", 1)[1].strip()
+                    if Path(work_dir) == config.BASE_DIR:
+                        return "Cadre-App"
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return None
+
+    service_file = Path.home() / ".config" / "systemd" / "user" / "cadre-app.service"
+    if not service_file.exists():
+        return None
+    try:
+        for line in service_file.read_text().splitlines():
+            if line.startswith("WorkingDirectory="):
+                raw = line.split("=", 1)[1].strip()
+                resolved = Path(raw.replace("%h", str(Path.home()), 1))
+                if resolved == config.BASE_DIR:
+                    return "cadre-app.service"
+    except OSError:
+        return None
+    return None
+
+
+def _apply_update() -> dict:
+    if not (config.BASE_DIR / ".git").is_dir():
+        return {
+            "ok": False,
+            "error": "This isn't a git checkout -- grab the newer release ZIP from GitHub instead.",
+        }
+
+    log_parts = []
+
+    def _run(args: list[str]) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            args, cwd=config.BASE_DIR, capture_output=True, text=True, timeout=120,
+        )
+
+    try:
+        pull = _run(["git", "pull"])
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"ok": False, "error": f"git pull failed to run: {exc}"}
+    log_parts.append("$ git pull\n" + pull.stdout + pull.stderr)
+    if pull.returncode != 0:
+        return {"ok": False, "error": "git pull failed -- see log.", "log": "\n".join(log_parts)}
+
+    pip_path = config.BASE_DIR / ("venv/Scripts/pip.exe" if sys.platform == "win32" else "venv/bin/pip")
+    try:
+        deps = _run([str(pip_path), "install", "-r", "requirements.txt"])
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"ok": False, "error": f"dependency install failed to run: {exc}", "log": "\n".join(log_parts)}
+    log_parts.append("$ pip install -r requirements.txt\n" + deps.stdout + deps.stderr)
+    if deps.returncode != 0:
+        return {"ok": False, "error": "Dependency install failed -- see log.", "log": "\n".join(log_parts)}
+
+    return {"ok": True, "log": "\n".join(log_parts), "restart_target": _matching_dashboard_service()}
+
+
+def _restart_dashboard_service(service_name: str) -> None:
+    """Runs in a background thread, after the HTTP response for
+    apply_update has already been sent -- restarting the service that's
+    serving this very request kills the process handling it, so this can't
+    happen synchronously inside the request."""
+    time.sleep(1.5)
+    try:
+        if sys.platform == "win32":
+            subprocess.run(["powershell", "-NoProfile", "-Command", f"Stop-ScheduledTask -TaskName '{service_name}'; Start-Sleep -Seconds 1; Start-ScheduledTask -TaskName '{service_name}'"], timeout=30)
+        else:
+            subprocess.run(["systemctl", "--user", "restart", service_name], timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+@app.post("/settings/apply-update")
+@require_auth
+def apply_update():
+    result = _apply_update()
+    if not result["ok"]:
+        return result
+    restart_target = result.pop("restart_target", None)
+    if restart_target:
+        threading.Thread(target=_restart_dashboard_service, args=(restart_target,), daemon=True).start()
+        result["restarting"] = True
+    else:
+        result["restarting"] = False
+    return result
 
 
 @app.post("/settings")

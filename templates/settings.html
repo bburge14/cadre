@@ -33,13 +33,17 @@
 
   <h2 style="margin-top:0; border-top:none; padding-top:0;">Version</h2>
   <p class="hint">
-    Running <code>v{{ current_version }}</code>. This dashboard doesn't
-    auto-update itself — check for a newer release, then pull it in from a
-    terminal: <code>linux/update.sh</code> / <code>macos/update.sh</code> /
-    <code>windows\update.bat</code>.
+    Running <code>v{{ current_version }}</code>. "Update now" pulls the
+    latest code (<code>git pull</code>), reinstalls dependencies, and
+    restarts the dashboard automatically if it's running as a registered
+    service — the session daemon is never touched, so live sessions aren't
+    affected. Only works for a git-clone install; on the ZIP-download path
+    (Windows only) grab the newer ZIP from Releases instead.
   </p>
   <button class="btn" type="button" id="check-update-btn" onclick="checkForUpdate()">Check for updates</button>
+  <button class="btn btn-primary" type="button" id="apply-update-btn" onclick="applyUpdate()" style="display:none;">Update now</button>
   <div id="update-status" class="hint" style="margin-top:0.5rem;"></div>
+  <pre id="update-log" class="hint" style="display:none; margin-top:0.5rem; background:#111; padding:0.6rem 0.8rem; border-radius:6px; max-height:240px; overflow-y:auto; white-space:pre-wrap; font-size:0.76rem;"></pre>
 
   <h2>Claude account <span class="hint">(required — everything in this app runs on top of it)</span></h2>
   {% if not claude_installed %}
@@ -122,10 +126,14 @@
   </form>
 
 <script>
+let latestKnownVersion = null;
+
 async function checkForUpdate() {
   const btn = document.getElementById('check-update-btn');
+  const applyBtn = document.getElementById('apply-update-btn');
   const status = document.getElementById('update-status');
   btn.disabled = true;
+  applyBtn.style.display = 'none';
   status.textContent = 'Checking...';
   try {
     const res = await fetch("{{ url_for('check_update') }}");
@@ -136,11 +144,74 @@ async function checkForUpdate() {
       status.textContent = "You're on the latest release (v" + data.current + ").";
     } else {
       status.innerHTML = 'A newer release is available: <a href="' + data.release_url + '" target="_blank">v' + data.latest + '</a> (running v' + data.current + ').';
+      latestKnownVersion = data.latest;
+      applyBtn.style.display = 'inline-block';
+      applyBtn.textContent = 'Update now to v' + data.latest;
     }
   } catch (e) {
     status.textContent = "Couldn't check for updates: " + e;
   }
   btn.disabled = false;
+}
+
+async function applyUpdate() {
+  const applyBtn = document.getElementById('apply-update-btn');
+  const checkBtn = document.getElementById('check-update-btn');
+  const status = document.getElementById('update-status');
+  const log = document.getElementById('update-log');
+  if (!confirm('Pull the latest code and reinstall dependencies now?')) return;
+
+  applyBtn.disabled = true;
+  checkBtn.disabled = true;
+  status.textContent = 'Updating... (git pull + reinstalling dependencies, this can take a minute)';
+  log.style.display = 'none';
+
+  try {
+    const res = await fetch("{{ url_for('apply_update') }}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf_token=' + encodeURIComponent('{{ csrf_token() }}'),
+    });
+    const data = await res.json();
+    if (data.log) {
+      log.textContent = data.log;
+      log.style.display = 'block';
+    }
+    if (!data.ok) {
+      status.textContent = 'Update failed: ' + (data.error || 'unknown error');
+      applyBtn.disabled = false;
+      checkBtn.disabled = false;
+      return;
+    }
+    if (data.restarting) {
+      status.textContent = 'Update applied. Restarting the dashboard now...';
+      waitForRestart();
+    } else {
+      status.textContent = 'Update applied. Restart the dashboard yourself (it\'s not running as a registered service) to pick up the new code.';
+      applyBtn.style.display = 'none';
+      checkBtn.disabled = false;
+    }
+  } catch (e) {
+    status.textContent = 'Update failed: ' + e;
+    applyBtn.disabled = false;
+    checkBtn.disabled = false;
+  }
+}
+
+async function waitForRestart() {
+  const status = document.getElementById('update-status');
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      const res = await fetch("{{ url_for('settings_form') }}", { cache: 'no-store' });
+      if (res.ok) {
+        status.textContent = 'Back up -- reloading...';
+        location.reload();
+        return;
+      }
+    } catch (e) { /* still restarting */ }
+  }
+  status.textContent = "Didn't come back within 30s -- check it manually.";
 }
 </script>
 </body>
