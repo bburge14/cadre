@@ -44,6 +44,21 @@
     </div>
     {% endif %}
 
+    <label>skills <span class="hint">(which skills this agent should use — invoked by name when relevant to what it's doing; different from "can spawn," a skill isn't a separate worker)</span></label>
+    {% if available_skills %}
+    <input type="text" id="skill-search" placeholder="Search skills..." style="margin-bottom:0.4rem;" oninput="filterSkills()">
+    <div style="background:#232427; border:1px solid #3a3b3e; border-radius:6px; padding:0.6rem 0.8rem; max-height:260px; overflow-y:auto;">
+      {% for skill in available_skills %}
+      <label class="skill-row" data-search="{{ (skill.name ~ ' ' ~ skill.frontmatter.get('description', '')) | lower }}" style="display:flex; align-items:flex-start; gap:0.5rem; margin:0.5rem 0; font-size:0.88rem; color:#e6e6e6;">
+        <input type="checkbox" name="skill_names" value="{{ skill.name }}" {{ 'checked' if skill.name in selected_skills else '' }} style="width:auto; margin-top:0.2rem; flex-shrink:0;">
+        <span><strong>{{ skill.name }}</strong><br><span class="hint">{{ skill.frontmatter.get('description', '') }}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="hint">No skills exist in this stack yet — create one from its page, then come back here to attach it to this agent.</p>
+    {% endif %}
+
     <label>model</label>
     <select name="model">
       {% set current = agent.frontmatter.get('model', 'inherit') if agent else 'inherit' %}
@@ -84,5 +99,14 @@
 
     <button class="btn btn-primary" type="submit">Save &amp; restart session</button>
   </form>
+
+<script>
+function filterSkills() {
+  const q = document.getElementById('skill-search').value.toLowerCase();
+  document.querySelectorAll('.skill-row').forEach(el => {
+    el.style.display = el.dataset.search.includes(q) ? 'flex' : 'none';
+  });
+}
+</script>
 </body>
 </html>

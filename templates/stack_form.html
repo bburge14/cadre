@@ -41,6 +41,8 @@
   {% if stack %}<p><a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">View this stack's diagram &rarr;</a></p>{% endif %}
   {% if not stack %}
   <p class="hint">Points at a directory and gives it its own <code>.claude/agents/</code> team — Claude Code picks it up automatically for any session rooted there. The directory doesn't need to be new or empty: pointing this at an existing project or an already-cloned repo is completely fine and won't touch anything else in it, it only adds/updates the <code>.claude/agents/</code> folder inside.</p>
+  {% elif stack.get('is_global') %}
+  <p class="hint">The one team Claude Code always falls back to for any session not covered by a more specific stack — fixed at <code>~/.claude/agents/</code> and <code>~/.claude/skills/</code>, not tied to a project directory, so there's nothing to rename or move here.</p>
   {% else %}
   <p class="hint">Changing the directory points this stack at a new location going forward — it doesn't move the old directory's agent files.</p>
   {% endif %}
@@ -106,6 +108,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="preset_id" id="preset-id-field" value="">
 
+    {% if not (stack and stack.get('is_global')) %}
     <label>name</label>
     <input type="text" name="name" value="{{ stack.name if stack else (prefill_name | default('')) }}" required>
 
@@ -116,6 +119,7 @@
       <option value="{{ dir }}">
       {% endfor %}
     </datalist>
+    {% endif %}
 
     <h2>{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
     <p class="hint">Click a preset to select it (or leave none selected and just check individual agents below).</p>

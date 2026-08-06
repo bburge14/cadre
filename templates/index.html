@@ -40,7 +40,7 @@
       <a class="btn" href="{{ url_for('logout') }}">Log out</a>
     </div>
   </div>
-  <div class="sub">Manage multiple Claude Code sessions (each remotely reachable via claude.ai/code) and your agent stacks — each stack is its own directory-scoped team; there's also one <a href="{{ url_for('agents_page') }}">global agent team</a> and one set of <a href="{{ url_for('skills_page') }}">global skills</a> that apply wherever a more specific stack doesn't.</div>
+  <div class="sub">Manage multiple Claude Code sessions (each remotely reachable via claude.ai/code) and your agent stacks — each stack is its own directory-scoped team of agents and skills. "Global (default)" below is the one Claude Code always falls back to for any session not covered by a more specific stack.</div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -86,24 +86,27 @@
     A stack is one directory's own agent team — Claude Code's native
     per-project <code>.claude/agents/</code> override, active only for
     sessions rooted there.
-    <a href="{{ url_for('stacks_diagram') }}">View global stack diagram &rarr;</a>
   </div>
   <table>
     <tr><th>Name</th><th>Directory</th><th>Agents</th><th></th></tr>
     {% for stack in stacks %}
     <tr>
       <td>{{ stack.name }}</td>
-      <td class="workdir">{{ stack.workdir }}</td>
+      <td class="workdir">{{ stack.workdir if stack.workdir else '~/.claude/agents/, ~/.claude/skills/' }}</td>
       <td>{{ stack.agent_count }}</td>
       <td>
         <a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">Diagram</a>
+        {% if not stack.get('is_global') %}
         <a class="btn" href="{{ url_for('edit_stack_form', stack_id=stack.id) }}">Edit</a>
+        {% endif %}
         <a class="btn" href="{{ url_for('edit_stack_form', stack_id=stack.id) }}">View agents</a>
+        {% if not stack.get('is_global') %}
         <form class="inline" method="post" action="{{ url_for('delete_stack', stack_id=stack.id) }}"
               onsubmit="return confirm('Delete stack {{ stack.name }}?');">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn btn-danger">Delete</button>
         </form>
+        {% endif %}
       </td>
     </tr>
     {% else %}

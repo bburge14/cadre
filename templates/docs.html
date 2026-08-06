@@ -27,7 +27,7 @@
   <div class="toc">
     <a href="#sessions">Sessions</a>
     <a href="#stacks">Agent stacks</a>
-    <a href="#global-agents">The global agent team</a>
+    <a href="#global-agents">"Global (default)" stack</a>
     <a href="#skills">Skills</a>
     <a href="#providers">AI providers (Claude / Gemini / Codex / Kimi)</a>
     <a href="#delegation">Delegating an agent's work to another provider</a>
@@ -90,14 +90,15 @@
     stack for this directory" shortcut so you don't have to type/copy a
     path at all.
   </p>
-  <h3>Editing a stack's agents</h3>
+  <h3>Editing a stack's agents and skills</h3>
   <p>
     "View agents" (or "Edit") on a stack opens its page: a table of that
     stack's agents with Edit/Delete, plus "+ New agent" to write one from
-    scratch directly in that stack. Editing an agent lets you set its
-    name, description (what Claude matches a request against to
-    auto-delegate to it), tools, which other agents it can itself spawn,
-    model, and system prompt.
+    scratch directly in that stack — and below it, the same for that
+    stack's skills. Editing an agent lets you set its name, description
+    (what Claude matches a request against to auto-delegate to it), tools,
+    which other agents it can itself spawn, which skills it should use
+    (see "Skills" below), model, and system prompt.
   </p>
   <h3>Diagrams</h3>
   <p>
@@ -120,14 +121,17 @@
     stack from the library if you're not using a preset.
   </p>
 
-  <h2 id="global-agents">The global agent team</h2>
+  <h2 id="global-agents">"Global (default)" — not a separate system</h2>
   <p>
-    One team lives at <code>~/.claude/agents/</code> and applies to any
-    session <em>not</em> covered by a more specific stack — reachable from
-    "global agent team" on the dashboard. It's managed the same way as a
-    stack's agents (add/edit/delete individually), just without a
-    preset-picker of its own. If you want a whole preset applied globally,
-    create a stack whose directory <em>is</em> your home directory.
+    There's no separate "global" page. <code>~/.claude/agents/</code> and
+    <code>~/.claude/skills/</code> — the one team Claude Code always falls
+    back to for a session not covered by a more specific stack — shows up
+    as an ordinary row, "Global (default)," at the top of the same Agent
+    Stacks list. Same Diagram/agents-table/skills-table page as any other
+    stack; it just can't be renamed, moved, or deleted, since there's no
+    directory to point elsewhere and nothing meaningful to delete. Want a
+    whole preset applied there? Open it and use the same preset picker any
+    stack has.
   </p>
 
   <h2 id="skills">Skills</h2>
@@ -140,14 +144,25 @@
     rather than delegating the work to someone else.
   </p>
   <p>
-    Managed the same way as agents, both globally ("global skills" on the
-    dashboard, <code>~/.claude/skills/</code>) and per-stack ("Skills in
-    this stack" on a stack's page, <code>&lt;stack-dir&gt;/.claude/skills/</code>).
-    A skill only needs a name, a description (what it does and when to use
-    it — this is what gets matched against a request to decide whether to
-    load it), and the instructions themselves; there's no tools/model/
-    spawn-graph to configure, since a skill runs in the invoking session's
-    own context rather than as a separate agent.
+    Skill <em>definitions</em> are managed per-stack (including "Global
+    (default)") — "Skills in this stack" on a stack's page, same
+    create/edit/delete pattern as agents but simpler: a skill only needs a
+    name, a description (what it does and when to use it), and the
+    instructions themselves — no tools/model/spawn-graph, since a skill
+    runs in the invoking session's own context rather than as a separate
+    agent.
+  </p>
+  <p>
+    Attaching a skill to a specific agent happens on <em>that agent's</em>
+    edit page — a searchable "skills" checklist there, pulling from
+    whichever stack the agent belongs to (same list as that stack's
+    "Skills in this stack" table). Checking a skill there doesn't rely on
+    Claude Code natively supporting a per-agent skill field (nothing
+    confirms that exists) — it rewrites the agent's own system prompt with
+    a short auto-generated section naming the selected skills and their
+    descriptions, telling the agent to invoke them by name when relevant.
+    Reliable regardless of the exact native mechanism, since it's just
+    plain instructions in a system prompt.
   </p>
   <div class="note">
     This is newer and less battle-tested than agent management — the file

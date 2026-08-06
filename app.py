@@ -119,7 +119,8 @@ def logout():
 
 
 def _stacks_with_agent_counts() -> list[dict]:
-    stacks = []
+    global_stack = _resolve_stack(_GLOBAL_STACK_ID)
+    stacks = [{**global_stack, "agent_count": len(agents_store.list_agents())}]
     for s in stacks_store.list_stacks():
         agents_dir = agents_store.project_agents_dir(s["workdir"])
         stacks.append({**s, "agent_count": len(agents_store.list_agents(agents_dir=agents_dir))})
@@ -136,164 +137,54 @@ def index():
     )
 
 
-@app.get("/agents")
-@require_auth
-def agents_page():
-    return render_template("agents.html", agents=agents_store.list_agents())
-
-
-# ---- Skills ----
-
-
-def _render_skill_form(skill, name, skills_dir, back_url, back_label, save_action):
-    return render_template(
-        "skill_edit.html",
-        skill=skill,
-        name=name,
-        back_url=back_url,
-        back_label=back_label,
-        save_action=save_action,
-    )
-
-
-def _save_skill_from_form(skills_dir, existing_name):
-    name = existing_name or request.form.get("name", "").strip()
-    description = request.form.get("description", "")
-    body = request.form.get("body", "")
-    skills_store.write_skill(name, description, body, skills_dir=skills_dir)
-
-
-@app.get("/skills")
-@require_auth
-def skills_page():
-    return render_template("skills.html", skills=skills_store.list_skills())
-
-
-@app.get("/skills/new")
-@require_auth
-def new_skill_form():
-    return _render_skill_form(
-        skill=None, name=None, skills_dir=None,
-        back_url=url_for("skills_page"), back_label="back to global skills",
-        save_action=url_for("save_skill"),
-    )
-
-
-@app.get("/skills/<name>/edit")
-@require_auth
-def edit_skill_form(name):
-    try:
-        skill = skills_store.read_skill(name)
-    except (ValueError, FileNotFoundError) as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("skills_page"))
-    return _render_skill_form(
-        skill=skill, name=name, skills_dir=None,
-        back_url=url_for("skills_page"), back_label="back to global skills",
-        save_action=url_for("save_skill", existing_name=name),
-    )
-
-
-@app.post("/skills/save")
-@require_auth
-def save_skill():
-    try:
-        _save_skill_from_form(skills_dir=None, existing_name=request.args.get("existing_name"))
-    except ValueError as exc:
-        flash(f"Not saved: {exc}", "error")
-    return redirect(url_for("skills_page"))
-
-
-@app.post("/skills/<name>/delete")
-@require_auth
-def delete_skill_route(name):
-    skills_store.delete_skill(name)
-    flash(f"Deleted skill '{name}'.", "success")
-    return redirect(url_for("skills_page"))
-
-
-@app.get("/stacks/<stack_id>/skills/new")
-@require_auth
-def new_stack_skill_form(stack_id):
-    stack = stacks_store.get(stack_id)
-    if stack is None:
-        flash("Unknown stack.", "error")
-        return redirect(url_for("index"))
-    return _render_skill_form(
-        skill=None, name=None, skills_dir=skills_store.project_skills_dir(stack["workdir"]),
-        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
-        save_action=url_for("save_stack_skill", stack_id=stack_id),
-    )
-
-
-@app.get("/stacks/<stack_id>/skills/<name>/edit")
-@require_auth
-def edit_stack_skill_form(stack_id, name):
-    stack = stacks_store.get(stack_id)
-    if stack is None:
-        flash("Unknown stack.", "error")
-        return redirect(url_for("index"))
-    skills_dir = skills_store.project_skills_dir(stack["workdir"])
-    try:
-        skill = skills_store.read_skill(name, skills_dir=skills_dir)
-    except (ValueError, FileNotFoundError) as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("edit_stack_form", stack_id=stack_id))
-    return _render_skill_form(
-        skill=skill, name=name, skills_dir=skills_dir,
-        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
-        save_action=url_for("save_stack_skill", stack_id=stack_id, existing_name=name),
-    )
-
-
-@app.post("/stacks/<stack_id>/skills/save")
-@require_auth
-def save_stack_skill(stack_id):
-    stack = stacks_store.get(stack_id)
-    if stack is None:
-        flash("Unknown stack.", "error")
-        return redirect(url_for("index"))
-    try:
-        _save_skill_from_form(
-            skills_dir=skills_store.project_skills_dir(stack["workdir"]),
-            existing_name=request.args.get("existing_name"),
-        )
-    except ValueError as exc:
-        flash(f"Not saved: {exc}", "error")
-    return redirect(url_for("edit_stack_form", stack_id=stack_id))
-
-
-@app.post("/stacks/<stack_id>/skills/<name>/delete")
-@require_auth
-def delete_stack_skill(stack_id, name):
-    stack = stacks_store.get(stack_id)
-    if stack is None:
-        flash("Unknown stack.", "error")
-        return redirect(url_for("index"))
-    skills_store.delete_skill(name, skills_dir=skills_store.project_skills_dir(stack["workdir"]))
-    flash(f"Deleted skill '{name}'.", "success")
-    return redirect(url_for("edit_stack_form", stack_id=stack_id))
-
-
 @app.get("/docs")
 @require_auth
 def docs_page():
     return render_template("docs.html")
 
 
-# ---- Agents ----
+# ---- Stacks (including the synthetic "global" default stack) ----
+
+# "global" isn't a real stacks_store record -- it's the one team Claude Code
+# itself always falls back to (~/.claude/agents/, ~/.claude/skills/) when a
+# session isn't rooted in a directory any real stack covers. Representing
+# it as a synthetic entry with this reserved id means every agent/skill/
+# diagram route below can treat it identically to a real stack (same CRUD,
+# same templates) instead of needing a second, parallel set of pages --
+# it just can't be renamed, moved, or deleted, since there's no directory
+# to point elsewhere and no meaningful "delete" for the one true fallback.
+_GLOBAL_STACK_ID = "global"
+
+
+def _resolve_stack(stack_id: str) -> dict | None:
+    if stack_id == _GLOBAL_STACK_ID:
+        return {"id": _GLOBAL_STACK_ID, "name": "Global (default)", "workdir": None, "is_global": True}
+    return stacks_store.get(stack_id)
+
+
+def _stack_agents_dir(stack: dict) -> Path:
+    if stack.get("is_global"):
+        return agents_store.AGENTS_DIR
+    return agents_store.project_agents_dir(stack["workdir"])
+
+
+def _stack_skills_dir(stack: dict) -> Path:
+    if stack.get("is_global"):
+        return skills_store.SKILLS_DIR
+    return skills_store.project_skills_dir(stack["workdir"])
 
 
 def _other_active_agent_names(exclude: str | None, agents_dir=None) -> list[str]:
     return sorted(a.name for a in agents_store.list_agents(agents_dir=agents_dir) if a.name != exclude)
 
 
-def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_action):
+def _render_agent_form(agent, filename, agents_dir, skills_dir, back_url, back_label, save_action):
     if agent is None:
-        base_tools_value, spawnable, exclude = "", [], None
+        base_tools_value, spawnable, exclude, selected_skills = "", [], None, []
     else:
         base_tools, spawnable = agents_store.parse_tools(agent.frontmatter.get("tools", ""))
         base_tools_value, exclude = ", ".join(base_tools), agent.name
+        selected_skills = [s.strip() for s in agent.frontmatter.get("skills", "").split(",") if s.strip()]
     return render_template(
         "edit.html",
         agent=agent,
@@ -301,6 +192,8 @@ def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_a
         base_tools_value=base_tools_value,
         spawnable=spawnable,
         other_agents=_other_active_agent_names(exclude, agents_dir=agents_dir),
+        available_skills=skills_store.list_skills(skills_dir=skills_dir),
+        selected_skills=selected_skills,
         cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
         back_url=back_url,
         back_label=back_label,
@@ -308,7 +201,7 @@ def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_a
     )
 
 
-def _save_agent_from_form(agents_dir):
+def _save_agent_from_form(agents_dir, skills_dir):
     filename = request.form.get("filename", "").strip()
     name = request.form.get("name", "").strip()
     if not filename:
@@ -323,6 +216,15 @@ def _save_agent_from_form(agents_dir):
             frontmatter[key] = value
 
     body = agents_store.strip_delegate_block(request.form.get("body", ""))
+    body = agents_store.strip_skills_block(body)
+
+    selected_skill_names = request.form.getlist("skill_names")
+    if selected_skill_names:
+        available = {s.name: s for s in skills_store.list_skills(skills_dir=skills_dir)}
+        selected_skills = [available[n] for n in selected_skill_names if n in available]
+        if selected_skills:
+            frontmatter["skills"] = ", ".join(s.name for s in selected_skills)
+            body = agents_store.build_skills_block(selected_skills) + body
 
     primary_provider = request.form.get("primary_provider", "claude").strip() or "claude"
     if primary_provider != "claude":
@@ -342,60 +244,15 @@ def _save_agent_from_form(agents_dir):
     flash(f"Saved {filename}.{note}", "success")
 
 
-@app.get("/agents/new")
-@require_auth
-def new_agent_form():
-    return _render_agent_form(
-        agent=None, filename=None, agents_dir=None,
-        back_url=url_for("agents_page"), back_label="back to global agents",
-        save_action=url_for("save_agent"),
-    )
-
-
-@app.get("/agents/<filename>/edit")
-@require_auth
-def edit_agent_form(filename):
-    try:
-        agent = agents_store.read_agent(filename)
-    except (ValueError, FileNotFoundError) as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("agents_page"))
-    return _render_agent_form(
-        agent=agent, filename=filename, agents_dir=None,
-        back_url=url_for("agents_page"), back_label="back to global agents",
-        save_action=url_for("save_agent"),
-    )
-
-
-@app.post("/agents/save")
-@require_auth
-def save_agent():
-    try:
-        _save_agent_from_form(agents_dir=None)
-    except ValueError as exc:
-        flash(f"Not saved: {exc}", "error")
-    return redirect(url_for("agents_page"))
-
-
-@app.post("/agents/<filename>/delete")
-@require_auth
-def delete_agent(filename):
-    agents_store.delete_agent(filename)
-    restarted = session_manager.restart_all_running()
-    note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
-    flash(f"Deleted {filename}.{note}", "success")
-    return redirect(url_for("agents_page"))
-
-
 @app.get("/stacks/<stack_id>/agents/new")
 @require_auth
 def new_stack_agent_form(stack_id):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
     return _render_agent_form(
-        agent=None, filename=None, agents_dir=agents_store.project_agents_dir(stack["workdir"]),
+        agent=None, filename=None, agents_dir=_stack_agents_dir(stack), skills_dir=_stack_skills_dir(stack),
         back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
         save_action=url_for("save_stack_agent", stack_id=stack_id),
     )
@@ -404,18 +261,18 @@ def new_stack_agent_form(stack_id):
 @app.get("/stacks/<stack_id>/agents/<filename>/edit")
 @require_auth
 def edit_stack_agent_form(stack_id, filename):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
-    agents_dir = agents_store.project_agents_dir(stack["workdir"])
+    agents_dir = _stack_agents_dir(stack)
     try:
         agent = agents_store.read_agent(filename, agents_dir=agents_dir)
     except (ValueError, FileNotFoundError) as exc:
         flash(str(exc), "error")
         return redirect(url_for("edit_stack_form", stack_id=stack_id))
     return _render_agent_form(
-        agent=agent, filename=filename, agents_dir=agents_dir,
+        agent=agent, filename=filename, agents_dir=agents_dir, skills_dir=_stack_skills_dir(stack),
         back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
         save_action=url_for("save_stack_agent", stack_id=stack_id),
     )
@@ -424,12 +281,12 @@ def edit_stack_agent_form(stack_id, filename):
 @app.post("/stacks/<stack_id>/agents/save")
 @require_auth
 def save_stack_agent(stack_id):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
     try:
-        _save_agent_from_form(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+        _save_agent_from_form(agents_dir=_stack_agents_dir(stack), skills_dir=_stack_skills_dir(stack))
     except ValueError as exc:
         flash(f"Not saved: {exc}", "error")
     return redirect(url_for("edit_stack_form", stack_id=stack_id))
@@ -438,14 +295,95 @@ def save_stack_agent(stack_id):
 @app.post("/stacks/<stack_id>/agents/<filename>/delete")
 @require_auth
 def delete_stack_agent(stack_id, filename):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
-    agents_store.delete_agent(filename, agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+    agents_store.delete_agent(filename, agents_dir=_stack_agents_dir(stack))
     restarted = session_manager.restart_all_running()
     note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
     flash(f"Deleted {filename}.{note}", "success")
+    return redirect(url_for("edit_stack_form", stack_id=stack_id))
+
+
+def _render_skill_form(skill, name, back_url, back_label, save_action):
+    return render_template(
+        "skill_edit.html",
+        skill=skill,
+        name=name,
+        back_url=back_url,
+        back_label=back_label,
+        save_action=save_action,
+    )
+
+
+def _save_skill_from_form(skills_dir, existing_name):
+    name = existing_name or request.form.get("name", "").strip()
+    description = request.form.get("description", "")
+    body = request.form.get("body", "")
+    skills_store.write_skill(name, description, body, skills_dir=skills_dir)
+
+
+@app.get("/stacks/<stack_id>/skills/new")
+@require_auth
+def new_stack_skill_form(stack_id):
+    stack = _resolve_stack(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    return _render_skill_form(
+        skill=None, name=None,
+        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
+        save_action=url_for("save_stack_skill", stack_id=stack_id),
+    )
+
+
+@app.get("/stacks/<stack_id>/skills/<name>/edit")
+@require_auth
+def edit_stack_skill_form(stack_id, name):
+    stack = _resolve_stack(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    skills_dir = _stack_skills_dir(stack)
+    try:
+        skill = skills_store.read_skill(name, skills_dir=skills_dir)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("edit_stack_form", stack_id=stack_id))
+    return _render_skill_form(
+        skill=skill, name=name,
+        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
+        save_action=url_for("save_stack_skill", stack_id=stack_id, existing_name=name),
+    )
+
+
+@app.post("/stacks/<stack_id>/skills/save")
+@require_auth
+def save_stack_skill(stack_id):
+    stack = _resolve_stack(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    try:
+        _save_skill_from_form(
+            skills_dir=_stack_skills_dir(stack),
+            existing_name=request.args.get("existing_name"),
+        )
+    except ValueError as exc:
+        flash(f"Not saved: {exc}", "error")
+    return redirect(url_for("edit_stack_form", stack_id=stack_id))
+
+
+@app.post("/stacks/<stack_id>/skills/<name>/delete")
+@require_auth
+def delete_stack_skill(stack_id, name):
+    stack = _resolve_stack(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    skills_store.delete_skill(name, skills_dir=_stack_skills_dir(stack))
+    flash(f"Deleted skill '{name}'.", "success")
     return redirect(url_for("edit_stack_form", stack_id=stack_id))
 
 
@@ -518,13 +456,14 @@ def create_stack():
 @app.get("/stacks/<stack_id>/edit")
 @require_auth
 def edit_stack_form(stack_id):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
-    stack_agents = agents_store.list_agents(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+    agents_dir = _stack_agents_dir(stack)
+    stack_agents = agents_store.list_agents(agents_dir=agents_dir)
     active_names = {a.name for a in stack_agents}
-    stack_skills = skills_store.list_skills(skills_dir=skills_store.project_skills_dir(stack["workdir"]))
+    stack_skills = skills_store.list_skills(skills_dir=_stack_skills_dir(stack))
     return render_template(
         "stack_form.html",
         stack=stack,
@@ -541,6 +480,18 @@ def edit_stack_form(stack_id):
 @app.post("/stacks/<stack_id>/edit")
 @require_auth
 def edit_stack(stack_id):
+    if stack_id == _GLOBAL_STACK_ID:
+        try:
+            written = _activate_selection(agents_store.AGENTS_DIR)
+        except ValueError as exc:
+            flash(str(exc), "error")
+            return redirect(url_for("edit_stack_form", stack_id=stack_id))
+        if written:
+            session_manager.restart_all_running()
+        note = f"Activated {len(written)} agent(s)." if written else "Nothing selected to activate."
+        flash(note, "success")
+        return redirect(url_for("index"))
+
     stack = stacks_store.get(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
@@ -629,37 +580,15 @@ def _apply_spawnable(agents_dir) -> None:
     session_manager.restart_all_running()
 
 
-@app.get("/stacks/diagram")
-@require_auth
-def stacks_diagram():
-    return _render_diagram(
-        agents_dir=None,
-        heading="Global stack diagram",
-        back_url=url_for("index"),
-        back_label="back to dashboard",
-        save_action=url_for("set_spawnable"),
-    )
-
-
-@app.post("/stacks/diagram/set-spawnable")
-@require_auth
-def set_spawnable():
-    try:
-        _apply_spawnable(agents_dir=None)
-    except (ValueError, FileNotFoundError) as exc:
-        flash(str(exc), "error")
-    return redirect(url_for("stacks_diagram"))
-
-
 @app.get("/stacks/<stack_id>/diagram")
 @require_auth
 def stack_diagram(stack_id):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
     return _render_diagram(
-        agents_dir=agents_store.project_agents_dir(stack["workdir"]),
+        agents_dir=_stack_agents_dir(stack),
         heading=f"{stack['name']} diagram",
         back_url=url_for("edit_stack_form", stack_id=stack_id),
         back_label=f"back to {stack['name']}",
@@ -670,12 +599,12 @@ def stack_diagram(stack_id):
 @app.post("/stacks/<stack_id>/diagram/set-spawnable")
 @require_auth
 def stack_set_spawnable(stack_id):
-    stack = stacks_store.get(stack_id)
+    stack = _resolve_stack(stack_id)
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
     try:
-        _apply_spawnable(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+        _apply_spawnable(agents_dir=_stack_agents_dir(stack))
     except (ValueError, FileNotFoundError) as exc:
         flash(str(exc), "error")
     return redirect(url_for("stack_diagram", stack_id=stack_id))

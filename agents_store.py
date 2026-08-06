@@ -139,3 +139,36 @@ def build_delegate_block(provider) -> str:
         f"to substitute your own generated content for {provider.label}'s.\n"
         f"{_DELEGATE_END}\n\n"
     )
+
+
+_SKILLS_START = "<!-- BEGIN AUTO-GENERATED SKILLS -->"
+_SKILLS_END = "<!-- END AUTO-GENERATED SKILLS -->"
+_SKILLS_BLOCK_RE = re.compile(
+    re.escape(_SKILLS_START) + r".*?" + re.escape(_SKILLS_END) + r"\n*", re.DOTALL
+)
+
+
+def strip_skills_block(body: str) -> str:
+    """Removes any existing auto-generated skills block so re-saving with a
+    different skill selection doesn't stack blocks."""
+    return _SKILLS_BLOCK_RE.sub("", body).lstrip("\n")
+
+
+def build_skills_block(skills: list) -> str:
+    """skills: a list of skills_store.SkillFile. Skills aren't wired into a
+    subagent the way tools/spawn-permissions are (there's no equivalent
+    frontmatter field Claude Code is confirmed to read for this) -- so this
+    works the one way we know is reliable: plain instructions in the
+    agent's own system prompt telling it what's available and to invoke by
+    name when relevant."""
+    if not skills:
+        return ""
+    lines = [f"{_SKILLS_START}\n## Skills available to you\n"]
+    lines.append(
+        "Invoke these by name when they apply to what you're doing:\n"
+    )
+    for skill in skills:
+        description = skill.frontmatter.get("description", "")
+        lines.append(f"- **{skill.name}**: {description}")
+    lines.append(f"\n{_SKILLS_END}\n")
+    return "\n".join(lines) + "\n"

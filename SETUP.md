@@ -88,12 +88,12 @@ account system beyond the one admin login you create for yourself below.
    this is Claude Code's own native per-project agent override, not
    anything this app invents. Make as many stacks as you want, one per
    project/purpose.
-   There's also one **global** team, at `~/.claude/agents/` — it applies to
-   any session *not* covered by a more specific stack. Manage it one agent
-   at a time from the "global agent team" link on the dashboard; there's no
-   preset-picker for it specifically — if you want a whole preset applied
-   globally, create a stack whose directory *is* your home directory (or
-   wherever you want it to apply broadly).
+   There's also one **global** team, at `~/.claude/agents/` and
+   `~/.claude/skills/` — it applies to any session *not* covered by a more
+   specific stack. It's not a separate page; it's the "Global (default)"
+   row always pinned at the top of the same Agent Stacks list, with the
+   same Edit/Diagram/agents-table/skills-table as any real stack, just
+   without a directory to rename or delete.
 
 7. **Create your first session** via "+ New session" — give it a label, a
    provider (Claude, Gemini, Codex, or Kimi — see "AI CLI providers"
