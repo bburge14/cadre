@@ -325,6 +325,25 @@ On macOS, there's no systemd — just run `./venv/bin/python app.py` in a
 terminal you leave open, or wrap it in your own `launchd` plist if you want
 it persistent.
 
+## Locked out? Resetting the admin account
+
+The password is hashed one-way (`werkzeug.security.generate_password_hash`)
+the moment it's set — nobody, including whoever built this, can recover a
+forgotten one from the stored file. What you *can* do is reset it:
+
+```bash
+./linux/reset-admin.sh     # or ./macos/reset-admin.sh
+```
+```powershell
+windows\reset-admin.bat
+```
+
+Deletes only `instance/admin.json` — your sessions, agent stacks, skills,
+and settings are all separate files and untouched. No restart needed
+either: whether an admin account exists is checked fresh on every request,
+so the very next page load redirects straight to `/setup` to create a new
+one. `-y`/`--yes` skips the confirmation prompt.
+
 ## Uninstalling / resetting for a clean re-test
 
 To mimic a genuinely fresh install (useful when testing on a second
