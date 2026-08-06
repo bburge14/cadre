@@ -6,7 +6,7 @@
    recovers on its own instead of just sitting there disconnected. */
 
 function createTerminalConnection(sessionId, opts) {
-  const { tokenUrl, csrfToken, term, onStatus } = opts;
+  const { tokenUrl, csrfToken, term, onStatus, onNotRunning } = opts;
   let ws = null;
   let reconnectAttempt = 0;
   let reconnectTimer = null;
@@ -44,8 +44,17 @@ function createTerminalConnection(sessionId, opts) {
     ws = new WebSocket(wsUrl);
     ws.onopen = () => { reconnectAttempt = 0; onStatus("connected"); };
     ws.onmessage = (event) => { term.write(event.data); };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (manuallyClosed) { onStatus("disconnected"); return; }
+      // 4004 = session daemon's own "session not running" close code
+      // (session_daemon.py's _terminal_handler) -- retrying against a
+      // stopped session forever is pointless noise, so stop and let the
+      // caller offer a Start action instead.
+      if (event.code === 4004) {
+        onStatus("session not running");
+        if (onNotRunning) onNotRunning();
+        return;
+      }
       onStatus("disconnected — reconnecting…");
       scheduleReconnect();
     };
@@ -88,7 +97,13 @@ function createTerminalConnection(sessionId, opts) {
 function setupTerminalFit(term) {
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
-  fitAddon.fit();
+  // Fitting immediately after the container becomes visible measures it
+  // before the browser has actually laid it out (it was display:none a
+  // moment ago in the same tick), so it can fit to a 0-size box -- text
+  // written after that lands in a terminal with no visible rows until
+  // something (a resize, a reload triggering a fresh layout pass) forces
+  // a re-fit. Two rAFs reliably land after that layout pass.
+  requestAnimationFrame(() => requestAnimationFrame(() => fitAddon.fit()));
 
   let resizeTimer = null;
   window.addEventListener("resize", () => {
