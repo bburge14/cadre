@@ -155,6 +155,62 @@ def docs_page():
 # to point elsewhere and no meaningful "delete" for the one true fallback.
 _GLOBAL_STACK_ID = "global"
 _GLOBAL_SEEDED_MARKER = config.INSTANCE_DIR / "global_seeded"
+_GLOBAL_SKILLS_SEEDED_MARKER = config.INSTANCE_DIR / "global_skills_seeded"
+
+# Three example skills, one per major flavor the Generalist preset spans
+# (coding / writing / research), seeded into the default stack so there's
+# a concrete answer to "what's a skill actually for" instead of an empty
+# list and an abstract explanation. Each is a genuinely usable starting
+# point, not just filler -- edit or delete freely.
+_DEFAULT_SKILLS = [
+    (
+        "commit-message-style",
+        "Reference for how commit messages should be written for this "
+        "project -- tone, structure, what to include. Use when writing a "
+        "git commit message.",
+        "Keep the summary line under ~70 characters, imperative mood "
+        '("add", "fix", "remove" -- not "added"/"adding"). Explain *why* '
+        "the change was made in the body if it isn't obvious from the "
+        'summary alone -- not a restatement of the diff ("various '
+        'changes", "update files") but the actual reason: a bug being '
+        "fixed, a decision being made, a constraint being worked around. "
+        "Skip a body entirely for genuinely self-explanatory changes "
+        "rather than padding one out. Never mention this skill, an AI, or "
+        "a tool in the message itself.",
+    ),
+    (
+        "writing-tone-guide",
+        "Reference for tone and style when drafting anything meant for "
+        "someone else to read -- docs, emails, reports, UI copy. Use "
+        "before finishing a piece of writing, not just at the very start.",
+        "Plain language over jargon; if a technical term is necessary, "
+        "the first use should make its meaning clear from context. Active "
+        "voice, concrete nouns, short sentences -- cut a sentence in half "
+        "before reaching for a semicolon. Say the specific thing, not the "
+        'vague-but-safe thing ("saves about 40% on average" beats '
+        '"significantly improves efficiency"). Cut filler and hedging '
+        '("essentially", "in order to", "it should be noted that") on a '
+        "final pass. Match formality to the actual audience and channel "
+        "-- an internal Slack update and a customer-facing doc shouldn't "
+        "read the same.",
+    ),
+    (
+        "research-source-checklist",
+        "Checklist for evaluating how trustworthy and current a source "
+        "is before relying on it. Use when researching something where "
+        "accuracy actually matters, not casual browsing.",
+        "Prefer primary/authoritative sources (official docs, the "
+        "source's own changelog or issue tracker, a spec or standard) "
+        "over blog posts, forum answers, or aggregator sites that "
+        "summarize them secondhand. For anything version- or "
+        "date-sensitive, find and state the actual version/date rather "
+        "than assuming the newest applies. When sources disagree, say so "
+        "explicitly instead of silently picking one and presenting it as "
+        "settled. Note how current a source is, especially for anything "
+        "in a fast-moving space -- a two-year-old answer about a library's "
+        "API surface is a real risk, not just a formality to skip.",
+    ),
+]
 
 
 def _ensure_global_seeded() -> None:
@@ -163,12 +219,20 @@ def _ensure_global_seeded() -> None:
     fresh install (or one that's simply never had anything activated into
     ~/.claude/agents/ yet) has something in it out of the box. Runs once
     -- marked via a sentinel file so deliberately clearing it out later
-    doesn't cause it to keep coming back."""
-    if _GLOBAL_SEEDED_MARKER.exists():
-        return
-    if not agents_store.list_agents():
-        presets.activate_preset("generalist", agents_dir=agents_store.AGENTS_DIR)
-    _GLOBAL_SEEDED_MARKER.write_text("seeded\n")
+    doesn't cause it to keep coming back. Skills get their own independent
+    marker/check (not gated behind the same one as agents) since they're
+    an unrelated concern that can legitimately still be empty even after
+    agents have already been seeded or hand-populated."""
+    if not _GLOBAL_SEEDED_MARKER.exists():
+        if not agents_store.list_agents():
+            presets.activate_preset("generalist", agents_dir=agents_store.AGENTS_DIR)
+        _GLOBAL_SEEDED_MARKER.write_text("seeded\n")
+
+    if not _GLOBAL_SKILLS_SEEDED_MARKER.exists():
+        if not skills_store.list_skills():
+            for name, description, body in _DEFAULT_SKILLS:
+                skills_store.write_skill(name, description, body)
+        _GLOBAL_SKILLS_SEEDED_MARKER.write_text("seeded\n")
 
 
 def _resolve_stack(stack_id: str) -> dict | None:
