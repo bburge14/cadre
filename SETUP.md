@@ -291,6 +291,38 @@ On macOS, there's no systemd — just run `./venv/bin/python app.py` in a
 terminal you leave open, or wrap it in your own `launchd` plist if you want
 it persistent.
 
+## Uninstalling / resetting for a clean re-test
+
+To mimic a genuinely fresh install (useful when testing on a second
+machine, or just to rule out leftover local state), each OS has an
+uninstall script alongside its setup script:
+
+```bash
+./linux/uninstall.sh     # or ./macos/uninstall.sh
+```
+```powershell
+windows\uninstall.bat
+```
+
+Each stops the dashboard/daemon (systemd services or scheduled tasks, if
+you registered them; otherwise just the running processes) and deletes
+`venv/`, `instance/` (your admin account, sessions list, agent stacks,
+settings), `.env`, and the Desktop launcher — then prompts for
+confirmation before doing any of it (`-y`/`--yes` skips the prompt, for
+scripted repeat testing). **Never touched**: the source code itself,
+`~/.claude/agents/` (your global agent team), and every stack's own
+project directory — this only removes what the setup script created.
+
+Run the matching `setup.sh`/`setup.bat` again afterward for a clean
+first-run experience, `/setup` account creation and all.
+
+Since stopping the daemon ends any Claude Code sessions it's currently
+holding open, each script double-checks (by comparing the registered
+service/task's own working directory against the checkout you're running
+it from) that it's only ever touching *this* install's services — a second
+checkout elsewhere, or a copy used for testing, can't reach across and
+stop a different one.
+
 ## Running it as an always-on background service (Windows)
 
 There's no systemd on Windows, but the same idea works via Task Scheduler.

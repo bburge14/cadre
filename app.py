@@ -250,6 +250,7 @@ def new_stack_form():
         stack_presets=presets.list_presets(),
         library=presets.list_library_agents(),
         active_names=set(),
+        default_base=str(settings.projects_root() / "agent-stacks"),
     )
 
 
@@ -292,6 +293,7 @@ def edit_stack_form(stack_id):
         stack_presets=presets.list_presets(),
         library=presets.list_library_agents(),
         active_names=active_names,
+        default_base=str(settings.projects_root() / "agent-stacks"),
     )
 
 
@@ -348,10 +350,8 @@ def delete_stack(stack_id):
     return redirect(url_for("stacks_page"))
 
 
-@app.get("/stacks/diagram")
-@require_auth
-def stacks_diagram():
-    active = agents_store.list_agents()
+def _render_diagram(agents_dir, heading, back_url, back_label, save_action):
+    active = agents_store.list_agents(agents_dir=agents_dir)
     nodes = []
     for a in active:
         base_tools, spawnable = agents_store.parse_tools(a.frontmatter.get("tools", ""))
@@ -363,19 +363,20 @@ def stacks_diagram():
                 "others": [o.name for o in active if o.name != a.name],
             }
         )
-    return render_template("stacks_diagram.html", nodes=nodes)
+    return render_template(
+        "stacks_diagram.html",
+        nodes=nodes,
+        heading=heading,
+        back_url=back_url,
+        back_label=back_label,
+        save_action=save_action,
+    )
 
 
-@app.post("/stacks/diagram/set-spawnable")
-@require_auth
-def set_spawnable():
+def _apply_spawnable(agents_dir) -> None:
     filename = request.form.get("agent_filename", "")
     can_spawn = request.form.getlist("can_spawn")
-    try:
-        agent = agents_store.read_agent(filename)
-    except (ValueError, FileNotFoundError) as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("stacks_diagram"))
+    agent = agents_store.read_agent(filename, agents_dir=agents_dir)
     base_tools, _old_spawnable = agents_store.parse_tools(agent.frontmatter.get("tools", ""))
     frontmatter = dict(agent.frontmatter)
     tools_value = agents_store.serialize_tools(base_tools, can_spawn)
@@ -383,9 +384,60 @@ def set_spawnable():
         frontmatter["tools"] = tools_value
     else:
         frontmatter.pop("tools", None)
-    agents_store.write_agent(filename, frontmatter, agent.body)
+    agents_store.write_agent(filename, frontmatter, agent.body, agents_dir=agents_dir)
     session_manager.restart_all_running()
+
+
+@app.get("/stacks/diagram")
+@require_auth
+def stacks_diagram():
+    return _render_diagram(
+        agents_dir=None,
+        heading="Global stack diagram",
+        back_url=url_for("stacks_page"),
+        back_label="back to Agent Stacks",
+        save_action=url_for("set_spawnable"),
+    )
+
+
+@app.post("/stacks/diagram/set-spawnable")
+@require_auth
+def set_spawnable():
+    try:
+        _apply_spawnable(agents_dir=None)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
     return redirect(url_for("stacks_diagram"))
+
+
+@app.get("/stacks/<stack_id>/diagram")
+@require_auth
+def stack_diagram(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    return _render_diagram(
+        agents_dir=agents_store.project_agents_dir(stack["workdir"]),
+        heading=f"{stack['name']} diagram",
+        back_url=url_for("edit_stack_form", stack_id=stack_id),
+        back_label=f"back to {stack['name']}",
+        save_action=url_for("stack_set_spawnable", stack_id=stack_id),
+    )
+
+
+@app.post("/stacks/<stack_id>/diagram/set-spawnable")
+@require_auth
+def stack_set_spawnable(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    try:
+        _apply_spawnable(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("stack_diagram", stack_id=stack_id))
 
 
 # ---- Sessions ----

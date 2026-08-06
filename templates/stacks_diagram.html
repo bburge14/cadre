@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Stack diagram — Brad's Agent Stack Creator</title>
+<title>{{ heading }} — Brad's Agent Stack Creator</title>
 <style>
   body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 900px; }
   a { color: #7ab7ff; }
@@ -24,9 +24,11 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('stacks_page') }}">&larr; back to Agent Stacks</a></p>
-  <h1>Stack diagram</h1>
-  <div class="sub">Click any agent to change what it's allowed to spawn. Lines from "Coordinator" show every agent you (the top-level session) can delegate to directly; lines between agents show delegation each one can do itself.</div>
+  <p><a class="btn" href="{{ back_url }}">&larr; {{ back_label }}</a></p>
+  <h1>{{ heading }}</h1>
+  <div class="sub">Click any agent to change what it's allowed to spawn. Lines from "Coordinator" show every agent you (the top-level session) can delegate to directly; lines between agents show delegation each one can do itself.
+  {% if not nodes %}<br><strong>No agents here yet</strong> — {{ back_label }} to add some (a preset or individual agents from the library).{% endif %}
+  </div>
 
   <div id="diagram">
     <svg id="lines"></svg>
@@ -38,7 +40,7 @@
       <div>
         <div class="node" id="node-{{ n.name }}" onclick="togglePanel('{{ n.name }}')">{{ n.name }}</div>
         <div class="panel" id="panel-{{ n.name }}">
-          <form method="post" action="{{ url_for('set_spawnable') }}">
+          <form method="post" action="{{ save_action }}">
             <input type="hidden" name="agent_filename" value="{{ n.filename }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% if n.others %}

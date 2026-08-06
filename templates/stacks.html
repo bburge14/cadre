@@ -51,6 +51,7 @@
       <td>{{ stack.agent_count }}</td>
       <td>
         <a class="btn" href="{{ url_for('edit_stack_form', stack_id=stack.id) }}">Edit</a>
+        <a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">Diagram</a>
         <form class="inline" method="post" action="{{ url_for('delete_stack', stack_id=stack.id) }}"
               onsubmit="return confirm('Delete stack {{ stack.name }}?');">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
