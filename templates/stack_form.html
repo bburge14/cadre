@@ -35,7 +35,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('stacks_page') }}">&larr; back to Agent Stacks</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
   <h1>{{ 'Edit ' + stack.name if stack else 'New stack' }}</h1>
   {% if stack %}<p><a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">View this stack's diagram &rarr;</a></p>{% endif %}
   {% if not stack %}

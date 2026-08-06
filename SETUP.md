@@ -71,8 +71,9 @@ account system beyond the one admin login you create for yourself below.
 5. **Open it in a browser** at that address. First visit should redirect
    you to an account-creation page — pick a username and password (this is
    the only account this instance will ever have). After creating it,
-   you're automatically logged in and land on **Agent Stacks** — an empty
-   list with a "+ New stack" button. That's success.
+   you're automatically logged in and land on the dashboard — Sessions at
+   the top, your Agent Stacks below it (empty at first, with a "+ New
+   stack" button). That's success.
 
 6. **Create a stack** (or skip to "back to dashboard" and manage agents
    one at a time instead — see below). A stack is a directory's own
@@ -86,7 +87,7 @@ account system beyond the one admin login you create for yourself below.
    project/purpose.
    There's also one **global** team, at `~/.claude/agents/` — it applies to
    any session *not* covered by a more specific stack. Manage it one agent
-   at a time from "+ New agent" on the main dashboard (`/`); there's no
+   at a time from the "global agent team" link on the dashboard; there's no
    preset-picker for it specifically — if you want a whole preset applied
    globally, create a stack whose directory *is* your home directory (or
    wherever you want it to apply broadly).
