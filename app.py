@@ -1588,6 +1588,17 @@ def session_detail(session_id):
     )
 
 
+@app.get("/terminal")
+@require_auth
+def terminal_hub():
+    """Nav-level Terminal page -- a session sidebar plus whichever one's
+    active, distinct from the single-session focused view at
+    /sessions/<id>/terminal. Which session is "active" is resolved
+    client-side (query param, else localStorage's last-used session),
+    so this route just needs to hand over the session list."""
+    return render_template("terminal_hub.html", sessions=_sessions_with_status())
+
+
 @app.get("/sessions/<session_id>/terminal")
 @require_auth
 def session_terminal(session_id):

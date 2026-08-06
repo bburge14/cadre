@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Terminal — Cadre</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16171a">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
+<style>
+  html, body { height: 100%; }
+  body { max-width: none; padding: 0; display: flex; }
+  .term-sidebar {
+    width: 230px; flex-shrink: 0; display: flex; flex-direction: column;
+    border-right: 1px solid var(--border-soft); overflow-y: auto;
+  }
+  .term-sidebar-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
+  }
+  .term-sidebar-header span { font-size: 0.88rem; font-weight: 600; }
+  .term-session-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.65rem 0.8rem; cursor: pointer; font-size: 0.84rem;
+    border-bottom: 1px solid var(--border-soft); border-left: 3px solid transparent;
+    transition: background 0.1s ease;
+  }
+  .term-session-row:hover { background: var(--surface-2); }
+  .term-session-row.active { background: var(--accent-soft-bg); border-left-color: var(--accent); }
+  .term-session-row .status-dot { flex-shrink: 0; }
+  .term-session-row .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .term-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .term-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
+  }
+  .term-header .label { font-size: 0.9rem; font-weight: 600; }
+  .term-header .term-status { font-size: 0.76rem; color: var(--text-faint); }
+  #terminal-wrap { flex: 1; min-height: 0; background: #000; padding: 0.4rem; display: none; flex-direction: column; }
+  #terminal { flex: 1; min-height: 0; }
+  #term-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 0.88rem; text-align: center; padding: 2rem; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+  .status-on { background: var(--success-text); }
+  .status-off { background: var(--text-faint); }
+</style>
+</head>
+<body>
+  <div class="term-sidebar">
+    <div class="term-sidebar-header">
+      <a class="btn btn-icon" href="{{ url_for('index') }}" title="Dashboard" aria-label="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+      <span>Sessions</span>
+    </div>
+    <div id="session-list">
+      {% for s in sessions %}
+      <div class="term-session-row" data-session-id="{{ s.id }}" data-label="{{ s.label }}" onclick="selectSession('{{ s.id }}')">
+        <span class="status-dot {{ 'status-on' if s.status.running else 'status-off' }}"></span>
+        <span class="label">{{ s.label }}</span>
+      </div>
+      {% else %}
+      <p class="hint" style="padding:0.8rem;">No sessions yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="term-main">
+    <div class="term-header">
+      <span class="label" id="term-active-label">Pick a session</span>
+      <span class="term-status" id="term-status"></span>
+    </div>
+    <div id="terminal-wrap"><div id="terminal"></div></div>
+    <div id="term-empty">Pick a session from the left to open its terminal.</div>
+  </div>
+
+<script src="{{ url_for('static', filename='vendor/xterm.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/xterm-addon-fit.js') }}"></script>
+<script src="{{ url_for('static', filename='terminal.js') }}"></script>
+<script>
+const LAST_SESSION_KEY = "cadre_last_terminal_session";
+let term = null;
+let connection = null;
+let activeId = null;
+
+function selectSession(id) {
+  const row = document.querySelector('.term-session-row[data-session-id="' + id + '"]');
+  if (!row) return;
+
+  document.querySelectorAll(".term-session-row").forEach(el => el.classList.remove("active"));
+  row.classList.add("active");
+  document.getElementById("term-active-label").textContent = row.dataset.label;
+  document.getElementById("term-empty").style.display = "none";
+  document.getElementById("terminal-wrap").style.display = "flex";
+
+  activeId = id;
+  localStorage.setItem(LAST_SESSION_KEY, id);
+  const url = new URL(window.location);
+  url.searchParams.set("session", id);
+  history.replaceState(null, "", url);
+
+  if (connection) connection.close();
+
+  if (!term) {
+    term = new Terminal({ convertEol: true, fontSize: 13, theme: { background: "#000000" } });
+    term.open(document.getElementById("terminal"));
+    setupTerminalFit(term);
+  }
+
+  const statusEl = document.getElementById("term-status");
+  connection = createTerminalConnection(id, {
+    tokenUrl: "/sessions/" + id + "/terminal-token",
+    csrfToken: "{{ csrf_token() }}",
+    term: term,
+    onStatus: (text) => { statusEl.textContent = text; },
+  });
+  if (!document.querySelector(".term-key-row")) {
+    attachMobileKeyRow(document.getElementById("terminal-wrap"), {
+      send: (data) => { if (connection) connection.send(data); },
+    });
+  }
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const requested = urlParams.get("session") || localStorage.getItem(LAST_SESSION_KEY);
+if (requested && document.querySelector('.term-session-row[data-session-id="' + requested + '"]')) {
+  selectSession(requested);
+}
+</script>
+</body>
+</html>

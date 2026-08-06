@@ -113,7 +113,7 @@ code {
 }
 .brand img { display: block; border-radius: 6px; filter: drop-shadow(0 0 10px rgba(76, 139, 240, 0.35)); }
 
-.topbar-nav { display: flex; gap: 0.4rem; }
+.topbar-nav { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
 
 .sub { color: var(--text-dim); font-size: 0.86rem; margin-bottom: 1.75rem; max-width: 68ch; }
 .hint { color: var(--text-faint); font-size: 0.79rem; }

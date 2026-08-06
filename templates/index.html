@@ -10,6 +10,8 @@
   <div class="topbar">
     <h1 class="brand"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="30" height="30">Cadre</h1>
     <div class="topbar-nav">
+      <a class="btn btn-primary" href="{{ url_for('index') }}">Dashboard</a>
+      <a class="btn" href="{{ url_for('terminal_hub') }}">Terminal</a>
       <a class="btn" href="{{ url_for('skills_page') }}">Skills</a>
       <a class="btn" href="{{ url_for('docs_page') }}">Docs</a>
       <a class="btn" href="{{ url_for('settings_form') }}">Settings</a>
