@@ -31,6 +31,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Source: "..\dist\AgentStackCreatorApp.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\AgentStackCreatorDaemon.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\.env.example"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\VERSION"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\SETUP.md"; DestDir: "{app}"; Flags: ignoreversion

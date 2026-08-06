@@ -11,7 +11,7 @@ account system beyond the one admin login you create for yourself below.
 | In this repo (git) | Never in git — created on your machine |
 |---|---|
 | `app.py`, `auth.py`, `config.py`, `session_manager.py`, `sessions_store.py`, `agents_store.py` | `instance/` — your admin account, your sessions list, your signing key |
-| `templates/`, `requirements.txt` | `.env` — your local config overrides |
+| `templates/`, `requirements.txt`, `VERSION` | `.env` — your local config overrides |
 | `.env.example`, `SETUP.md`, `.gitignore`, `LICENSE` | `venv/` — rebuild fresh per machine, never copy |
 
 ## Prerequisites
@@ -32,13 +32,9 @@ account system beyond the one admin login you create for yourself below.
 
 1. **Get the code**:
    ```bash
-   git clone <this-repo-url> ~/.claude/command-center
+   git clone https://github.com/bburge14/brads-agent-stack-creator ~/.claude/command-center
    cd ~/.claude/command-center
    ```
-   If the repo is private, the new machine needs GitHub access first —
-   either `gh auth login` (if you have the GitHub CLI) or an SSH
-   key/personal access token set up for that account, same as cloning any
-   other private repo.
 
 2. **Run the setup script** — `./linux/setup.sh` on Linux, `./macos/setup.sh`
    on macOS. Each creates the virtual environment, installs everything from
@@ -109,12 +105,11 @@ account system beyond the one admin login you create for yourself below.
 
 ## Steps (Windows)
 
-1. **Get the code** (see the private-repo note above). Either `git clone`,
-   or download the ZIP from the repo's Releases page and extract it —
-   either way you end up with a folder containing `app.py`, `windows\`,
-   etc.
+1. **Get the code**. Either `git clone`, or download the ZIP from the
+   repo's Releases page and extract it — either way you end up with a
+   folder containing `app.py`, `windows\`, etc.
    ```powershell
-   git clone <this-repo-url> $env:USERPROFILE\claude-command-center
+   git clone https://github.com/bburge14/brads-agent-stack-creator $env:USERPROFILE\claude-command-center
    cd $env:USERPROFILE\claude-command-center
    ```
 
@@ -322,6 +317,36 @@ service/task's own working directory against the checkout you're running
 it from) that it's only ever touching *this* install's services — a second
 checkout elsewhere, or a copy used for testing, can't reach across and
 stop a different one.
+
+## Updating
+
+**Settings** shows the version you're running (`VERSION` in the repo) with
+a "Check for updates" button — it asks GitHub's public releases API
+whether a newer one exists and links straight to it. It only checks; it
+never downloads or applies anything on its own.
+
+To actually pull in an update, from a terminal:
+
+```bash
+./linux/update.sh     # or ./macos/update.sh
+```
+```powershell
+windows\update.bat
+```
+
+Each runs `git pull`, reinstalls `requirements.txt` (in case it changed),
+and — on Linux/Windows, using the same working-directory match as the
+uninstall scripts — restarts the **dashboard only** if this checkout owns
+a registered service/task. The session daemon is deliberately left
+running, since restarting it ends any live Claude Code sessions it's
+holding open; if a given update specifically touched
+`session_daemon.py`, restart that yourself once you're ready (or just
+wait for its next natural restart). If nothing's registered (or on
+macOS, where there's no services concept here at all), it just tells you
+to restart the dashboard by hand.
+
+This only works for a `git clone` install — if you're on the ZIP-download
+path (Windows only), grab the newer ZIP from Releases instead.
 
 ## Running it as an always-on background service (Windows)
 

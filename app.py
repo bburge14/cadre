@@ -7,6 +7,7 @@ import subprocess
 from datetime import timedelta
 from pathlib import Path
 
+import requests
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 import agents_store
@@ -597,6 +598,15 @@ SECRET_SETTINGS = {
     "gemini_api_key", "codex_api_key", "kimi_api_key",
 }
 
+GITHUB_REPO = "bburge14/brads-agent-stack-creator"
+
+
+def _read_version() -> str:
+    try:
+        return (config.BASE_DIR / "VERSION").read_text().strip()
+    except FileNotFoundError:
+        return "unknown"
+
 
 @app.get("/settings")
 @require_auth
@@ -618,7 +628,32 @@ def settings_form():
         claude_installed=providers.binary_found("claude"),
         claude_logged_in=providers.claude_logged_in(),
         provider_binaries={p.id: providers.binary_found(p.id) for p in providers.list_providers()},
+        current_version=_read_version(),
+        github_repo_url=f"https://github.com/{GITHUB_REPO}",
     )
+
+
+@app.get("/settings/check-update")
+@require_auth
+def check_update():
+    current = _read_version()
+    try:
+        resp = requests.get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+            headers={"Accept": "application/vnd.github+json"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        latest = resp.json().get("tag_name", "").lstrip("v")
+    except (requests.RequestException, ValueError) as exc:
+        return {"ok": False, "error": str(exc), "current": current}
+    return {
+        "ok": True,
+        "current": current,
+        "latest": latest,
+        "up_to_date": latest == current,
+        "release_url": f"https://github.com/{GITHUB_REPO}/releases/tag/v{latest}",
+    }
 
 
 @app.post("/settings")

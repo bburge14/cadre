@@ -30,7 +30,17 @@
     {% endfor %}
   {% endwith %}
 
-  <h2 style="margin-top:0; border-top:none; padding-top:0;">Claude account <span class="hint">(required — everything in this app runs on top of it)</span></h2>
+  <h2 style="margin-top:0; border-top:none; padding-top:0;">Version</h2>
+  <p class="hint">
+    Running <code>v{{ current_version }}</code>. This dashboard doesn't
+    auto-update itself — check for a newer release, then pull it in from a
+    terminal: <code>linux/update.sh</code> / <code>macos/update.sh</code> /
+    <code>windows\update.bat</code>.
+  </p>
+  <button class="btn" type="button" id="check-update-btn" onclick="checkForUpdate()">Check for updates</button>
+  <div id="update-status" class="hint" style="margin-top:0.5rem;"></div>
+
+  <h2>Claude account <span class="hint">(required — everything in this app runs on top of it)</span></h2>
   {% if not claude_installed %}
     <p class="hint" style="color:#e3a6a6;">
       The <code>claude</code> command-line tool isn't installed on this
@@ -109,5 +119,28 @@
 
     <button class="btn btn-primary" type="submit">Save</button>
   </form>
+
+<script>
+async function checkForUpdate() {
+  const btn = document.getElementById('check-update-btn');
+  const status = document.getElementById('update-status');
+  btn.disabled = true;
+  status.textContent = 'Checking...';
+  try {
+    const res = await fetch("{{ url_for('check_update') }}");
+    const data = await res.json();
+    if (!data.ok) {
+      status.textContent = "Couldn't check for updates: " + (data.error || 'unknown error');
+    } else if (data.up_to_date) {
+      status.textContent = "You're on the latest release (v" + data.current + ").";
+    } else {
+      status.innerHTML = 'A newer release is available: <a href="' + data.release_url + '" target="_blank">v' + data.latest + '</a> (running v' + data.current + ').';
+    }
+  } catch (e) {
+    status.textContent = "Couldn't check for updates: " + e;
+  }
+  btn.disabled = false;
+}
+</script>
 </body>
 </html>
