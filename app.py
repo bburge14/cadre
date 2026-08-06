@@ -1613,6 +1613,29 @@ def session_terminal(session_id):
     return render_template("session_terminal.html", session=entry)
 
 
+@app.post("/sessions/<session_id>/handoff")
+@require_auth
+def session_handoff(session_id):
+    """Retires a bloated/long-running session by creating a fresh one in
+    the same directory (same provider) and stopping the old one -- for
+    this to actually save tokens rather than just moving the same
+    problem, the new session needs to actually pick up where the old one
+    left off, which is what ensure_continuity_nudge is for: it's the
+    thing that makes a fresh session go read PROJECT_STATUS.md instead
+    of re-deriving context from scratch."""
+    entry = sessions_store.get(session_id)
+    if entry is None:
+        flash("Unknown session.", "error")
+        return redirect(url_for("index"))
+
+    presets.ensure_continuity_nudge(Path(entry["workdir"]))
+
+    result = session_manager.create(f"{entry['label']} (new)", entry["workdir"], provider=entry.get("provider", "claude"))
+    session_manager.stop(session_id)
+    flash(f"Handed off to a new session (pid {result.get('pid')}) — the old one is stopped, not deleted.", "success")
+    return redirect(url_for("session_detail", session_id=result["session_id"]))
+
+
 @app.get("/sessions/<session_id>/edit")
 @require_auth
 def edit_session_form(session_id):

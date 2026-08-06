@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+import agent_formats
 import agents_store
 import config
 import skills_store
@@ -81,6 +82,36 @@ def attach_default_skills(agent_id: str, frontmatter: dict, body: str) -> tuple[
     return frontmatter, body
 
 
+_CONTINUITY_START = "<!-- BEGIN CADRE CONTINUITY NUDGE -->"
+_CONTINUITY_END = "<!-- END CADRE CONTINUITY NUDGE -->"
+_CONTINUITY_BLOCK = (
+    f"{_CONTINUITY_START}\n"
+    "Before starting work in this project, check for `PROJECT_STATUS.md` "
+    "(or `STATUS.md`/`HANDOFF.md`) at the project root and read it first "
+    "if it exists — it's kept current by another agent specifically so a "
+    "fresh session doesn't have to re-derive context that's already been "
+    "captured.\n"
+    f"{_CONTINUITY_END}\n"
+)
+
+
+def ensure_continuity_nudge(root: Path) -> None:
+    """Claude Code auto-loads CLAUDE.md into every session rooted at
+    `root`, but nothing auto-loads PROJECT_STATUS.md -- without this, a
+    fresh session (or a hand-off from a bloated one) never actually
+    checks it unless someone remembers to say so, and project-scribe's
+    whole point (skip re-deriving context another session already
+    captured) doesn't take effect until the *next* session already knows
+    to look. Idempotent (marker-delimited) and additive-only -- never
+    touches whatever else is already in CLAUDE.md."""
+    path = root / "CLAUDE.md"
+    existing = path.read_text().rstrip() if path.exists() else ""
+    if _CONTINUITY_START in existing:
+        return
+    separator = "\n\n" if existing else ""
+    path.write_text(existing + separator + _CONTINUITY_BLOCK)
+
+
 def list_presets() -> list[dict]:
     return json.loads(MANIFEST_FILE.read_text())
 
@@ -123,6 +154,12 @@ def activate(agent_ids: list[str], agents_dir: Path | None = None) -> list[str]:
         filename = f"{agent_id}.md"
         agents_store.write_agent(filename, frontmatter, body, agents_dir=agents_dir)
         written.append(filename)
+
+    if "project-scribe.md" in written and agents_dir is not None:
+        root = agent_formats.root_for_agents_dir(agents_dir)
+        if root != Path.home():  # global stack has no real project directory to nudge
+            ensure_continuity_nudge(root)
+
     return written
 
 

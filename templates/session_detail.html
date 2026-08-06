@@ -57,6 +57,24 @@
     <div class="term-status" id="term-status">connecting…</div>
   </div>
 
+  <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border-soft);">
+    <h3 style="margin-top:0;">Session getting long?</h3>
+    <p class="hint">
+      A long-running session accumulates context — cost per turn climbs
+      and quality can degrade well before you hit any hard limit.
+      "Hand off" starts a fresh session in this same directory and stops
+      this one (not deleted, just paused). If <code>project-scribe</code>
+      is keeping <code>PROJECT_STATUS.md</code> current here, the new
+      session is nudged via <code>CLAUDE.md</code> to read it first, so
+      it picks up real context instead of starting cold.
+    </p>
+    <form method="post" action="{{ url_for('session_handoff', session_id=session.id) }}"
+          onsubmit="return confirm('Start a fresh session in this same directory and stop this one?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn" type="submit">Hand off to a fresh session</button>
+    </form>
+  </div>
+
   <div class="danger-zone">
     <form method="post" action="{{ url_for('session_action', session_id=session.id, action='delete') }}"
           onsubmit="return confirm('Delete session {{ session.label }}? This stops it and removes it from this list.');">
