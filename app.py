@@ -23,6 +23,7 @@ import providers
 import session_manager
 import sessions_store
 import settings
+import skills_store
 import stacks_store
 from auth import require_auth
 
@@ -139,6 +140,139 @@ def index():
 @require_auth
 def agents_page():
     return render_template("agents.html", agents=agents_store.list_agents())
+
+
+# ---- Skills ----
+
+
+def _render_skill_form(skill, name, skills_dir, back_url, back_label, save_action):
+    return render_template(
+        "skill_edit.html",
+        skill=skill,
+        name=name,
+        back_url=back_url,
+        back_label=back_label,
+        save_action=save_action,
+    )
+
+
+def _save_skill_from_form(skills_dir, existing_name):
+    name = existing_name or request.form.get("name", "").strip()
+    description = request.form.get("description", "")
+    body = request.form.get("body", "")
+    skills_store.write_skill(name, description, body, skills_dir=skills_dir)
+
+
+@app.get("/skills")
+@require_auth
+def skills_page():
+    return render_template("skills.html", skills=skills_store.list_skills())
+
+
+@app.get("/skills/new")
+@require_auth
+def new_skill_form():
+    return _render_skill_form(
+        skill=None, name=None, skills_dir=None,
+        back_url=url_for("skills_page"), back_label="back to global skills",
+        save_action=url_for("save_skill"),
+    )
+
+
+@app.get("/skills/<name>/edit")
+@require_auth
+def edit_skill_form(name):
+    try:
+        skill = skills_store.read_skill(name)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("skills_page"))
+    return _render_skill_form(
+        skill=skill, name=name, skills_dir=None,
+        back_url=url_for("skills_page"), back_label="back to global skills",
+        save_action=url_for("save_skill", existing_name=name),
+    )
+
+
+@app.post("/skills/save")
+@require_auth
+def save_skill():
+    try:
+        _save_skill_from_form(skills_dir=None, existing_name=request.args.get("existing_name"))
+    except ValueError as exc:
+        flash(f"Not saved: {exc}", "error")
+    return redirect(url_for("skills_page"))
+
+
+@app.post("/skills/<name>/delete")
+@require_auth
+def delete_skill_route(name):
+    skills_store.delete_skill(name)
+    flash(f"Deleted skill '{name}'.", "success")
+    return redirect(url_for("skills_page"))
+
+
+@app.get("/stacks/<stack_id>/skills/new")
+@require_auth
+def new_stack_skill_form(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    return _render_skill_form(
+        skill=None, name=None, skills_dir=skills_store.project_skills_dir(stack["workdir"]),
+        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
+        save_action=url_for("save_stack_skill", stack_id=stack_id),
+    )
+
+
+@app.get("/stacks/<stack_id>/skills/<name>/edit")
+@require_auth
+def edit_stack_skill_form(stack_id, name):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    skills_dir = skills_store.project_skills_dir(stack["workdir"])
+    try:
+        skill = skills_store.read_skill(name, skills_dir=skills_dir)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("edit_stack_form", stack_id=stack_id))
+    return _render_skill_form(
+        skill=skill, name=name, skills_dir=skills_dir,
+        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
+        save_action=url_for("save_stack_skill", stack_id=stack_id, existing_name=name),
+    )
+
+
+@app.post("/stacks/<stack_id>/skills/save")
+@require_auth
+def save_stack_skill(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    try:
+        _save_skill_from_form(
+            skills_dir=skills_store.project_skills_dir(stack["workdir"]),
+            existing_name=request.args.get("existing_name"),
+        )
+    except ValueError as exc:
+        flash(f"Not saved: {exc}", "error")
+    return redirect(url_for("edit_stack_form", stack_id=stack_id))
+
+
+@app.post("/stacks/<stack_id>/skills/<name>/delete")
+@require_auth
+def delete_stack_skill(stack_id, name):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("index"))
+    skills_store.delete_skill(name, skills_dir=skills_store.project_skills_dir(stack["workdir"]))
+    flash(f"Deleted skill '{name}'.", "success")
+    return redirect(url_for("edit_stack_form", stack_id=stack_id))
 
 
 @app.get("/docs")
@@ -390,10 +524,12 @@ def edit_stack_form(stack_id):
         return redirect(url_for("index"))
     stack_agents = agents_store.list_agents(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
     active_names = {a.name for a in stack_agents}
+    stack_skills = skills_store.list_skills(skills_dir=skills_store.project_skills_dir(stack["workdir"]))
     return render_template(
         "stack_form.html",
         stack=stack,
         stack_agents=stack_agents,
+        stack_skills=stack_skills,
         stack_presets=presets.list_presets(),
         library=presets.list_library_agents(),
         active_names=active_names,

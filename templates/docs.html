@@ -28,6 +28,7 @@
     <a href="#sessions">Sessions</a>
     <a href="#stacks">Agent stacks</a>
     <a href="#global-agents">The global agent team</a>
+    <a href="#skills">Skills</a>
     <a href="#providers">AI providers (Claude / Gemini / Codex / Kimi)</a>
     <a href="#delegation">Delegating an agent's work to another provider</a>
     <a href="#git-hosts">Connecting GitHub / GitLab</a>
@@ -128,6 +129,33 @@
     preset-picker of its own. If you want a whole preset applied globally,
     create a stack whose directory <em>is</em> your home directory.
   </p>
+
+  <h2 id="skills">Skills</h2>
+  <p>
+    A skill is a different mechanism from an agent: it's a packaged,
+    reusable set of instructions that gets loaded <em>into</em> whatever
+    session invokes it (the top-level coordinator, or a subagent) — not a
+    separate spawned worker with its own context window the way an agent
+    is. Think of it as handing the current session a specific playbook,
+    rather than delegating the work to someone else.
+  </p>
+  <p>
+    Managed the same way as agents, both globally ("global skills" on the
+    dashboard, <code>~/.claude/skills/</code>) and per-stack ("Skills in
+    this stack" on a stack's page, <code>&lt;stack-dir&gt;/.claude/skills/</code>).
+    A skill only needs a name, a description (what it does and when to use
+    it — this is what gets matched against a request to decide whether to
+    load it), and the instructions themselves; there's no tools/model/
+    spawn-graph to configure, since a skill runs in the invoking session's
+    own context rather than as a separate agent.
+  </p>
+  <div class="note">
+    This is newer and less battle-tested than agent management — the file
+    format (<code>&lt;name&gt;/SKILL.md</code> with name/description
+    frontmatter) is confirmed correct against real skill files already on
+    this machine, but hasn't yet been verified end-to-end against Claude
+    Code actually loading a Cadre-created skill in a live session.
+  </div>
 
   <h2 id="providers">AI providers</h2>
   <p>

@@ -40,7 +40,7 @@
       <a class="btn" href="{{ url_for('logout') }}">Log out</a>
     </div>
   </div>
-  <div class="sub">Manage multiple Claude Code sessions (each remotely reachable via claude.ai/code) and your agent stacks — each stack is its own directory-scoped team; there's also one <a href="{{ url_for('agents_page') }}">global agent team</a> that applies wherever a more specific stack doesn't.</div>
+  <div class="sub">Manage multiple Claude Code sessions (each remotely reachable via claude.ai/code) and your agent stacks — each stack is its own directory-scoped team; there's also one <a href="{{ url_for('agents_page') }}">global agent team</a> and one set of <a href="{{ url_for('skills_page') }}">global skills</a> that apply wherever a more specific stack doesn't.</div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}

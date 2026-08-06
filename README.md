@@ -41,6 +41,12 @@ enabled + lingering, so it's always up — no manual start needed. See
   not just a read-only output feed — the only way to interact with
   Gemini/Codex/Kimi sessions today, since none of them has an official
   remote-control equivalent yet.
+- **Skills**: managed the same way as agents (`skills_store.py`, mirroring
+  `agents_store.py`), both globally (`/skills`, `~/.claude/skills/`) and
+  per-stack. A skill is a different mechanism from an agent -- packaged
+  instructions loaded into whatever session invokes it, not a separate
+  spawned worker -- one directory per skill (`<name>/SKILL.md`), just
+  name/description frontmatter and a body.
 - **Trust-prompt handling**: a brand-new session in a directory Claude
   hasn't seen before blocks on an interactive "trust this folder?" prompt.
   `session_daemon.py`'s reader thread watches for that specific prompt
