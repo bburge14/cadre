@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import secrets
 import shutil
 import subprocess
@@ -208,7 +209,8 @@ def docs_page():
 # to point elsewhere and no meaningful "delete" for the one true fallback.
 _GLOBAL_STACK_ID = "global"
 _GLOBAL_SEEDED_MARKER = config.INSTANCE_DIR / "global_seeded"
-_GLOBAL_SKILLS_SEEDED_MARKER = config.INSTANCE_DIR / "global_skills_seeded"
+_GLOBAL_SKILLS_SEEDED_MARKER = config.INSTANCE_DIR / "global_skills_seeded"  # legacy, pre-per-name tracking
+_SKILLS_SEEDED_FILE = config.INSTANCE_DIR / "skills_seeded.json"
 
 # Three example skills, one per major flavor the Generalist preset spans
 # (coding / writing / research), seeded into the default stack so there's
@@ -553,6 +555,70 @@ _DEFAULT_SKILLS = [
 ]
 
 
+def _ensure_default_skills_seeded() -> None:
+    """Adds each _DEFAULT_SKILLS entry the *first* time it's introduced,
+    tracked by name (instance/skills_seeded.json) rather than a single
+    one-shot marker -- so growing this list later (as just happened: 3 ->
+    20) actually reaches existing installs instead of silently doing
+    nothing because "skills were already seeded once" no longer means
+    "every current default has been offered." A name already recorded as
+    seeded is never re-added even if the user deleted it since -- that's
+    still respected, just per-skill instead of all-or-nothing."""
+    seeded_names: set[str] = set()
+    if _SKILLS_SEEDED_FILE.exists():
+        seeded_names = set(json.loads(_SKILLS_SEEDED_FILE.read_text()))
+    elif _GLOBAL_SKILLS_SEEDED_MARKER.exists():
+        # Migrating from the old all-or-nothing marker: the 3 skills that
+        # existed back then already had their one shot (respect any the
+        # user has since deleted); everything added after is still new.
+        seeded_names = {"commit-message-style", "writing-tone-guide", "research-source-checklist"}
+
+    existing_names = {s.name for s in skills_store.list_skills()}
+    newly_seeded = False
+    for name, description, body in _DEFAULT_SKILLS:
+        if name in seeded_names:
+            continue
+        if name not in existing_names:
+            skills_store.write_skill(name, description, body)
+        seeded_names.add(name)
+        newly_seeded = True
+
+    if newly_seeded or not _SKILLS_SEEDED_FILE.exists():
+        _SKILLS_SEEDED_FILE.write_text(json.dumps(sorted(seeded_names), indent=2))
+
+
+_PRESET_AGENTS_SKILLS_MIGRATED_MARKER = config.INSTANCE_DIR / "preset_agents_skills_migrated"
+
+
+def _ensure_existing_preset_agents_get_default_skills() -> None:
+    """One-time catch-up for agents that were already on disk before
+    per-agent default-skill attachment existed -- that only happens at
+    activation time (presets.activate()), so an agent created before this
+    feature shipped never got the chance. Runs once (its own marker, not
+    reused for anything else); only touches an agent that's (a) named
+    after a known preset template and (b) doesn't already have skills of
+    its own set, so anything hand-customized since is left alone."""
+    if _PRESET_AGENTS_SKILLS_MIGRATED_MARKER.exists():
+        return
+
+    agents_dirs = [agents_store.AGENTS_DIR]
+    agents_dirs.extend(agents_store.project_agents_dir(s["workdir"]) for s in stacks_store.list_stacks())
+
+    for agents_dir in agents_dirs:
+        for agent in agents_store.list_agents(agents_dir=agents_dir):
+            agent_id = agent.filename.removesuffix(".md")
+            if agent_id not in presets.AGENT_SKILL_HINTS:
+                continue
+            if agent.frontmatter.get("skills", "").strip():
+                continue
+            frontmatter, body = presets.attach_default_skills(agent_id, dict(agent.frontmatter), agent.body)
+            if frontmatter.get("skills"):
+                agents_store.write_agent(agent.filename, frontmatter, body, agents_dir=agents_dir)
+                _sync_agent_formats(agents_dir, agent.filename)
+
+    _PRESET_AGENTS_SKILLS_MIGRATED_MARKER.write_text("done\n")
+
+
 def _ensure_global_seeded() -> None:
     """The default stack shouldn't just be empty scaffolding -- seed it
     with the Generalist preset the first time it's ever found empty, so a
@@ -560,25 +626,23 @@ def _ensure_global_seeded() -> None:
     ~/.claude/agents/ yet) has something in it out of the box. Runs once
     -- marked via a sentinel file so deliberately clearing it out later
     doesn't cause it to keep coming back. Skills get their own independent
-    marker/check (not gated behind the same one as agents) since they're
-    an unrelated concern that can legitimately still be empty even after
+    seeding (not gated behind the same marker as agents) since they're an
+    unrelated concern that can legitimately still be empty even after
     agents have already been seeded or hand-populated."""
     # Skills seeded before the Generalist preset activates below (not
     # just before agents are seeded) -- presets.activate() attaches
     # default skills to preset agents by name at activation time, so
     # skills need to already exist for a truly fresh install's
     # auto-seeded stack to actually get them, not just later ones.
-    if not _GLOBAL_SKILLS_SEEDED_MARKER.exists():
-        if not skills_store.list_skills():
-            for name, description, body in _DEFAULT_SKILLS:
-                skills_store.write_skill(name, description, body)
-        _GLOBAL_SKILLS_SEEDED_MARKER.write_text("seeded\n")
+    _ensure_default_skills_seeded()
 
     if not _GLOBAL_SEEDED_MARKER.exists():
         if not agents_store.list_agents():
             presets.activate_preset("generalist", agents_dir=agents_store.AGENTS_DIR)
             _sync_all_agent_formats(agents_store.AGENTS_DIR)
         _GLOBAL_SEEDED_MARKER.write_text("seeded\n")
+
+    _ensure_existing_preset_agents_get_default_skills()
 
 
 def _resolve_stack(stack_id: str) -> dict | None:

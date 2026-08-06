@@ -17,7 +17,7 @@ MANIFEST_FILE = PRESETS_DIR / "manifest.json"
 # activation time (not baked statically into the template files) so a
 # skill the user deleted just doesn't get attached, rather than
 # referencing something that no longer exists.
-_AGENT_SKILL_HINTS: dict[str, list[str]] = {
+AGENT_SKILL_HINTS: dict[str, list[str]] = {
     "python-engineer": [
         "code-review-checklist", "test-writing-guidelines", "error-handling-philosophy",
         "security-review-checklist", "dependency-upgrade-checklist", "api-design-consistency",
@@ -67,8 +67,8 @@ _AGENT_SKILL_HINTS: dict[str, list[str]] = {
 }
 
 
-def _attach_default_skills(agent_id: str, frontmatter: dict, body: str) -> tuple[dict, str]:
-    hints = _AGENT_SKILL_HINTS.get(agent_id, [])
+def attach_default_skills(agent_id: str, frontmatter: dict, body: str) -> tuple[dict, str]:
+    hints = AGENT_SKILL_HINTS.get(agent_id, [])
     if not hints:
         return frontmatter, body
     available = {s.name: s for s in skills_store.list_skills()}
@@ -119,7 +119,7 @@ def activate(agent_ids: list[str], agents_dir: Path | None = None) -> list[str]:
         if parsed is None:
             continue
         frontmatter, body = parsed
-        frontmatter, body = _attach_default_skills(agent_id, frontmatter, body)
+        frontmatter, body = attach_default_skills(agent_id, frontmatter, body)
         filename = f"{agent_id}.md"
         agents_store.write_agent(filename, frontmatter, body, agents_dir=agents_dir)
         written.append(filename)
