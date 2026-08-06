@@ -107,15 +107,22 @@ account system beyond the one admin login you create for yourself below.
 ## Steps (Windows)
 
 1. **Get the code**. Either `git clone`, or download the ZIP from the
-   repo's Releases page and extract it — either way you end up with a
-   folder containing `app.py`, `windows\`, etc.
+   repo's Releases page and extract it somewhere — either way you end up
+   with a folder containing `app.py`, `windows\`, etc. Where you extract
+   the ZIP doesn't matter (Downloads is fine) — the next step relocates it
+   automatically.
    ```powershell
    git clone https://github.com/bburge14/cadre $env:USERPROFILE\cadre
    cd $env:USERPROFILE\cadre
    ```
 
-2. **Double-click `windows\setup.bat`** (or run it from a terminal). This
-   creates the virtual environment, installs everything from
+2. **Double-click `windows\setup.bat`** (or run it from a terminal). If
+   you extracted a ZIP (no `.git\`), this first moves the whole folder to
+   a stable home at `%LocalAppData%\Programs\Cadre` and re-launches setup
+   from there — so it isn't left depending on a Downloads folder that
+   might get cleaned out later. (A `git clone` is left exactly where you
+   put it, since moving it would break `git pull`/`update.bat`.) Either
+   way, it then creates the virtual environment, installs everything from
    `requirements.txt` — the one step that's easy to miss if you skip
    straight to running the app — and creates a "Start Cadre" shortcut on
    your Desktop pointing at `windows\start.bat`. It also
@@ -384,7 +391,7 @@ unverified until it's been run for real:
    PyInstaller (`windows\app.spec` / `windows\daemon.spec`), then wraps
    them into `windows\installer-output\Cadre-Setup-*.exe`
    via Inno Setup (`windows\installer.iss`).
-3. Running that `Setup.exe` installs to `%LOCALAPPDATA%\Cadre`
+3. Running that `Setup.exe` installs to `%LOCALAPPDATA%\Programs\Cadre`
    (no admin rights needed), registers the same two scheduled tasks as
    "Running it as an always-on background service (Windows)" above, and
    opens the dashboard in your browser when done.
