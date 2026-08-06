@@ -1524,6 +1524,20 @@ def session_detail(session_id):
     )
 
 
+@app.get("/sessions/<session_id>/terminal")
+@require_auth
+def session_terminal(session_id):
+    """A dedicated, chrome-free terminal page -- bookmarkable, and works
+    as an "Add to Home Screen" target on mobile so opening a session
+    feels like tapping into an app rather than digging through the
+    dashboard each time."""
+    entry = sessions_store.get(session_id)
+    if entry is None:
+        flash("Unknown session.", "error")
+        return redirect(url_for("index"))
+    return render_template("session_terminal.html", session=entry)
+
+
 @app.get("/sessions/<session_id>/edit")
 @require_auth
 def edit_session_form(session_id):

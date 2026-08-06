@@ -386,3 +386,19 @@ details.help > .help-body p:last-child { margin-bottom: 0; }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 .tab-panel { display: none; padding-top: 1.1rem; }
 .tab-panel.active { display: block; }
+
+/* ---- Terminal mobile key row ---- */
+
+.term-key-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+.term-key-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  font-family: ui-monospace, monospace;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.term-key-btn:hover, .term-key-btn:active { background: var(--surface-hover); color: var(--text); }
