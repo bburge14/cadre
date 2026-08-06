@@ -64,20 +64,37 @@ account system beyond the one admin login you create for yourself below.
 5. **Open it in a browser** at that address. First visit should redirect
    you to an account-creation page — pick a username and password (this is
    the only account this instance will ever have). After creating it,
-   you're automatically logged in and land on **Agent Stacks**: a picker
-   for starting agent-team presets (Coding, Content/Writing, Research/
-   Analysis, DevOps/Infrastructure, Data Science/Analytics) plus a custom
-   library builder. That's success.
+   you're automatically logged in and land on **Agent Stacks** — an empty
+   list with a "+ New stack" button. That's success.
 
-6. **Pick a preset** (or hit "back to dashboard" to skip and start with no
-   agents — you can always come back to Agent Stacks later from the nav).
-   Activating a preset writes its agents to `~/.claude/agents/` immediately.
+6. **Create a stack** (or skip to "back to dashboard" and manage agents
+   one at a time instead — see below). A stack is a directory's own
+   `.claude/agents/` team: pick a name, an absolute directory path (created
+   automatically if it doesn't exist), and either click a preset (Coding,
+   Content/Writing, Research/Analysis, DevOps/Infrastructure, Data Science/
+   Analytics) or check individual agents from the library. Only sessions
+   rooted in that directory (or a subdirectory of it) pick up this team —
+   this is Claude Code's own native per-project agent override, not
+   anything this app invents. Make as many stacks as you want, one per
+   project/purpose.
+   There's also one **global** team, at `~/.claude/agents/` — it applies to
+   any session *not* covered by a more specific stack. Manage it one agent
+   at a time from "+ New agent" on the main dashboard (`/`); there's no
+   preset-picker for it specifically — if you want a whole preset applied
+   globally, create a stack whose directory *is* your home directory (or
+   wherever you want it to apply broadly).
 
-7. **Create your first session** via "+ New session" — give it a label and
-   a working directory that already exists on this machine, e.g. a project
-   you're working on. It'll launch `claude` there with Remote Control
-   enabled; the session's detail page shows the connect URL/QR once it's
-   up.
+7. **Create your first session** via "+ New session" — give it a label, a
+   provider (Claude, Gemini, Codex, or Kimi — see "AI CLI providers"
+   below), and a working directory that already exists on this machine,
+   e.g. a project you're working on (point it at one of your stacks'
+   directories to use that team). For Claude, it launches with Remote
+   Control enabled — the session's detail page shows the connect URL/QR
+   once it's up. Every provider also gets an interactive terminal right in
+   the dashboard ("Open terminal" on the session's page) — useful for
+   Claude too, and the only way to interact with Gemini/Codex/Kimi sessions
+   from here today, since none of them has an official remote-control
+   equivalent yet.
 
 ## Steps (Windows)
 
@@ -109,8 +126,8 @@ account system beyond the one admin login you create for yourself below.
    running `venv\Scripts\python app.py` yourself — this is just
    double-clickable, and it's what you'd point a desktop shortcut at).
    Same as Linux/macOS from here — open the printed address in a browser,
-   create your account, land on Agent Stacks, pick a preset, create your
-   first session.
+   create your account, land on Agent Stacks, create your first stack (or
+   skip to the dashboard), create your first session.
 
 For always-on background operation instead of a terminal window you leave
 open, see "Running it as an always-on background service (Windows)" below.
@@ -133,6 +150,53 @@ URL, where repos get cloned to) is saved immediately, no restart required:
 
 Skip this section entirely if you only ever plan to point sessions at
 directories already on this machine — nothing else depends on it.
+
+## AI CLI providers (Claude / Gemini / Codex / Kimi)
+
+Every agent in every stack is still a **Claude Code subagent** — that part
+isn't optional, and it's why there's no "Claude" row in the API-key list
+below. What you're logged into is the `claude` CLI itself, the same one
+this whole app is built on. There's nothing to configure for it in
+Settings; instead, Settings tells you your actual state:
+
+- **`claude` not found on this machine** — you have an Anthropic account
+  but not the CLI installed. That's a separate one-time step this app
+  can't do for you (`npm install -g @anthropic-ai/claude-code`, see
+  [docs.claude.com](https://docs.claude.com/en/docs/claude-code/setup)).
+- **Installed but not logged in yet** — create a session, open its
+  terminal, and run `/login` there. It's a normal part of using `claude`,
+  not a separate flow this app implements.
+- **Installed and logged in** — you're set, nothing to do.
+
+Gemini, Codex, and Kimi are optional and **API-key only** here — go to
+**Settings** and paste a key for whichever you use. Unlike GitHub/GitLab,
+there's no OAuth app a third party can register for these three (each
+CLI's account login is baked into its own binary), so a key is the only
+auth path this dashboard offers them. Settings also flags whether each
+CLI is even found on your `PATH` — if you installed one via `npm`/`nvm`,
+make sure whatever runs `session_daemon.py` (a login shell, or your
+service's `PATH=` line if running as a service) can actually see it.
+
+These three don't replace Claude anywhere — what they're for is **per-agent
+delegation**: editing an agent (`+ New agent` / edit an existing one) lets
+you pick a "primary AI for this agent's actual work." Doing so rewrites
+that agent's instructions with an auto-generated block telling it to shell
+out to the chosen provider's non-interactive mode (`gemini -p "..."`,
+`codex exec "..."`, `kimi -p "..."`) and treat that as its real answer. The
+agent itself is still a Claude Code subagent doing the orchestrating —
+this doesn't reduce Claude usage, it's for cases where you specifically
+want a different model's output on a given agent's tasks.
+
+### When a session hits a usage/rate limit
+
+If a session's underlying CLI hits its own usage limit (Claude's 5-hour/
+weekly cap) or a rate/quota error (common on API-key-only Gemini/Codex/
+Kimi setups), the dashboard notices and flags it — an orange "limit hit"
+tag on the session list, a banner with the actual message on the session's
+detail page, and a browser notification if you're looking at that page
+when it happens and have granted notification permission. This is best-
+effort text matching on the CLI's own output, not something this app
+controls — it clears itself the next time you restart that session.
 
 ## Two processes, on purpose
 

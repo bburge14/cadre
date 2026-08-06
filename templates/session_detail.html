@@ -21,6 +21,7 @@
   #terminal { height: 420px; }
   .term-status { font-size: 0.78rem; color: #888; margin-top: 0.3rem; }
   .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid #333; }
+  .limit-banner { display: none; background: #4a2a10; color: #ffbf80; border: 1px solid #7a4a1a; border-radius: 6px; padding: 0.7rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
 </style>
 </head>
 <body>
@@ -32,6 +33,11 @@
     <span id="status-text">{{ 'running' if status.running else 'stopped' }}</span>
     <span id="pid-text">{% if status.pid %}(pid {{ status.pid }}){% endif %}</span>
   </p>
+
+  <div class="limit-banner" id="limit-banner" style="{{ 'display:block;' if status.limit_hit else '' }}">
+    &#9888; This session hit a usage/rate limit and stopped responding on its own — nothing's broken here, it's just paused until the provider allows more requests.
+    <div id="limit-message" style="margin-top:0.4rem; color:#ffdcb3; font-family:ui-monospace,monospace; font-size:0.78rem;">{{ status.limit_message or '' }}</div>
+  </div>
 
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
@@ -60,6 +66,11 @@
 
 <script src="{{ url_for('static', filename='vendor/xterm.js') }}"></script>
 <script>
+let wasLimitHit = {{ 'true' if status.limit_hit else 'false' }};
+if ("Notification" in window && Notification.permission === "default") {
+  Notification.requestPermission();
+}
+
 async function poll() {
   try {
     const res = await fetch("{{ url_for('session_status_json', session_id=session.id) }}");
@@ -72,6 +83,14 @@ async function poll() {
       out.textContent = data.output;
       out.scrollTop = out.scrollHeight;
     }
+
+    const banner = document.getElementById("limit-banner");
+    banner.style.display = data.limit_hit ? "block" : "none";
+    document.getElementById("limit-message").textContent = data.limit_message || "";
+    if (data.limit_hit && !wasLimitHit && "Notification" in window && Notification.permission === "granted") {
+      new Notification({{ (session.label + " hit a usage limit") | tojson }}, { body: data.limit_message || "Session paused — see the dashboard for details." });
+    }
+    wasLimitHit = data.limit_hit;
   } catch (e) { /* ignore */ }
 }
 poll();

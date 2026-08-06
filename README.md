@@ -17,20 +17,41 @@ enabled + lingering, so it's always up — no manual start needed. See
 - **Session registry**: `instance/sessions.json` — id (a real Claude Code
   session UUID), label, working directory
 - **Process model**: each session runs under a real pty (not headless —
-  `claude`'s remote-control needs a TTY). Ownership of that pty lives in a
-  separate `session_daemon.py` process (talked to over a Unix socket), not
-  in `app.py` itself — see "Two processes, on purpose" in `SETUP.md`. This
-  is what makes sessions survive the web app being redeployed/restarted/
-  crashing; only a restart of the daemon itself (rare) still ends them.
+  `claude`'s remote-control needs a TTY, and the other providers' CLIs are
+  interactive too). Ownership of every pty lives in a separate
+  `session_daemon.py` process (talked to over a TCP loopback socket,
+  `127.0.0.1` only — not a Unix domain socket, so the exact same code runs
+  on Windows), not in `app.py` itself — see "Two processes, on purpose" in
+  `SETUP.md`. This is what makes sessions survive the web app being
+  redeployed/restarted/crashing; only a restart of the daemon itself
+  (rare) still ends them.
+- **Multi-provider**: a session can run Claude, Gemini, Codex, or Kimi
+  (`providers.py`). Claude uses its own account login via the CLI itself;
+  the other three are API-key only (Settings). Any agent can also
+  "delegate" its actual work to one of these via an auto-generated
+  instruction block, regardless of which provider its own session runs —
+  see "AI CLI providers" in `SETUP.md`.
+- **Multi-stack**: more than one agent team can exist at once, each tied to
+  a directory via Claude Code's native per-project `.claude/agents/`
+  override (`/stacks` — create/edit/delete named stacks). One global team
+  at `~/.claude/agents/` still applies wherever a more specific stack
+  doesn't.
+- **Interactive terminal**: every session's detail page can open a real
+  xterm.js terminal over a token-authed WebSocket into that session's pty,
+  not just a read-only output feed — the only way to interact with
+  Gemini/Codex/Kimi sessions today, since none of them has an official
+  remote-control equivalent yet.
 - **Trust-prompt handling**: a brand-new session in a directory Claude
   hasn't seen before blocks on an interactive "trust this folder?" prompt.
-  `session_manager.py`'s reader thread watches for that specific prompt
+  `session_daemon.py`'s reader thread watches for that specific prompt
   (after stripping ANSI/cursor-position codes) and answers "yes" — it never
   sends that keystroke blindly, only after actually seeing the prompt text.
+  The same reader also watches for usage/rate-limit messages and flags them
+  on the dashboard — see "AI CLI providers" in `SETUP.md`.
 - **External adoption**: status/start/stop all match by session UUID via
-  `pgrep -f`, so a session started outside this app (desktop icon, manual
-  `claude --resume ... --remote-control`) is detected and managed rather
-  than duplicated.
+  `psutil`-based process discovery, so a session started outside this app
+  (desktop icon, manual `claude --resume ... --remote-control`) is
+  detected and managed rather than duplicated.
 
 ## Operational notes
 

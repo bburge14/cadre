@@ -12,7 +12,9 @@ one-off login action. Simpler and clearer: API keys only for these three.
 """
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -91,3 +93,17 @@ def get(provider_id: str) -> Provider:
 
 def list_providers() -> list[Provider]:
     return list(PROVIDERS.values())
+
+
+def binary_found(provider_id: str) -> bool:
+    """Whether the provider's CLI is even installed and on PATH -- distinct
+    from being logged in. A missing binary means every session spawn for
+    that provider will fail immediately, before auth ever matters."""
+    return shutil.which(get(provider_id).binary) is not None
+
+
+def claude_logged_in() -> bool:
+    """Heuristic only: the claude CLI writes its cached account credentials
+    here after `/login` succeeds. Presence isn't a live validity check (the
+    token could be expired/revoked), just "you've logged in before"."""
+    return (Path.home() / ".claude" / ".credentials.json").exists()

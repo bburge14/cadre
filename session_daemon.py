@@ -50,6 +50,27 @@ TRUST_PROMPT_PATTERNS: dict[str, str] = {
     "claude": "trustthisfolder",
 }
 
+# Substrings (ANSI-stripped, whitespace-collapsed, lowercased -- same
+# normalization as the trust-prompt check) that mean a provider has hit a
+# usage/rate/context limit and stopped responding on its own. Claude's
+# wording ("usage limit reached", "5-hour limit") is confirmed by direct
+# observation; the rest are generic API-error phrasings likely to show up
+# across Gemini/Codex/Kimi regardless of exact CLI wording, since none of
+# those three has been seen hitting a real limit on this machine yet.
+LIMIT_PATTERNS: list[str] = [
+    "usagelimitreached",
+    "limitreached",
+    "5-hourlimit",
+    "weeklylimit",
+    "ratelimit",
+    "429toomanyrequests",
+    "quotaexceeded",
+    "resourceexhausted",
+    "insufficientquota",
+    "contextlow",
+    "contextwindowexceeded",
+]
+
 _lock = threading.Lock()
 _runtime: dict[str, dict] = {}
 
@@ -58,6 +79,8 @@ def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: st
     trust_pattern = TRUST_PROMPT_PATTERNS.get(provider_id)
     trust_check_buffer = ""
     trust_handled = trust_pattern is None
+    limit_check_buffer = ""
+    limit_already_flagged = False
     while True:
         chunk = pty_session.read(4096)
         if not chunk:
@@ -91,6 +114,23 @@ def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: st
             elif len(trust_check_buffer) > 20000:
                 trust_check_buffer = trust_check_buffer[-5000:]
 
+        if not limit_already_flagged:
+            limit_check_buffer += text
+            plain = _ANSI_CSI_RE.sub("", limit_check_buffer)
+            plain = _ANSI_OTHER_RE.sub("", plain)
+            plain_nospace = re.sub(r"\s+", "", plain).lower()
+            hit = next((p for p in LIMIT_PATTERNS if p in plain_nospace), None)
+            if hit is not None:
+                limit_already_flagged = True
+                message = " ".join(plain.split())[-300:]
+                with _lock:
+                    rt = _runtime.get(session_id)
+                    if rt is not None:
+                        rt["limit_hit"] = True
+                        rt["limit_message"] = message or hit
+            elif len(limit_check_buffer) > 20000:
+                limit_check_buffer = limit_check_buffer[-5000:]
+
 
 def status(session_id: str) -> dict:
     with _lock:
@@ -98,6 +138,8 @@ def status(session_id: str) -> dict:
         own_running = rt is not None and rt["pty"].is_alive()
         own_pid = rt["pty"].pid if rt else None
         pid = own_pid if own_running else None
+        limit_hit = bool(rt["limit_hit"]) if rt else False
+        limit_message = rt["limit_message"] if rt else None
     externally_managed = False
     if not own_running:
         externals = pty_compat.find_pids_by_arg(session_id, own_pid)
@@ -105,7 +147,13 @@ def status(session_id: str) -> dict:
             own_running = True
             pid = externals[0]
             externally_managed = True
-    return {"running": own_running, "pid": pid, "externally_managed": externally_managed}
+    return {
+        "running": own_running,
+        "pid": pid,
+        "externally_managed": externally_managed,
+        "limit_hit": limit_hit,
+        "limit_message": limit_message,
+    }
 
 
 def get_output(session_id: str, max_chars: int = 8000) -> str:
@@ -145,6 +193,8 @@ def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id:
             "output": deque(maxlen=2000),
             "provider": provider_id,
             "subscribers": [],
+            "limit_hit": False,
+            "limit_message": None,
         }
         t = threading.Thread(target=_reader, args=(session_id, pty_session, provider_id), daemon=True)
         t.start()

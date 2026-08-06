@@ -486,6 +486,9 @@ def settings_form():
         github_connected=bool(git_hosts.get_token("github")),
         gitlab_callback_url=url_for("gitlab_oauth_callback", _external=True),
         gitlab_connected=bool(git_hosts.get_token("gitlab")),
+        claude_installed=providers.binary_found("claude"),
+        claude_logged_in=providers.claude_logged_in(),
+        provider_binaries={p.id: providers.binary_found(p.id) for p in providers.list_providers()},
     )
 
 

@@ -27,6 +27,7 @@
   .flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.88rem; }
   .flash.success { background: #1e3a24; color: #a6e3ad; }
   .flash.error { background: #3a1e1e; color: #e3a6a6; }
+  .tag-limit { display: inline-block; background: #4a2a10; color: #ffbf80; border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; cursor: help; }
 </style>
 </head>
 <body>
@@ -61,6 +62,7 @@
         <span class="status-dot {{ 'status-on' if s.status.running else 'status-off' }}"></span>
         {{ 'running' if s.status.running else 'stopped' }}
         {% if s.status.pid %}(pid {{ s.status.pid }}){% endif %}
+        {% if s.status.limit_hit %}<br><span class="tag-limit" title="{{ s.status.limit_message }}">limit hit</span>{% endif %}
       </td>
       <td>
         <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
