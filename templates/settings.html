@@ -115,7 +115,7 @@
     {% if orchestration_candidates %}
     <select name="default_provider">
       {% for p in orchestration_candidates %}
-      <option value="{{ p.id }}" {{ 'selected' if p.id == default_provider else '' }}>{{ p.label }}</option>
+      <option value="{{ p.id }}" {{ 'selected' if p.id == default_provider else '' }}>{{ p.label }}{{ '' if p.orchestration_verified else ' (Agent Stacks unverified)' }}</option>
       {% endfor %}
     </select>
     {% else %}

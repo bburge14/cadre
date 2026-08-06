@@ -24,6 +24,7 @@
     <a href="#global-agents">"Global (default)" stack</a>
     <a href="#skills">Skills</a>
     <a href="#providers">AI providers (Claude / Gemini / Codex / Kimi)</a>
+    <a href="#other-provider-stacks">Agent Stacks on other providers</a>
     <a href="#delegation">Delegating an agent's work to another provider</a>
     <a href="#git-hosts">Connecting GitHub / GitLab</a>
     <a href="#updating">Keeping Cadre updated</a>
@@ -208,12 +209,54 @@
     it as your <strong>default AI</strong> — this pre-fills the provider on
     "+ New session" and is the one used to run your Agent Stacks. The
     default picker only ever offers providers that are both actually
-    connected <em>and</em> capable of running a stack at all — today that's
-    Claude only, since Agent Stacks is Claude Code's own native subagent
-    mechanism (see below). Gemini/Codex/Kimi can still be connected and
-    used for their own sessions, just not set as the stack-running default
-    yet.
+    connected <em>and</em> capable of running a stack at all. Claude is the
+    only one confirmed end-to-end; Gemini, Codex, and Kimi have each since
+    shipped their own native subagent mechanism and Cadre now translates
+    your agents into each one's format automatically, but none of the
+    three has been run against a real install by anyone yet — expect
+    rough edges if you're the first to actually try one (see "Agent Stacks
+    on other providers" below).
   </p>
+
+  <h2 id="other-provider-stacks">Agent Stacks on other providers</h2>
+  <p>
+    Every time you save, delete, or activate an agent (individually or via
+    a preset), Cadre also writes that same agent out in the native
+    subagent format of the other three CLIs — the exact same definitions
+    you manage here, translated automatically, no extra step. This
+    happens alongside <code>.claude/agents/</code>, which stays the one
+    source of truth; the other three are always regenerated to match it,
+    and only the file matching that specific agent's name is ever
+    touched, never the rest of that directory.
+  </p>
+  <table class="list" style="margin: 0.8rem 0;">
+    <tr><th>Provider</th><th>Where</th><th>Format</th></tr>
+    <tr><td>Codex</td><td><code>.codex/agents/&lt;name&gt;.toml</code></td><td>TOML</td></tr>
+    <tr><td>Gemini</td><td><code>.gemini/agents/&lt;name&gt;.md</code></td><td>Markdown + YAML frontmatter</td></tr>
+    <tr><td>Kimi</td><td><code>.kimi-code/agents/&lt;name&gt;.md</code></td><td>Markdown + YAML frontmatter</td></tr>
+  </table>
+  <p>
+    What doesn't translate, deliberately: <strong>model/effort</strong>
+    (cross-vendor model names aren't equivalent by string, so each CLI
+    just uses its own default) and <strong>skills</strong> (each CLI's own
+    skills mechanism, if it has one, uses a different file format —
+    skill descriptions are folded into the agent's instructions text
+    instead, the same plain-instructions approach Claude's own skill
+    attachment already uses). <strong>Gemini specifically</strong> can't
+    delegate to other subagents at all — a hard limit of Gemini CLI
+    itself, not a gap in this translation — so which agents a Gemini
+    agent "can spawn" has nothing to map to there. Gemini's tool
+    restrictions also aren't translated (its tool identifiers aren't a
+    confirmed match for Claude's), so a Gemini agent always inherits
+    every tool regardless of what it's restricted to here.
+  </p>
+  <div class="note">
+    Schemas confirmed against each CLI's own documentation. None of the
+    three has been run against a real install by this app's own author —
+    Claude is the only provider confirmed end-to-end. If you test one and
+    something's wrong with the generated file, that's expected territory
+    right now, not a settled feature.
+  </div>
 
   <h2 id="delegation">Delegating an agent's work to another provider</h2>
   <p>

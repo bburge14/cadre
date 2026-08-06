@@ -40,10 +40,25 @@ enabled + lingering, so it's always up — no manual start needed. See
   through picking a provider, connecting it, and setting it as your
   default — pre-fills new sessions and is meant to be the one that runs
   your Agent Stacks. The default picker only ever offers a provider that's
-  both actually connected *and* capable of running a stack — today that's
-  Claude only, since Agent Stacks is Claude Code's own native subagent
-  mechanism and no other CLI's binary reads `.claude/agents/` (yet — see
-  "What's next" below).
+  both actually connected *and* capable of running a stack at all. Claude
+  is the only one confirmed end-to-end (`orchestration_verified` in
+  `providers.py`); Gemini/Codex/Kimi are offered too now that Agent Stacks
+  translation exists for them (below), flagged "unverified" until someone
+  actually confirms one working.
+- **Agent Stacks on other providers**: Codex CLI, Gemini CLI, and Kimi
+  Code CLI have each since shipped their own native subagent-delegation
+  mechanism — conceptually the same idea as Claude Code's
+  `.claude/agents/*.md` + Task tool, three different formats (TOML for
+  Codex, Markdown+YAML for Gemini and Kimi). `agent_formats.py` translates
+  every agent this app manages into all three automatically on every
+  save/delete/preset-activation, writing alongside (never replacing)
+  `.claude/agents/`, which stays the one source of truth. Model/effort
+  and skills are deliberately not translated (see the module's own
+  docstring for why); Gemini can't delegate to other subagents at all —
+  a hard limit of Gemini CLI itself. Schemas are confirmed against each
+  CLI's own docs, but none of the three has been run against a real
+  install by this app's own author — expect a fix cycle once real output
+  is seen.
 - **Multi-stack**: more than one agent team can exist at once, each tied to
   a directory via Claude Code's native per-project `.claude/agents/`
   override (`/stacks/<id>/edit` — create/edit/delete named stacks). The
@@ -66,7 +81,14 @@ enabled + lingering, so it's always up — no manual start needed. See
   Attaching a skill to a specific agent happens on that agent's own edit
   page (a searchable checklist), which rewrites the agent's system prompt
   with an auto-generated block naming the selected skills -- not a native
-  per-agent field, since nothing confirms Claude Code has one.
+  per-agent field, since nothing confirms Claude Code has one. Ships with
+  20 default skills (`_DEFAULT_SKILLS` in `app.py`) spanning coding,
+  DevOps, data, writing, and research; preset agents get sensible ones
+  attached automatically on activation (`_AGENT_SKILL_HINTS` in
+  `presets.py`), looked up against whichever skills actually exist at
+  that moment rather than baked statically into the template files, so
+  deleting a skill just means it's no longer attached, not a dangling
+  reference.
 - **Trust-prompt handling**: a brand-new session in a directory Claude
   hasn't seen before blocks on an interactive "trust this folder?" prompt.
   `session_daemon.py`'s reader thread watches for that specific prompt
@@ -100,19 +122,18 @@ enabled + lingering, so it's always up — no manual start needed. See
   equivalent is also available via `linux/update.sh` / `macos/update.sh` /
   `windows\update.bat` — see "Updating" in `SETUP.md`.
 
-## What's next: non-Claude Agent Stacks
+## What's next
 
-Right now Agent Stacks only run in Claude sessions — that's the current
-state, not a permanent one. Codex CLI, Gemini CLI, and Kimi Code CLI have
-each since shipped their own native subagent-delegation mechanism
-(config-file-driven, conceptually the same idea as Claude Code's
-`.claude/agents/*.md` + Task tool, just three different formats: TOML for
-Codex, Markdown+YAML for Gemini and Kimi) and confirmed genuine multi-step
-agentic behavior in their non-interactive modes — so a from-scratch
-orchestration engine isn't needed to get there. What's missing is a
-translation layer: the same agent definitions this app already manages,
-compiled to whichever format matches a given stack's target provider and
-written to that provider's own config directory. Not yet built.
+- **Confirm the other-provider Agent Stacks translation for real.** The
+  format-translation layer above (`agent_formats.py`) is built and
+  schema-correct per each CLI's own docs, but hasn't been run against a
+  real Codex/Gemini/Kimi install by anyone yet — that's the actual next
+  step, not more code.
+- **Remote access beyond the LAN, made discoverable.** The interactive
+  terminal already works for any provider; what's missing is a guided
+  path to reaching it from outside your own network (Tailscale walkthrough
+  as the easy option, plain port-forwarding for advanced users) instead of
+  that being a fact you have to already know to go looking for.
 
 ## Operational notes
 

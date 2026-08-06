@@ -221,6 +221,21 @@ agent itself is still a Claude Code subagent doing the orchestrating —
 this doesn't reduce Claude usage, it's for cases where you specifically
 want a different model's output on a given agent's tasks.
 
+### Agent Stacks on Gemini/Codex/Kimi
+
+Codex CLI, Gemini CLI, and Kimi Code CLI have each since shipped their own
+native subagent mechanism — the same idea as Claude Code's
+`.claude/agents/*.md`, three different formats. Every time you save,
+delete, or activate an agent, Cadre also writes it out in all three
+(`.codex/agents/*.toml`, `.gemini/agents/*.md`, `.kimi-code/agents/*.md`,
+right alongside `.claude/agents/`, which stays the one source of truth) —
+so once you've connected one of these as your default, its own binary
+should be able to read the same team you built here directly. **Nobody has
+actually confirmed this working against a real install yet** — schemas
+are correct per each CLI's own docs, but that's not the same thing as
+tested. If you try one and something's off, that's the current state of
+this feature, not a regression.
+
 ### When a session hits a usage/rate limit
 
 If a session's underlying CLI hits its own usage limit (Claude's 5-hour/

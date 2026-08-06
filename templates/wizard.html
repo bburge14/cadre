@@ -33,8 +33,10 @@
     {% for p in providers %}
     <div class="wiz-card" id="wiz-card-{{ p.id }}" onclick="selectProvider('{{ p.id }}')">
       <h3>{{ p.label }}</h3>
-      {% if p.supports_orchestration %}
+      {% if p.supports_orchestration and p.orchestration_verified %}
       <span class="badge badge-info">Runs Agent Stacks</span>
+      {% elif p.supports_orchestration %}
+      <span class="badge badge-warn">Runs Agent Stacks (unverified)</span>
       {% else %}
       <span class="badge badge-off">Session-only for now</span>
       {% endif %}
@@ -108,7 +110,7 @@
 
 <script>
 const PROVIDER_META = {
-  {% for p in providers %}"{{ p.id }}": { label: {{ p.label | tojson }}, orchestration: {{ p.supports_orchestration | tojson }}, usable: {{ usable[p.id] | tojson }} }{{ "," if not loop.last }}
+  {% for p in providers %}"{{ p.id }}": { label: {{ p.label | tojson }}, orchestration: {{ p.supports_orchestration | tojson }}, verified: {{ p.orchestration_verified | tojson }}, usable: {{ usable[p.id] | tojson }} }{{ "," if not loop.last }}
   {% endfor %}
 };
 const currentDefault = {{ default_provider | tojson }};
@@ -126,13 +128,15 @@ function selectProvider(id) {
   const hint = document.getElementById('wiz-confirm-hint');
   const form = document.getElementById('wiz-default-form');
   if (!meta.orchestration) {
-    hint.textContent = meta.label + " can run its own sessions once connected, but can't currently act as the Agent Stacks orchestrator -- that's still Claude-only. Pick Claude here if you want your default to also run your agent stacks.";
+    hint.textContent = meta.label + " can run its own sessions once connected, but can't act as the Agent Stacks orchestrator at all.";
     form.style.display = 'none';
   } else if (!meta.usable) {
     hint.textContent = "Connect " + meta.label + " above first, then it can be set as your default.";
     form.style.display = 'none';
   } else {
-    hint.textContent = "";
+    hint.textContent = meta.verified
+      ? ""
+      : "Agent Stacks support for " + meta.label + " is new and hasn't been confirmed against a real install yet -- expect rough edges, and it'll get better as more people actually try it.";
     document.getElementById('wiz-default-provider-field').value = id;
     form.style.display = 'block';
   }

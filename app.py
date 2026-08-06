@@ -14,6 +14,7 @@ from pathlib import Path
 import requests
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
+import agent_formats
 import agents_store
 import auth
 import config
@@ -262,6 +263,293 @@ _DEFAULT_SKILLS = [
         "in a fast-moving space -- a two-year-old answer about a library's "
         "API surface is a real risk, not just a formality to skip.",
     ),
+    (
+        "code-review-checklist",
+        "Checklist for reviewing a code change before calling it done -- "
+        "correctness, edge cases, tests, security, readability. Use "
+        "before finishing any change, whether reviewing your own work or "
+        "another agent's.",
+        "Correctness first: does it actually do what was asked, and does "
+        "it handle the edge cases (empty input, null/None, the boundary "
+        "values) not just the happy path. Check for tests -- a change "
+        "with no way to verify it stays correct later is incomplete, not "
+        "just under-polished. Scan for the obvious security classes: "
+        "injection (SQL, command, XSS), secrets committed in code, "
+        "missing auth checks on a new endpoint. Readability: would "
+        "someone unfamiliar with this change understand it from the code "
+        "and names alone, without needing the PR description. Flag scope "
+        "creep -- unrelated changes bundled into the same diff make it "
+        "harder to review and harder to revert independently.",
+    ),
+    (
+        "test-writing-guidelines",
+        "Guidelines for writing tests that actually catch regressions -- "
+        "structure, naming, what to cover. Use when adding or reviewing "
+        "test coverage for a change.",
+        "One behavior per test, named so the failure message alone tells "
+        "you what broke (`test_empty_cart_returns_zero_total`, not "
+        "`test_cart_2`). Arrange-act-assert structure: set up state, "
+        "perform the action, assert the outcome -- don't interleave them. "
+        "Cover edge cases deliberately (empty/null input, boundary "
+        "values, the error path), not just one happy-path case per "
+        "function. Don't over-mock -- a test that mocks so much it only "
+        "verifies the mocks were called, not that the real logic works, "
+        "gives false confidence. Prefer testing behavior/output over "
+        "internal implementation details, so a refactor that preserves "
+        "behavior doesn't force every test to be rewritten.",
+    ),
+    (
+        "error-handling-philosophy",
+        "Reference for when to validate/handle errors versus trust "
+        "internal guarantees. Use when writing code that could fail or "
+        "receive bad input.",
+        "Validate at system boundaries -- user input, external API "
+        "responses, file/network I/O -- since those are where genuinely "
+        "unpredictable data enters. Trust internal code and already-"
+        "validated data; re-checking things the type system or a prior "
+        "validation step already guarantees is noise, not safety. Fail "
+        "loudly and early rather than swallowing an exception and "
+        "continuing in a corrupted state -- a silent `except: pass` "
+        "usually turns an obvious bug into a mysterious one discovered "
+        "much later. Error messages should say what actually went wrong "
+        "and where, specific enough to act on, not a generic \"something "
+        "went wrong.\"",
+    ),
+    (
+        "security-review-checklist",
+        "Checklist for the most common vulnerability classes to check "
+        "for before shipping code that handles input, auth, or external "
+        "data. Use for any change touching user input, authentication, "
+        "or a public-facing surface.",
+        "Injection: SQL (parameterize, never string-concatenate user "
+        "input into a query), command (avoid shelling out with "
+        "unsanitized input), XSS (escape/sanitize anything rendered from "
+        "user-controlled data). Auth: does a new endpoint/action actually "
+        "check the caller is allowed to do this, not just that they're "
+        "logged in. Secrets: no API keys, passwords, or tokens committed "
+        "in code, ever -- config/env vars or a secrets store instead. "
+        "Input validation: don't trust client-side validation alone, "
+        "re-check on the server. Dependencies: a new package is a new "
+        "trust boundary -- worth a second look for anything obscure or "
+        "with broad permissions/network access.",
+    ),
+    (
+        "dependency-upgrade-checklist",
+        "Checklist for safely bumping a dependency version. Use before "
+        "upgrading a library/package, not just after something breaks.",
+        "Read the actual changelog/release notes between the current and "
+        "target version, not just the target version's -- a multi-"
+        "version jump can span several breaking changes. Check for a "
+        "major-version bump specifically (semver breaking-change signal) "
+        "and search the project for usages of anything the changelog "
+        "flags as changed/removed. Run the existing test suite before "
+        "and after -- a passing suite after the bump is the real "
+        "confirmation, not just \"it installed cleanly.\" Upgrade one "
+        "dependency (or one tightly-related group) at a time when "
+        "multiple need bumping, so a regression is traceable to a "
+        "specific change instead of a batch of them.",
+    ),
+    (
+        "api-design-consistency",
+        "Reference for keeping an API's shape consistent with itself -- "
+        "naming, status codes, pagination, versioning. Use when adding "
+        "or changing an API endpoint.",
+        "Match the existing API's conventions before inventing new ones -- "
+        "naming style (plural nouns for collections, consistent casing), "
+        "how errors are shaped, how pagination/filtering already works "
+        "elsewhere in the same API. Use status codes for what they "
+        "actually mean (400 for a client-side validation error, 404 for "
+        "genuinely missing, 401 vs 403 for auth vs. permission, not 200 "
+        "with an error field buried in the body). Breaking an existing "
+        "response shape needs a version bump or a new field, not a "
+        "silent change to what callers already depend on. Keep "
+        "request/response payloads only as large as needed -- don't "
+        "return an entire object graph when a caller asked for one field.",
+    ),
+    (
+        "accessibility-checklist",
+        "Checklist for basic web accessibility -- semantic HTML, "
+        "keyboard nav, contrast, labels. Use when building or reviewing "
+        "any user-facing UI.",
+        "Semantic HTML first (`button` not a clickable `div`, real "
+        "heading levels, `label` tied to its input) -- most a11y comes "
+        "free from using the right element instead of reimplementing its "
+        "behavior. Everything interactive must be reachable and "
+        "operable by keyboard alone (tab order, visible focus state, no "
+        "mouse-only interactions). Images need real alt text (empty "
+        "alt=\"\" only for genuinely decorative images, never a missing "
+        "attribute). Check color contrast for text against its "
+        "background, and never rely on color alone to convey state (a "
+        "red border also needs an icon/text, for colorblind users). "
+        "Don't add ARIA attributes to patch over non-semantic markup -- "
+        "fix the markup first; ARIA is for cases plain HTML genuinely "
+        "can't express.",
+    ),
+    (
+        "sql-query-review",
+        "Checklist for reviewing a SQL query for safety and performance "
+        "before running it against real data. Use when writing or "
+        "reviewing a non-trivial query.",
+        "Never string-concatenate user input into a query -- parameterize "
+        "every value, no exceptions. Avoid `SELECT *` in code that ships "
+        "(schema changes silently change what's returned); name the "
+        "columns actually needed. Check that a query touching a large "
+        "table is actually index-aware -- a `WHERE` clause on an "
+        "unindexed column, or a function wrapped around an indexed "
+        "column, can silently force a full table scan. For anything "
+        "that mutates data at scale, know the row count it'll affect "
+        "before running it, and prefer a transaction you can roll back "
+        "over a bare `UPDATE`/`DELETE` against production.",
+    ),
+    (
+        "infrastructure-change-safety",
+        "Checklist for applying an infrastructure change safely -- plan "
+        "review, blast radius, rollback. Use before applying any "
+        "infrastructure-as-code change, especially to shared/production "
+        "resources.",
+        "Always review the plan/diff output before applying -- know "
+        "exactly what will be created, changed, or destroyed, especially "
+        "anything showing as destroy-and-recreate for a stateful "
+        "resource (that usually means data loss, not just downtime). "
+        "Assess blast radius: a change to a shared VPC, IAM policy, or "
+        "database affects everything downstream of it, not just the "
+        "resource named in the diff. Have a rollback plan before "
+        "applying, not after something breaks -- know how to revert this "
+        "specific change. Avoid manual out-of-band changes to "
+        "infrastructure the IaC tool manages -- they cause state drift "
+        "that silently breaks the next real apply.",
+    ),
+    (
+        "runbook-format",
+        "Structure for writing an operational runbook -- a step-by-step "
+        "procedure for a recurring or emergency task. Use when "
+        "documenting a procedure someone (or another agent) will need to "
+        "follow under time pressure later.",
+        "Lead with what this runbook is for and when to use it -- the "
+        "specific symptom or trigger, not a vague title. Numbered steps, "
+        "one action per step, each one concrete enough to execute "
+        "without interpretation (the exact command, not \"restart the "
+        "service\"). Call out anything destructive or hard to reverse "
+        "explicitly, before the step, not after. Include how to verify "
+        "each major step actually worked, not just that it ran without "
+        "erroring. Note prerequisites (access, tools, who to page) up "
+        "front so they're not discovered mid-incident.",
+    ),
+    (
+        "incident-postmortem-format",
+        "Structure for a blameless incident postmortem -- timeline, "
+        "impact, root cause, action items. Use after resolving a "
+        "production incident, not while it's still ongoing.",
+        "Blameless: describe what happened and why the system/process "
+        "allowed it, never who made a mistake -- language like \"X "
+        "incorrectly did Y\" gets rewritten to what about the system let "
+        "that happen. Factual timeline first (when it started, when it "
+        "was detected, key actions, when it was resolved), stated in the "
+        "actual timezone/timestamps used, before any narrative. State "
+        "impact concretely (what was affected, for how long, who "
+        "noticed) rather than vaguely. Root cause, not just the nearest "
+        "symptom -- and distinguish contributing factors from the actual "
+        "cause. End with specific, assigned, verifiable action items -- "
+        "\"improve monitoring\" isn't one; \"add an alert on X exceeding "
+        "Y\" is.",
+    ),
+    (
+        "data-validation-checklist",
+        "Checklist for sanity-checking data before trusting it -- null "
+        "rates, duplicates, schema drift, row counts. Use before relying "
+        "on a dataset or pipeline output for anything downstream.",
+        "Check null/missing rates on columns that shouldn't have them, "
+        "not just that the pipeline ran without erroring. Check for "
+        "duplicate keys where uniqueness is assumed -- a silent join "
+        "fan-out from an unexpected duplicate is one of the most common "
+        "ways bad numbers happen. Compare row counts against a sane "
+        "expectation (roughly matching the prior run, or the known size "
+        "of the source) to catch a silently truncated or doubled load. "
+        "Watch for schema drift -- a column that changed type, got "
+        "renamed, or disappeared upstream, which breaks assumptions "
+        "without necessarily erroring. State the actual data freshness "
+        "(as of when) rather than assuming it's current.",
+    ),
+    (
+        "notebook-hygiene",
+        "Reference for keeping a data-science notebook reproducible and "
+        "reviewable. Use when working in or reviewing a Jupyter/similar "
+        "notebook.",
+        "Clear cell outputs before committing -- a committed notebook "
+        "full of stale outputs (and the diff noise they cause) is a "
+        "common source of confusion about what's actually current. "
+        "Before calling a notebook done, restart the kernel and run it "
+        "top to bottom -- out-of-order execution during exploration "
+        "hides state that won't reproduce for anyone else. Extract logic "
+        "that's actually reused (or that belongs in production) into a "
+        "real module instead of copy-pasted across cells/notebooks. Keep "
+        "exploration and the final, presentable analysis separate -- "
+        "don't make a reader wade through every dead-end you tried.",
+    ),
+    (
+        "bug-report-reproduction-steps",
+        "How to write a minimal, reproducible bug report when escalating "
+        "something you can't fix yourself. Use when handing off a bug "
+        "you've investigated but not resolved.",
+        "Lead with the actual observed behavior versus the expected "
+        "behavior, stated concretely, not \"it doesn't work.\" Give the "
+        "smallest set of steps that reliably reproduces it -- strip out "
+        "anything not actually necessary to trigger the bug. Include the "
+        "real error/stack trace/log output verbatim, not a paraphrase of "
+        "it. State what you already ruled out and why, so whoever picks "
+        "this up doesn't repeat your first hour of investigation. Note "
+        "environment/version specifics if there's any chance the bug is "
+        "specific to one -- a bug that only reproduces on one OS/version "
+        "combination is a different, more useful report than an "
+        "unqualified \"this is broken.\"",
+    ),
+    (
+        "fact-checking-checklist",
+        "Checklist for verifying claims before publishing anything meant "
+        "to be read as factual. Use before finishing a piece that states "
+        "numbers, dates, or claims about the world.",
+        "Every specific number, date, or attributed claim should trace "
+        "back to an actual source you looked at, not something that "
+        "sounds right. Flag anything you couldn't verify explicitly "
+        "rather than smoothing over the gap with confident-sounding "
+        "language. Distinguish fact from opinion/interpretation clearly "
+        "in the writing itself -- a reader shouldn't have to guess which "
+        "is which. For anything time-sensitive, confirm it's still "
+        "current as of when this is being published, not just when the "
+        "source was originally found.",
+    ),
+    (
+        "outline-before-drafting",
+        "Why and how to sketch structure before writing prose. Use "
+        "before starting a first draft of anything longer than a couple "
+        "of paragraphs.",
+        "Sketch the actual structure first -- the sections/beats in "
+        "order, and the one main point each should land -- before "
+        "writing full sentences. Identify the core argument or takeaway "
+        "up front; a piece written to discover its point as it goes "
+        "usually needs a heavier rewrite than one planned around a clear "
+        "thesis. Order for the reader's understanding, not the order "
+        "ideas occurred to you -- what do they need to know first for "
+        "the rest to land. A rough outline that gets restructured before "
+        "drafting is far cheaper than restructuring finished prose.",
+    ),
+    (
+        "presentation-of-findings",
+        "How to present research or data findings so the actual point "
+        "isn't buried. Use when writing up results/findings for someone "
+        "else to act on.",
+        "Lead with the takeaway, not the methodology -- state what was "
+        "found and what it means before walking through how you got "
+        "there. Visualize only when it clarifies something prose can't "
+        "convey easily (a real trend, a comparison) -- a chart that "
+        "just restates one number is decoration, not insight. Make the "
+        "confidence level explicit (well-supported by multiple sources "
+        "vs. a single thin data point) instead of presenting every "
+        "finding with the same certainty. State what would change the "
+        "conclusion, if anything -- it signals you've actually stress-"
+        "tested the finding rather than just reported the first result "
+        "that came back.",
+    ),
 ]
 
 
@@ -275,16 +563,22 @@ def _ensure_global_seeded() -> None:
     marker/check (not gated behind the same one as agents) since they're
     an unrelated concern that can legitimately still be empty even after
     agents have already been seeded or hand-populated."""
-    if not _GLOBAL_SEEDED_MARKER.exists():
-        if not agents_store.list_agents():
-            presets.activate_preset("generalist", agents_dir=agents_store.AGENTS_DIR)
-        _GLOBAL_SEEDED_MARKER.write_text("seeded\n")
-
+    # Skills seeded before the Generalist preset activates below (not
+    # just before agents are seeded) -- presets.activate() attaches
+    # default skills to preset agents by name at activation time, so
+    # skills need to already exist for a truly fresh install's
+    # auto-seeded stack to actually get them, not just later ones.
     if not _GLOBAL_SKILLS_SEEDED_MARKER.exists():
         if not skills_store.list_skills():
             for name, description, body in _DEFAULT_SKILLS:
                 skills_store.write_skill(name, description, body)
         _GLOBAL_SKILLS_SEEDED_MARKER.write_text("seeded\n")
+
+    if not _GLOBAL_SEEDED_MARKER.exists():
+        if not agents_store.list_agents():
+            presets.activate_preset("generalist", agents_dir=agents_store.AGENTS_DIR)
+            _sync_all_agent_formats(agents_store.AGENTS_DIR)
+        _GLOBAL_SEEDED_MARKER.write_text("seeded\n")
 
 
 def _resolve_stack(stack_id: str) -> dict | None:
@@ -302,6 +596,32 @@ def _stack_agents_dir(stack: dict) -> Path:
 
 def _other_active_agent_names(exclude: str | None, agents_dir=None) -> list[str]:
     return sorted(a.name for a in agents_store.list_agents(agents_dir=agents_dir) if a.name != exclude)
+
+
+def _sync_agent_formats(agents_dir: Path, filename: str) -> None:
+    """Best-effort -- a bug in the newer Codex/Gemini/Kimi translation
+    must never block the primary Claude-format save, which is the one
+    thing that has to always work."""
+    try:
+        agent = agents_store.read_agent(filename, agents_dir=agents_dir)
+        other_names = {a.name for a in agents_store.list_agents(agents_dir=agents_dir) if a.filename != filename}
+        agent_formats.sync_agent(agents_dir, agent, other_names)
+    except Exception as exc:
+        print(f"agent_formats sync failed for {filename}: {exc}")
+
+
+def _sync_all_agent_formats(agents_dir: Path) -> None:
+    try:
+        agent_formats.sync_all(agents_dir)
+    except Exception as exc:
+        print(f"agent_formats sync-all failed: {exc}")
+
+
+def _remove_agent_formats(agents_dir: Path, filename: str) -> None:
+    try:
+        agent_formats.remove_agent(agents_dir, Path(filename).stem)
+    except Exception as exc:
+        print(f"agent_formats remove failed for {filename}: {exc}")
 
 
 def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_action):
@@ -366,6 +686,7 @@ def _save_agent_from_form(agents_dir):
         frontmatter["tools"] = tools_value
 
     agents_store.write_agent(filename, frontmatter, body, agents_dir=agents_dir)
+    _sync_agent_formats(agents_dir, filename)
     restarted = session_manager.restart_all_running()
     note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
     flash(f"Saved {filename}.{note}", "success")
@@ -426,7 +747,9 @@ def delete_stack_agent(stack_id, filename):
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("index"))
-    agents_store.delete_agent(filename, agents_dir=_stack_agents_dir(stack))
+    agents_dir = _stack_agents_dir(stack)
+    agents_store.delete_agent(filename, agents_dir=agents_dir)
+    _remove_agent_formats(agents_dir, filename)
     restarted = session_manager.restart_all_running()
     note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
     flash(f"Deleted {filename}.{note}", "success")
@@ -497,11 +820,14 @@ def _activate_selection(agents_dir) -> list[str]:
     checkboxes were submitted into agents_dir. Returns filenames written."""
     preset_id = request.form.get("preset_id", "").strip()
     agent_ids = request.form.getlist("agent_ids")
+    written: list[str] = []
     if preset_id:
-        return presets.activate_preset(preset_id, agents_dir=agents_dir)
-    if agent_ids:
-        return presets.activate(agent_ids, agents_dir=agents_dir)
-    return []
+        written = presets.activate_preset(preset_id, agents_dir=agents_dir)
+    elif agent_ids:
+        written = presets.activate(agent_ids, agents_dir=agents_dir)
+    if written:
+        _sync_all_agent_formats(agents_dir)
+    return written
 
 
 def _known_directories() -> list[str]:
@@ -678,6 +1004,7 @@ def _apply_spawnable(agents_dir) -> None:
     else:
         frontmatter.pop("tools", None)
     agents_store.write_agent(filename, frontmatter, agent.body, agents_dir=agents_dir)
+    _sync_agent_formats(agents_dir, filename)
     session_manager.restart_all_running()
 
 
