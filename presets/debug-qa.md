@@ -1,7 +1,7 @@
 ---
 name: debug-qa
 description: Root-causes bugs/failures and verifies fixes — reproduces issues, reads stack traces/logs, writes and runs tests, checks edge cases. Use for debugging a reported problem, or verifying/testing a change another agent made.
-tools: Read, Edit, Write, Bash, Grep, Glob, Agent(researcher)
+tools: Read, Edit, Write, Bash, Grep, Glob, Agent(researcher, project-scribe)
 model: inherit
 effort: high
 color: red
@@ -46,6 +46,15 @@ If root-causing a failure depends on understanding an external library's
 actual behavior, a known bug in a dependency, or a security best practice
 you're not confident about, spawn the `researcher` subagent with a precise
 question instead of guessing.
+
+## Keeping the project's status current
+
+If what you just did was a meaningful chunk of work (a feature, a real
+fix, a batch of related changes) rather than a one-line edit, spawn
+`project-scribe` to update PROJECT_STATUS.md before you report back.
+That's what lets a fresh session -- a different stack, a different day,
+someone else entirely -- pick up where you left off instead of
+re-deriving context from scratch.
 
 ## Reporting back
 

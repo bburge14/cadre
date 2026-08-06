@@ -328,6 +328,16 @@ def _activate_selection(agents_dir) -> list[str]:
     return []
 
 
+def _known_directories() -> list[str]:
+    """Every directory Cadre already knows about -- existing sessions'
+    workdirs and existing stacks' workdirs -- so pointing a new stack at
+    an already-existing project doesn't mean typing/copying its path from
+    memory. Purely a convenience list; any absolute path still works."""
+    dirs = {s["workdir"] for s in sessions_store.list_sessions()}
+    dirs |= {s["workdir"] for s in stacks_store.list_stacks()}
+    return sorted(dirs)
+
+
 @app.get("/stacks/new")
 @require_auth
 def new_stack_form():
@@ -338,6 +348,9 @@ def new_stack_form():
         library=presets.list_library_agents(),
         active_names=set(),
         default_base=str(settings.projects_root() / "agent-stacks"),
+        known_dirs=_known_directories(),
+        prefill_name=request.args.get("name", ""),
+        prefill_workdir=request.args.get("workdir", ""),
     )
 
 
@@ -383,6 +396,7 @@ def edit_stack_form(stack_id):
         library=presets.list_library_agents(),
         active_names=active_names,
         default_base=str(settings.projects_root() / "agent-stacks"),
+        known_dirs=_known_directories(),
     )
 
 
@@ -903,8 +917,14 @@ def session_detail(session_id):
     if entry is None:
         flash("Unknown session.", "error")
         return redirect(url_for("index"))
+    matching_stack = next(
+        (s for s in stacks_store.list_stacks() if s["workdir"] == entry["workdir"]), None
+    )
     return render_template(
-        "session_detail.html", session=entry, status=session_manager.status(session_id)
+        "session_detail.html",
+        session=entry,
+        status=session_manager.status(session_id),
+        matching_stack=matching_stack,
     )
 
 

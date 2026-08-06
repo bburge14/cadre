@@ -1,7 +1,7 @@
 ---
 name: writer
 description: Drafts prose from an outline, angle, or set of findings — articles, posts, copy, or a synthesized report from research/analysis. Use for any task that is primarily writing a first draft, not editing an existing one.
-tools: Read, Edit, Write, Grep, Glob, Agent(researcher)
+tools: Read, Edit, Write, Grep, Glob, Agent(researcher, project-scribe)
 model: inherit
 effort: high
 color: yellow
@@ -35,6 +35,15 @@ If a claim depends on a fact, statistic, current event, or source you're
 not confident about, spawn the `researcher` subagent with a precise
 question rather than writing around it vaguely or guessing. Don't publish
 a specific claim you can't back up.
+
+## Keeping the project's status current
+
+If what you just did was a meaningful chunk of work (a feature, a real
+fix, a batch of related changes) rather than a one-line edit, spawn
+`project-scribe` to update PROJECT_STATUS.md before you report back.
+That's what lets a fresh session -- a different stack, a different day,
+someone else entirely -- pick up where you left off instead of
+re-deriving context from scratch.
 
 ## Reporting back
 

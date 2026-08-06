@@ -43,6 +43,11 @@
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Start</button></form>
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn">Stop</button></form>
   <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary">Restart</button></form>
+  {% if matching_stack %}
+  <a class="btn" href="{{ url_for('edit_stack_form', stack_id=matching_stack.id) }}">View this directory's stack ({{ matching_stack.name }})</a>
+  {% else %}
+  <a class="btn" href="{{ url_for('new_stack_form', workdir=session.workdir, name=session.label) }}">Create a stack for this directory</a>
+  {% endif %}
   <a class="btn" href="{{ url_for('edit_session_form', session_id=session.id) }}">Edit</a>
   <button class="btn btn-primary" type="button" id="terminal-toggle" onclick="toggleTerminal()">Open terminal</button>
 

@@ -77,6 +77,16 @@
     the library. You can leave both empty and add agents one at a time
     afterward instead.
   </p>
+  <p>
+    The directory doesn't have to be new or empty — pointing a stack at an
+    existing project or an already-cloned repo is completely fine, it only
+    adds/updates the <code>.claude/agents/</code> folder inside, nothing
+    else in that directory is touched. The directory field autocompletes
+    from directories Cadre already knows about (existing sessions' and
+    stacks' workdirs); a session's own detail page also has a "Create a
+    stack for this directory" shortcut so you don't have to type/copy a
+    path at all.
+  </p>
   <h3>Editing a stack's agents</h3>
   <p>
     "View agents" (or "Edit") on a stack opens its page: a table of that
@@ -93,6 +103,18 @@
     lines between agents showing who can delegate to whom. Click an agent
     to change what it's allowed to spawn. An empty stack's diagram says so
     plainly instead of looking the same as a populated one.
+  </p>
+  <h3>project-scribe: continuity across sessions</h3>
+  <p>
+    Every preset includes <code>project-scribe</code> — it keeps a single
+    <code>PROJECT_STATUS.md</code> at the project root current (what the
+    project is, current state, recent changes, open threads, anything
+    non-obvious worth knowing), so a fresh session — a different stack, a
+    different day, a different provider entirely — can read it and
+    actually continue the work instead of starting cold. The other agents
+    in each preset are wired to delegate to it after meaningful work, so
+    it happens without you having to ask each time. Add it to a custom
+    stack from the library if you're not using a preset.
   </p>
 
   <h2 id="global-agents">The global agent team</h2>

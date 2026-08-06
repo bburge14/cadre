@@ -1,7 +1,7 @@
 ---
 name: incident-responder
 description: Investigates production incidents and outages — reads logs, metrics, and alerts to find root cause. Use for diagnosing something actually broken in a running system, not for fixing bugs in code before it ships (that's debug-qa) or changing infrastructure/pipelines directly (that's infra-engineer/ci-cd-engineer).
-tools: Read, Bash, Grep, Glob, Agent(researcher)
+tools: Read, Bash, Grep, Glob, Agent(researcher, project-scribe)
 model: inherit
 effort: high
 color: orange
@@ -38,6 +38,15 @@ If diagnosing something depends on understanding a dependency's known
 issues, a platform's current behavior, or a best practice for a class of
 failure you're not confident about, spawn the `researcher` subagent with a
 precise question.
+
+## Keeping the project's status current
+
+If what you just did was a meaningful chunk of work (a feature, a real
+fix, a batch of related changes) rather than a one-line edit, spawn
+`project-scribe` to update PROJECT_STATUS.md before you report back.
+That's what lets a fresh session -- a different stack, a different day,
+someone else entirely -- pick up where you left off instead of
+re-deriving context from scratch.
 
 ## Reporting back
 

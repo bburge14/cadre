@@ -40,7 +40,7 @@
   <h1>{{ 'Edit ' + stack.name if stack else 'New stack' }}</h1>
   {% if stack %}<p><a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">View this stack's diagram &rarr;</a></p>{% endif %}
   {% if not stack %}
-  <p class="hint">Creates the directory (if it doesn't exist) and its own <code>.claude/agents/</code> team — Claude Code picks it up automatically for any session rooted there.</p>
+  <p class="hint">Points at a directory and gives it its own <code>.claude/agents/</code> team — Claude Code picks it up automatically for any session rooted there. The directory doesn't need to be new or empty: pointing this at an existing project or an already-cloned repo is completely fine and won't touch anything else in it, it only adds/updates the <code>.claude/agents/</code> folder inside.</p>
   {% else %}
   <p class="hint">Changing the directory points this stack at a new location going forward — it doesn't move the old directory's agent files.</p>
   {% endif %}
@@ -83,10 +83,15 @@
     <input type="hidden" name="preset_id" id="preset-id-field" value="">
 
     <label>name</label>
-    <input type="text" name="name" value="{{ stack.name if stack else '' }}" required>
+    <input type="text" name="name" value="{{ stack.name if stack else (prefill_name | default('')) }}" required>
 
-    <label>directory <span class="hint">(absolute path — created automatically if it doesn't exist; defaults below based on the name, edit freely)</span></label>
-    <input type="text" name="workdir" id="workdir-field" value="{{ stack.workdir if stack else '' }}" placeholder="{{ default_base }}/coding" required>
+    <label>directory <span class="hint">(absolute path — existing directory or new, either is fine; defaults below based on the name if left blank, or pick an existing one you're already using)</span></label>
+    <input type="text" name="workdir" id="workdir-field" list="known-dirs" value="{{ stack.workdir if stack else (prefill_workdir | default('')) }}" placeholder="{{ default_base }}/coding" required>
+    <datalist id="known-dirs">
+      {% for dir in known_dirs %}
+      <option value="{{ dir }}">
+      {% endfor %}
+    </datalist>
 
     <h2>{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
     <p class="hint">Click a preset to select it (or leave none selected and just check individual agents below).</p>
@@ -139,7 +144,7 @@ const defaultBase = {{ (default_base if not stack else '') | tojson }};
 if (defaultBase) {
   const nameField = document.querySelector('input[name="name"]');
   const workdirField = document.getElementById('workdir-field');
-  let workdirTouched = false;
+  let workdirTouched = workdirField.value.trim() !== '';
   workdirField.addEventListener('input', () => { workdirTouched = true; });
   nameField.addEventListener('input', () => {
     if (workdirTouched) return;

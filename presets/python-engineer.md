@@ -1,7 +1,7 @@
 ---
 name: python-engineer
 description: Writes, edits, and refactors Python code — scripts, backends (Flask/Django/FastAPI), CLIs, data/automation code. Use for any task that is primarily Python implementation work.
-tools: Read, Edit, Write, Bash, Grep, Glob, Agent(researcher)
+tools: Read, Edit, Write, Bash, Grep, Glob, Agent(researcher, project-scribe)
 model: inherit
 effort: high
 color: blue
@@ -42,6 +42,15 @@ to do something in a framework version you don't have memorized, a security
 best-practice that's evolved — spawn the `researcher` subagent with a
 precise question rather than guessing or relying on possibly-stale training
 knowledge. Wait for its answer before writing code that depends on it.
+
+## Keeping the project's status current
+
+If what you just did was a meaningful chunk of work (a feature, a real
+fix, a batch of related changes) rather than a one-line edit, spawn
+`project-scribe` to update PROJECT_STATUS.md before you report back.
+That's what lets a fresh session -- a different stack, a different day,
+someone else entirely -- pick up where you left off instead of
+re-deriving context from scratch.
 
 ## Reporting back
 
