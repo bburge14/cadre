@@ -1,5 +1,11 @@
 [
   {
+    "id": "generalist",
+    "name": "Generalist",
+    "description": "A smidge of everything -- code, debugging, writing, research, and light data/findings analysis. None of them deeply specialized, unlike the presets below. Good default if you're not sure which specialized preset fits yet, or just want a team broad enough to get started.",
+    "agents": ["generalist-engineer", "debug-qa", "writer", "analyst", "researcher", "project-scribe"]
+  },
+  {
     "id": "coding",
     "name": "Coding",
     "description": "Python, frontend (HTML/CSS/JS/TS), everything-else language work, debug/QA, and research.",

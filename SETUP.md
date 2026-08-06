@@ -78,9 +78,12 @@ account system beyond the one admin login you create for yourself below.
 6. **Create a stack** (or skip to "back to dashboard" and manage agents
    one at a time instead — see below). A stack is a directory's own
    `.claude/agents/` team: pick a name, an absolute directory path (created
-   automatically if it doesn't exist), and either click a preset (Coding,
-   Content/Writing, Research/Analysis, DevOps/Infrastructure, Data Science/
-   Analytics) or check individual agents from the library. Only sessions
+   automatically if it doesn't exist), and either click a preset
+   (Generalist, Coding, Content/Writing, Research/Analysis, DevOps/
+   Infrastructure, Data Science/Analytics) or check individual agents from
+   the library. Not sure which fits yet? Generalist is a reasonable
+   default — a bit of code, writing, research, and analysis, nothing
+   deeply specialized. Only sessions
    rooted in that directory (or a subdirectory of it) pick up this team —
    this is Claude Code's own native per-project agent override, not
    anything this app invents. Make as many stacks as you want, one per
