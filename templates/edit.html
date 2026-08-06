@@ -15,10 +15,10 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}">&larr; back</a></p>
+  <p><a class="btn" href="{{ back_url }}">&larr; {{ back_label }}</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit ' + filename if agent else 'New agent' }}</h1>
 
-  <form method="post" action="{{ url_for('save_agent') }}">
+  <form method="post" action="{{ save_action }}">
     <input type="hidden" name="filename" value="{{ filename or '' }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 

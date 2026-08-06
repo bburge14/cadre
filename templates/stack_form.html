@@ -27,6 +27,11 @@
   .agent-list .desc { color: #888; font-size: 0.78rem; }
   .tag { display: inline-block; background: #2a2b2e; border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: #888; margin-left: 0.4rem; }
   .tag.active { background: #1e3a24; color: #a6e3ad; }
+  table.agents-table { width: 100%; border-collapse: collapse; margin: 0.8rem 0 1.5rem; }
+  table.agents-table th, table.agents-table td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid #333; font-size: 0.88rem; }
+  table.agents-table th { color: #9a9a9a; font-weight: 500; }
+  .section-head { display: flex; justify-content: space-between; align-items: center; }
+  form.inline { display: inline; margin: 0; }
 </style>
 </head>
 <body>
@@ -44,6 +49,33 @@
       <div class="flash {{ category }}">{{ msg }}</div>
     {% endfor %}
   {% endwith %}
+
+  {% if stack %}
+  <div class="section-head">
+    <h2 style="margin-top:0;">Agents in this stack</h2>
+    <a class="btn btn-primary" href="{{ url_for('new_stack_agent_form', stack_id=stack.id) }}">+ New agent</a>
+  </div>
+  <table class="agents-table">
+    <tr><th>Name</th><th>Description</th><th>Model</th><th></th></tr>
+    {% for agent in stack_agents %}
+    <tr>
+      <td>{{ agent.name }}</td>
+      <td style="color:#bbb;">{{ agent.frontmatter.get('description', '') }}</td>
+      <td>{{ agent.frontmatter.get('model', 'inherit') }}</td>
+      <td>
+        <a class="btn" href="{{ url_for('edit_stack_agent_form', stack_id=stack.id, filename=agent.filename) }}">Edit</a>
+        <form class="inline" method="post" action="{{ url_for('delete_stack_agent', stack_id=stack.id, filename=agent.filename) }}"
+              onsubmit="return confirm('Delete {{ agent.filename }} from this stack?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger" style="border-color:#6b3030; color:#ff9d9d;">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="color:#888;">No agents yet — add some below, or "+ New agent" to write one from scratch.</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
 
   <form method="post" action="{{ url_for('edit_stack', stack_id=stack.id) if stack else url_for('create_stack') }}" id="stack-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

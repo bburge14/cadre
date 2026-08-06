@@ -126,47 +126,31 @@ def index():
 # ---- Agents ----
 
 
-def _other_active_agent_names(exclude: str | None) -> list[str]:
-    return sorted(a.name for a in agents_store.list_agents() if a.name != exclude)
+def _other_active_agent_names(exclude: str | None, agents_dir=None) -> list[str]:
+    return sorted(a.name for a in agents_store.list_agents(agents_dir=agents_dir) if a.name != exclude)
 
 
-@app.get("/agents/new")
-@require_auth
-def new_agent_form():
-    return render_template(
-        "edit.html",
-        agent=None,
-        filename=None,
-        base_tools_value="",
-        spawnable=[],
-        other_agents=_other_active_agent_names(exclude=None),
-        cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
-    )
-
-
-@app.get("/agents/<filename>/edit")
-@require_auth
-def edit_agent_form(filename):
-    try:
-        agent = agents_store.read_agent(filename)
-    except (ValueError, FileNotFoundError) as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("index"))
-    base_tools, spawnable = agents_store.parse_tools(agent.frontmatter.get("tools", ""))
+def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_action):
+    if agent is None:
+        base_tools_value, spawnable, exclude = "", [], None
+    else:
+        base_tools, spawnable = agents_store.parse_tools(agent.frontmatter.get("tools", ""))
+        base_tools_value, exclude = ", ".join(base_tools), agent.name
     return render_template(
         "edit.html",
         agent=agent,
         filename=filename,
-        base_tools_value=", ".join(base_tools),
+        base_tools_value=base_tools_value,
         spawnable=spawnable,
-        other_agents=_other_active_agent_names(exclude=agent.name),
+        other_agents=_other_active_agent_names(exclude, agents_dir=agents_dir),
         cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
+        back_url=back_url,
+        back_label=back_label,
+        save_action=save_action,
     )
 
 
-@app.post("/agents/save")
-@require_auth
-def save_agent():
+def _save_agent_from_form(agents_dir):
     filename = request.form.get("filename", "").strip()
     name = request.form.get("name", "").strip()
     if not filename:
@@ -194,15 +178,44 @@ def save_agent():
     if tools_value:
         frontmatter["tools"] = tools_value
 
-    try:
-        agents_store.write_agent(filename, frontmatter, body)
-    except ValueError as exc:
-        flash(f"Not saved: {exc}", "error")
-        return redirect(url_for("index"))
-
+    agents_store.write_agent(filename, frontmatter, body, agents_dir=agents_dir)
     restarted = session_manager.restart_all_running()
     note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
     flash(f"Saved {filename}.{note}", "success")
+
+
+@app.get("/agents/new")
+@require_auth
+def new_agent_form():
+    return _render_agent_form(
+        agent=None, filename=None, agents_dir=None,
+        back_url=url_for("index"), back_label="back",
+        save_action=url_for("save_agent"),
+    )
+
+
+@app.get("/agents/<filename>/edit")
+@require_auth
+def edit_agent_form(filename):
+    try:
+        agent = agents_store.read_agent(filename)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("index"))
+    return _render_agent_form(
+        agent=agent, filename=filename, agents_dir=None,
+        back_url=url_for("index"), back_label="back",
+        save_action=url_for("save_agent"),
+    )
+
+
+@app.post("/agents/save")
+@require_auth
+def save_agent():
+    try:
+        _save_agent_from_form(agents_dir=None)
+    except ValueError as exc:
+        flash(f"Not saved: {exc}", "error")
     return redirect(url_for("index"))
 
 
@@ -214,6 +227,68 @@ def delete_agent(filename):
     note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
     flash(f"Deleted {filename}.{note}", "success")
     return redirect(url_for("index"))
+
+
+@app.get("/stacks/<stack_id>/agents/new")
+@require_auth
+def new_stack_agent_form(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    return _render_agent_form(
+        agent=None, filename=None, agents_dir=agents_store.project_agents_dir(stack["workdir"]),
+        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
+        save_action=url_for("save_stack_agent", stack_id=stack_id),
+    )
+
+
+@app.get("/stacks/<stack_id>/agents/<filename>/edit")
+@require_auth
+def edit_stack_agent_form(stack_id, filename):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    agents_dir = agents_store.project_agents_dir(stack["workdir"])
+    try:
+        agent = agents_store.read_agent(filename, agents_dir=agents_dir)
+    except (ValueError, FileNotFoundError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("edit_stack_form", stack_id=stack_id))
+    return _render_agent_form(
+        agent=agent, filename=filename, agents_dir=agents_dir,
+        back_url=url_for("edit_stack_form", stack_id=stack_id), back_label=f"back to {stack['name']}",
+        save_action=url_for("save_stack_agent", stack_id=stack_id),
+    )
+
+
+@app.post("/stacks/<stack_id>/agents/save")
+@require_auth
+def save_stack_agent(stack_id):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    try:
+        _save_agent_from_form(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+    except ValueError as exc:
+        flash(f"Not saved: {exc}", "error")
+    return redirect(url_for("edit_stack_form", stack_id=stack_id))
+
+
+@app.post("/stacks/<stack_id>/agents/<filename>/delete")
+@require_auth
+def delete_stack_agent(stack_id, filename):
+    stack = stacks_store.get(stack_id)
+    if stack is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("stacks_page"))
+    agents_store.delete_agent(filename, agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+    restarted = session_manager.restart_all_running()
+    note = f" Restarted {len(restarted)} running session(s)." if restarted else ""
+    flash(f"Deleted {filename}.{note}", "success")
+    return redirect(url_for("edit_stack_form", stack_id=stack_id))
 
 
 # ---- Agent stack presets ----
@@ -286,10 +361,12 @@ def edit_stack_form(stack_id):
     if stack is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("stacks_page"))
-    active_names = {a.name for a in agents_store.list_agents(agents_dir=agents_store.project_agents_dir(stack["workdir"]))}
+    stack_agents = agents_store.list_agents(agents_dir=agents_store.project_agents_dir(stack["workdir"]))
+    active_names = {a.name for a in stack_agents}
     return render_template(
         "stack_form.html",
         stack=stack,
+        stack_agents=stack_agents,
         stack_presets=presets.list_presets(),
         library=presets.list_library_agents(),
         active_names=active_names,
