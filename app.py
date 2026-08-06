@@ -653,6 +653,7 @@ def _render_diagram(agents_dir, heading, back_url, back_label, save_action):
                 "name": a.name,
                 "spawnable": spawnable,
                 "others": [o.name for o in active if o.name != a.name],
+                "primary_provider": a.frontmatter.get("primary_provider", "claude"),
             }
         )
     return render_template(

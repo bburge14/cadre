@@ -1,0 +1,10 @@
+{% macro provider_badge(provider_id) %}
+{% set meta = {
+  'claude': {'abbr': 'C', 'label': 'Claude'},
+  'gemini': {'abbr': 'G', 'label': 'Gemini'},
+  'codex': {'abbr': 'X', 'label': 'Codex'},
+  'kimi': {'abbr': 'K', 'label': 'Kimi'},
+} %}
+{% set m = meta.get(provider_id, meta['claude']) %}
+<span class="provider-badge provider-badge-{{ provider_id if provider_id in meta else 'claude' }}" title="Runs on {{ m.label }}" aria-label="Runs on {{ m.label }}">{{ m.abbr }}</span>
+{% endmacro %}
