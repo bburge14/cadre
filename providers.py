@@ -28,6 +28,8 @@ class Provider:
     api_key_env_var: str | None
     remote_control: bool  # has an official Claude-Code-style remote control
     supports_orchestration: bool  # can this provider run an Agent Stack (coordinator + subagents)?
+    install_hint: str  # exact command to install this CLI, confirmed against its official docs/npm page
+    install_docs_url: str
 
     def new_session_args(self, session_id: str, label: str) -> list[str]:
         if self.id == "claude":
@@ -69,21 +71,29 @@ PROVIDERS: dict[str, Provider] = {
         id="claude", label="Claude", binary="claude",
         supports_upfront_session_id=True, api_key_env_var=None,
         remote_control=True, supports_orchestration=True,
+        install_hint="npm install -g @anthropic-ai/claude-code",
+        install_docs_url="https://docs.claude.com/en/docs/claude-code/setup",
     ),
     "gemini": Provider(
         id="gemini", label="Gemini", binary="gemini",
         supports_upfront_session_id=False, api_key_env_var="GEMINI_API_KEY",
         remote_control=False, supports_orchestration=False,
+        install_hint="npm install -g @google/gemini-cli",
+        install_docs_url="https://geminicli.com/docs/get-started/installation/",
     ),
     "codex": Provider(
         id="codex", label="Codex", binary="codex",
         supports_upfront_session_id=False, api_key_env_var="OPENAI_API_KEY",
         remote_control=False, supports_orchestration=False,
+        install_hint="npm install -g @openai/codex",
+        install_docs_url="https://github.com/openai/codex",
     ),
     "kimi": Provider(
         id="kimi", label="Kimi", binary="kimi",
         supports_upfront_session_id=True, api_key_env_var="MOONSHOT_API_KEY",
         remote_control=False, supports_orchestration=False,
+        install_hint="npm install -g @moonshot-ai/kimi-code",
+        install_docs_url="https://github.com/MoonshotAI/kimi-code",
     ),
 }
 

@@ -89,7 +89,10 @@
     <input type="text" name="name" value="{{ stack.name if stack else (prefill_name | default('')) }}" required>
 
     <label>directory <span class="hint">(absolute path — existing directory or new, either is fine; defaults below based on the name if left blank, or pick an existing one you're already using)</span></label>
-    <input type="text" name="workdir" id="workdir-field" list="known-dirs" value="{{ stack.workdir if stack else (prefill_workdir | default('')) }}" placeholder="{{ default_base }}/coding" required>
+    <div style="display:flex; gap:0.5rem;">
+      <input type="text" name="workdir" id="workdir-field" list="known-dirs" value="{{ stack.workdir if stack else (prefill_workdir | default('')) }}" placeholder="{{ default_base }}/coding" required style="flex:1;">
+      <button type="button" class="btn" onclick="openDirBrowser('workdir-field')" style="flex-shrink:0;">Browse&hellip;</button>
+    </div>
     <datalist id="known-dirs">
       {% for dir in known_dirs %}
       <option value="{{ dir }}">
@@ -126,6 +129,8 @@
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if stack else 'Create stack' }}</button>
   </form>
   </div>
+
+  {% include '_dirbrowser_modal.html' %}
 </body>
 </html>
 

@@ -1,0 +1,11 @@
+<div id="dirbrowser-overlay" class="dirbrowser-overlay">
+  <div class="dirbrowser-modal">
+    <div class="dirbrowser-header" id="dirbrowser-path" data-path=""></div>
+    <div class="dirbrowser-body" id="dirbrowser-body"></div>
+    <div class="dirbrowser-footer">
+      <button type="button" class="btn" onclick="closeDirBrowser()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="selectDirBrowserPath()">Select this folder</button>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='dirbrowser.js') }}"></script>

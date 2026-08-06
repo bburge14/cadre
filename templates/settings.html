@@ -129,22 +129,34 @@
       OAuth app a third party can register for this), so an API key is the
       only auth method this dashboard can offer for them.
     </p>
-    <label>Gemini API key {% if not provider_binaries.gemini %}<span class="hint" style="color:var(--danger-text);">— gemini CLI not found on PATH</span>{% endif %}</label>
-    <input name="gemini_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.gemini_api_key else 'Not set' }}">
-    <label>Codex (OpenAI) API key {% if not provider_binaries.codex %}<span class="hint" style="color:var(--danger-text);">— codex CLI not found on PATH</span>{% endif %}</label>
-    <input name="codex_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.codex_api_key else 'Not set' }}">
-    <label>Kimi (Moonshot) API key {% if not provider_binaries.kimi %}<span class="hint" style="color:var(--danger-text);">— kimi CLI not found on PATH</span>{% endif %}</label>
-    <input name="kimi_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.kimi_api_key else 'Not set' }}">
+    {% for p in cli_providers %}
+    <label>{{ p.label }} API key
+      {% if not provider_binaries[p.id] %}
+      <span class="hint" style="color:var(--danger-text);">— {{ p.binary }} CLI not found on PATH</span>
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Install it, then reload this page:</p>
+        <p><code>{{ p.install_hint }}</code></p>
+        <p>Docs: <a href="{{ p.install_docs_url }}" target="_blank">{{ p.install_docs_url }}</a></p>
+      </div></details>
+      {% endif %}
+    </label>
+    <input name="{{ p.id }}_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set[p.id ~ '_api_key'] else 'Not set' }}">
+    {% endfor %}
     </div>
 
     <div class="tab-panel" id="tab-panel-sessions">
     <h2 style="margin-top:1.1rem;">Sessions</h2>
     <label>Projects root <span class="hint">(where repos get cloned to when you create a session from GitHub/GitLab)</span></label>
-    <input name="projects_root" value="{{ values.projects_root }}">
+    <div style="display:flex; gap:0.5rem;">
+      <input name="projects_root" id="projects-root-field" value="{{ values.projects_root }}" style="flex:1;">
+      <button type="button" class="btn" onclick="openDirBrowser('projects-root-field')" style="flex-shrink:0;">Browse&hellip;</button>
+    </div>
     </div>
 
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">Save</button>
   </form>
+
+  {% include '_dirbrowser_modal.html' %}
 
 <script>
 function switchTab(name) {

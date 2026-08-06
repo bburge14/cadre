@@ -72,7 +72,14 @@
     {% if p.id != 'claude' %}
     <div class="wiz-connect-panel" id="wiz-connect-{{ p.id }}">
       {% if not provider_binaries[p.id] %}
-      <p class="hint" style="color:var(--danger-text);">The <code>{{ p.binary }}</code> CLI isn't found on this machine's PATH — install it first.</p>
+      <p class="hint" style="color:var(--danger-text);">
+        The <code>{{ p.binary }}</code> CLI isn't found on this machine's PATH — install it first.
+        <details class="help"><summary></summary><div class="help-body">
+          <p>Install it, then reload this page:</p>
+          <p><code>{{ p.install_hint }}</code></p>
+          <p>Docs: <a href="{{ p.install_docs_url }}" target="_blank">{{ p.install_docs_url }}</a></p>
+        </div></details>
+      </p>
       {% endif %}
       <form method="post" action="{{ url_for('wizard_connect') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

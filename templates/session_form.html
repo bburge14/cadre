@@ -28,7 +28,10 @@
 
     {% if session %}
     <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
-    <input name="workdir" value="{{ session.workdir }}" placeholder="/home/you/projects/my-repo" required>
+    <div style="display:flex; gap:0.5rem;">
+      <input name="workdir" id="edit-session-workdir-field" value="{{ session.workdir }}" placeholder="/home/you/projects/my-repo" required style="flex:1;">
+      <button type="button" class="btn" onclick="openDirBrowser('edit-session-workdir-field')" style="flex-shrink:0;">Browse&hellip;</button>
+    </div>
     {% else %}
     <input type="hidden" name="source" id="source-field" value="local">
     <div class="source-tabs">
@@ -39,7 +42,10 @@
 
     <div class="source-panel active" id="panel-local">
       <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
-      <input name="workdir" placeholder="/home/you/projects/my-repo">
+      <div style="display:flex; gap:0.5rem;">
+        <input name="workdir" id="new-session-workdir-field" placeholder="/home/you/projects/my-repo" style="flex:1;">
+        <button type="button" class="btn" onclick="openDirBrowser('new-session-workdir-field')" style="flex-shrink:0;">Browse&hellip;</button>
+      </div>
 
       <label>provider <span class="hint">(which CLI runs this session)</span></label>
       <select name="provider" id="provider-select" onchange="updateProviderNote()">
@@ -82,6 +88,8 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="btn btn-primary" type="submit">{{ 'Save' if session else 'Create & start' }}</button>
   </form>
+
+  {% include '_dirbrowser_modal.html' %}
 
 <script>
 {% if not session %}

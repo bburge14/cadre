@@ -321,6 +321,7 @@ def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_a
         available_skills=skills_store.list_skills(),
         selected_skills=selected_skills,
         cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
+        provider_usable={p.id: providers.usable(p.id) for p in providers.list_providers()},
         back_url=back_url,
         back_label=back_label,
         save_action=save_action,
@@ -709,6 +710,39 @@ def stack_set_spawnable(stack_id):
     return redirect(url_for("stack_diagram", stack_id=stack_id))
 
 
+# ---- Server-side directory browser (a browser file picker can't hand a
+# web page a real filesystem path -- this walks the filesystem here, on
+# the same machine the paths actually refer to) ----
+
+
+@app.get("/api/browse-dirs")
+@require_auth
+def browse_dirs():
+    raw = request.args.get("path", "").strip() or str(Path.home())
+    try:
+        target = Path(raw).expanduser().resolve()
+    except (OSError, RuntimeError) as exc:
+        return {"ok": False, "error": f"Invalid path: {exc}"}
+    if not target.exists():
+        return {"ok": False, "error": f"'{target}' doesn't exist."}
+    if not target.is_dir():
+        target = target.parent
+    try:
+        entries = sorted(
+            (p for p in target.iterdir() if p.is_dir()),
+            key=lambda p: p.name.lower(),
+        )
+    except PermissionError:
+        return {"ok": False, "error": f"Permission denied reading '{target}'."}
+    parent = str(target.parent) if target.parent != target else None
+    return {
+        "ok": True,
+        "path": str(target),
+        "parent": parent,
+        "dirs": [{"name": p.name, "path": str(p)} for p in entries],
+    }
+
+
 # ---- Sessions ----
 
 
@@ -824,6 +858,7 @@ def settings_form():
         github_repo_url=f"https://github.com/{GITHUB_REPO}",
         default_provider=settings.get("default_provider"),
         orchestration_candidates=providers.orchestration_candidates(),
+        cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
     )
 
 

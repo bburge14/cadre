@@ -23,7 +23,16 @@
     <label>description <span class="hint">(what Claude matches your request against to auto-delegate here)</span></label>
     <input name="description" value="{{ agent.frontmatter.get('description', '') if agent else '' }}" required>
 
-    <label>tools <span class="hint">(comma-separated built-in tools only, e.g. "Read, Edit, Write, Bash, Grep, Glob" — blank = inherit all. Which agents this one can spawn is set below, not typed here.)</span></label>
+    <label>tools <span class="hint">(comma-separated built-in tools only, e.g. "Read, Edit, Write, Bash, Grep, Glob" — blank = inherit all. Which agents this one can spawn is set below, not typed here.)</span>
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Common ones to combine:</p>
+        <p><code>Read, Grep, Glob</code> — read-only, safe for a researcher/analyst/reviewer.</p>
+        <p><code>Edit, Write</code> — modify existing files / create new ones.</p>
+        <p><code>Bash</code> — run shell commands (tests, builds, git). Needed for anything that actually executes code.</p>
+        <p><code>WebSearch, WebFetch</code> — look things up outside this machine.</p>
+        <p>Leave blank to inherit every built-in tool instead of listing them.</p>
+      </div></details>
+    </label>
     <input name="tools" value="{{ base_tools_value }}">
 
     {% if other_agents %}
@@ -62,13 +71,14 @@
     </select>
 
     <label>primary AI for this agent's actual work <span class="hint">(Claude always runs the agent container itself — picking another provider here makes its instructions delegate the real work to that provider via Bash and use its output as the answer)</span></label>
-    <select name="primary_provider">
+    <select name="primary_provider" id="primary-provider-select" onchange="updatePrimaryProviderNote()">
       {% set current_provider = agent.frontmatter.get('primary_provider', 'claude') if agent else 'claude' %}
       <option value="claude" {{ 'selected' if current_provider == 'claude' else '' }}>Claude (native, default)</option>
       {% for provider in cli_providers %}
       <option value="{{ provider.id }}" {{ 'selected' if current_provider == provider.id else '' }}>{{ provider.label }}</option>
       {% endfor %}
     </select>
+    <p class="hint" id="primary-provider-note" style="margin-top:0.4rem;"></p>
 
     <label>effort</label>
     <select name="effort">
@@ -101,6 +111,29 @@ function filterSkills() {
     el.style.display = el.dataset.search.includes(q) ? 'flex' : 'none';
   });
 }
+
+const PROVIDER_STATUS = {
+  {% for provider in cli_providers %}"{{ provider.id }}": {
+    label: {{ provider.label | tojson }},
+    usable: {{ provider_usable[provider.id] | tojson }},
+    installHint: {{ provider.install_hint | tojson }},
+    installDocsUrl: {{ provider.install_docs_url | tojson }}
+  }{{ "," if not loop.last }}
+  {% endfor %}
+};
+
+function updatePrimaryProviderNote() {
+  const select = document.getElementById('primary-provider-select');
+  const note = document.getElementById('primary-provider-note');
+  const id = select.value;
+  if (id === 'claude' || !PROVIDER_STATUS[id]) { note.innerHTML = ''; return; }
+  const p = PROVIDER_STATUS[id];
+  if (p.usable) { note.innerHTML = ''; return; }
+  note.innerHTML = '&#9888; ' + p.label + " isn't connected yet -- this agent's instructions will tell it to shell out to " +
+    p.label + ', but that call will fail until it is. <a href="' + {{ url_for('settings_form') | tojson }} + '">Connect it in Settings</a>, ' +
+    'or install it first: <code>' + p.installHint + '</code> (<a href="' + p.installDocsUrl + '" target="_blank">docs</a>).';
+}
+updatePrimaryProviderNote();
 </script>
 </body>
 </html>

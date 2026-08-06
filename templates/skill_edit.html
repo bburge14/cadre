@@ -22,10 +22,21 @@
     <label>name <span class="hint">(lowercase-hyphenated, e.g. pdf-fill — this is the folder name and can't be changed after creating; delete and recreate to rename)</span></label>
     <input name="name" value="{{ name if skill else '' }}" {{ 'disabled' if skill else '' }} {{ '' if skill else 'required' }}>
 
-    <label>description <span class="hint">(what this skill does and when to use it — this is what Claude matches against to decide whether to load it)</span></label>
+    <label>description <span class="hint">(what this skill does and when to use it — this is what Claude matches against to decide whether to load it)</span>
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Be specific about <em>when</em> to use it, not just what it is — this is the only thing an agent sees before deciding to load the skill.</p>
+        <p>Weak: "Helps with commits."</p>
+        <p>Better: "Use when writing a git commit message — house style for subject line, body, and when to include a footer."</p>
+      </div></details>
+    </label>
     <input name="description" value="{{ skill.frontmatter.get('description', '') if skill else '' }}" required>
 
-    <label>instructions (markdown body)</label>
+    <label>instructions (markdown body)
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Written directly to whatever agent invokes this skill — plain instructions, not a spec. Keep it focused on one playbook rather than a general reference.</p>
+        <p>Concrete beats abstract: a short example of the right output is usually worth more than a paragraph describing it.</p>
+      </div></details>
+    </label>
     <textarea name="body">{{ skill.body if skill else '' }}</textarea>
 
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if skill else 'Create skill' }}</button>
