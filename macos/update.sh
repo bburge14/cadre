@@ -9,7 +9,7 @@ REPO_DIR="$(pwd)"
 if [ ! -d "$REPO_DIR/.git" ]; then
     echo "This isn't a git checkout (no .git/ found) -- can't pull an update"
     echo "this way. Download the latest release from GitHub instead:"
-    echo "https://github.com/bburge14/brads-agent-stack-creator/releases"
+    echo "https://github.com/bburge14/cadre/releases"
     exit 1
 fi
 

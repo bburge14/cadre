@@ -10,7 +10,7 @@ Set-Location $repoRoot
 if (-not (Test-Path (Join-Path $repoRoot ".git"))) {
     Write-Host "This isn't a git checkout (no .git\ found) -- can't pull an"
     Write-Host "update this way. Download the latest release from GitHub instead:"
-    Write-Host "https://github.com/bburge14/brads-agent-stack-creator/releases"
+    Write-Host "https://github.com/bburge14/cadre/releases"
     exit 1
 }
 
