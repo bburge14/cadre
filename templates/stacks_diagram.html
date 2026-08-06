@@ -24,9 +24,18 @@
 <body>
   <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1>{{ heading }}</h1>
-  <div class="sub">Click any agent to change what it's allowed to spawn. Lines from "Coordinator" show every agent you (the top-level session) can delegate to directly; lines between agents show delegation each one can do itself.
-  {% if not nodes %}<br><strong>No agents here yet</strong> — {{ back_label }} to add some (a preset or individual agents from the library).{% endif %}
+  <div class="sub">
+    Each line is a permission: "this one is allowed to call that one." Click any agent to change who it can call.
+    <details class="help"><summary></summary><div class="help-body">
+      <p><strong>Coordinator</strong> is your actual conversation — you, talking to the top-level session. Lines from it show every agent you can delegate to directly, just by asking for that kind of work.</p>
+      <p>Lines between two agents mean the first can call the second <em>itself</em>, without you asking for it by name — e.g. if <code>debug-qa</code> can call <code>researcher</code>, it can go look something up on its own mid-task instead of stalling.</p>
+      <p>Why restrict it: keeps an agent from wandering outside its lane (a <code>writer</code> probably shouldn't be able to spawn a <code>python-engineer</code>), and keeps delegation chains short and predictable instead of every agent being able to call every other agent.</p>
+      <p>There's no wrong answer here — start permissive (or use a preset's defaults) and tighten it only if an agent is calling something it shouldn't.</p>
+    </div></details>
   </div>
+  {% if not nodes %}
+  <div class="sub"><strong>No agents here yet</strong> — {{ back_label }} to add some (a preset or individual agents from the library).</div>
+  {% endif %}
 
   <div id="diagram">
     <svg id="lines"></svg>
