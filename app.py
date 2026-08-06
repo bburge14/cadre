@@ -4,8 +4,10 @@ import secrets
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
+import zipfile
 from datetime import timedelta
 from pathlib import Path
 
@@ -663,13 +665,7 @@ def settings_form():
 def check_update():
     current = _read_version()
     try:
-        resp = requests.get(
-            f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
-            headers={"Accept": "application/vnd.github+json"},
-            timeout=5,
-        )
-        resp.raise_for_status()
-        latest = resp.json().get("tag_name", "").lstrip("v")
+        latest = _fetch_latest_release().get("tag_name", "").lstrip("v")
     except (requests.RequestException, ValueError) as exc:
         return {"ok": False, "error": str(exc), "current": current}
     return {
@@ -720,13 +716,70 @@ def _matching_dashboard_service() -> str | None:
     return None
 
 
-def _apply_update() -> dict:
-    if not (config.BASE_DIR / ".git").is_dir():
-        return {
-            "ok": False,
-            "error": "This isn't a git checkout -- grab the newer release ZIP from GitHub instead.",
-        }
+def _fetch_latest_release() -> dict:
+    resp = requests.get(
+        f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+        headers={"Accept": "application/vnd.github+json"},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
+
+def _apply_zip_update(log_parts: list[str]) -> dict | None:
+    """Fetches the latest release's source zipball and copies it over this
+    install -- the path for a ZIP-downloaded (no .git) instance, which
+    can't git pull. Returns None on success (log_parts updated in place),
+    or an error dict to return immediately."""
+    try:
+        release = _fetch_latest_release()
+        zip_url = release["zipball_url"]
+        tag = release.get("tag_name", "?")
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        return {"ok": False, "error": f"Couldn't look up the latest release: {exc}"}
+
+    log_parts.append(f"Downloading {tag} from GitHub...")
+    try:
+        zresp = requests.get(zip_url, timeout=60)
+        zresp.raise_for_status()
+    except requests.RequestException as exc:
+        return {"ok": False, "error": f"Download failed: {exc}", "log": "\n".join(log_parts)}
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="cadre-update-"))
+    try:
+        zip_path = tmp_dir / "update.zip"
+        zip_path.write_bytes(zresp.content)
+        with zipfile.ZipFile(zip_path) as zf:
+            zf.extractall(tmp_dir)
+        zip_path.unlink()
+
+        # GitHub's source zipball always has exactly one top-level
+        # directory (owner-repo-shortsha).
+        subdirs = [p for p in tmp_dir.iterdir() if p.is_dir()]
+        if len(subdirs) != 1:
+            return {
+                "ok": False,
+                "error": f"Unexpected archive layout ({len(subdirs)} top-level entries).",
+                "log": "\n".join(log_parts),
+            }
+
+        log_parts.append(f"Copying files into {config.BASE_DIR}...")
+        # dirs_exist_ok=True merges into the existing directory rather than
+        # requiring an empty destination -- and since venv/, instance/,
+        # and .env never exist in a fresh release zipball, this can only
+        # add/overwrite tracked files, never touch local state, same
+        # guarantee git pull already gives on the git-checkout path.
+        shutil.copytree(subdirs[0], config.BASE_DIR, dirs_exist_ok=True)
+    except (OSError, zipfile.BadZipFile) as exc:
+        return {"ok": False, "error": f"Extracting/copying the update failed: {exc}", "log": "\n".join(log_parts)}
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    log_parts.append("Files updated.")
+    return None
+
+
+def _apply_update() -> dict:
     log_parts = []
 
     def _run(args: list[str]) -> subprocess.CompletedProcess:
@@ -734,13 +787,18 @@ def _apply_update() -> dict:
             args, cwd=config.BASE_DIR, capture_output=True, text=True, timeout=120,
         )
 
-    try:
-        pull = _run(["git", "pull"])
-    except (OSError, subprocess.SubprocessError) as exc:
-        return {"ok": False, "error": f"git pull failed to run: {exc}"}
-    log_parts.append("$ git pull\n" + pull.stdout + pull.stderr)
-    if pull.returncode != 0:
-        return {"ok": False, "error": "git pull failed -- see log.", "log": "\n".join(log_parts)}
+    if (config.BASE_DIR / ".git").is_dir():
+        try:
+            pull = _run(["git", "pull"])
+        except (OSError, subprocess.SubprocessError) as exc:
+            return {"ok": False, "error": f"git pull failed to run: {exc}"}
+        log_parts.append("$ git pull\n" + pull.stdout + pull.stderr)
+        if pull.returncode != 0:
+            return {"ok": False, "error": "git pull failed -- see log.", "log": "\n".join(log_parts)}
+    else:
+        error = _apply_zip_update(log_parts)
+        if error is not None:
+            return error
 
     pip_path = config.BASE_DIR / ("venv/Scripts/pip.exe" if sys.platform == "win32" else "venv/bin/pip")
     try:

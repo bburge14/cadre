@@ -175,17 +175,14 @@
   <p>
     Settings shows the version you're running and a "Check for updates"
     button. If a newer release exists, an "Update now" button appears —
-    click it and it pulls the latest code, reinstalls dependencies, and
-    restarts the dashboard automatically once it's back. The session
-    daemon is never touched by this, so live sessions aren't affected.
+    click it and it updates in place (<code>git pull</code> for a
+    git-clone install, or downloads and applies the latest release ZIP
+    otherwise), reinstalls dependencies, and restarts the dashboard
+    automatically once it's back. The session daemon is never touched by
+    this, so live sessions aren't affected. Works regardless of how you
+    installed — git clone or the Windows ZIP-download path both work from
+    this one button.
   </p>
-  <div class="note">
-    Only works for a <code>git clone</code> install. On the Windows
-    ZIP-download path, grab the newer ZIP from
-    <a href="https://github.com/bburge14/cadre/releases" target="_blank">Releases</a>
-    instead — <code>windows\setup.bat</code> will relocate it to a stable
-    location automatically.
-  </div>
 
   <p style="margin-top:2.5rem; color:#888;">
     Installing on a new machine, running as a background service,

@@ -54,9 +54,12 @@ enabled + lingering, so it's always up — no manual start needed. See
   detected and managed rather than duplicated.
 - **Updating**: Settings shows the running version (`VERSION`), checks
   GitHub's releases API for a newer one, and can apply it in-place with an
-  "Update now" button (`git pull` + reinstall deps + auto-restart the
-  dashboard once it's back) — never touches the session daemon. Same thing
-  from a terminal via `linux/update.sh` / `macos/update.sh` /
+  "Update now" button — `git pull` for a git-clone install, or downloads
+  and merges in the latest release ZIP for a ZIP-downloaded one (`venv/`,
+  `instance/`, `.env` are never touched, since none of those exist in a
+  release ZIP) — then reinstalls deps and auto-restarts the dashboard once
+  it's back. Never touches the session daemon. A git-clone-only terminal
+  equivalent is also available via `linux/update.sh` / `macos/update.sh` /
   `windows\update.bat` — see "Updating" in `SETUP.md`.
 
 ## Operational notes

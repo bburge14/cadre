@@ -331,8 +331,12 @@ stop a different one.
 **Settings** shows the version you're running (`VERSION` in the repo).
 "Check for updates" asks GitHub's public releases API whether a newer one
 exists; if so, an "Update now" button appears right there — click it and
-it runs `git pull`, reinstalls `requirements.txt` (in case it changed),
-and — using the same working-directory match as the uninstall scripts —
+it updates in place (`git pull` for a git-clone install; for a
+ZIP-downloaded install, downloads and applies the latest release's source
+ZIP directly, merging it into the existing directory so `venv/`,
+`instance/`, and `.env` — none of which exist in a fresh release ZIP — are
+never touched), reinstalls `requirements.txt` (in case it changed), and —
+using the same working-directory match as the uninstall scripts —
 restarts the **dashboard only** if this checkout owns a registered
 service/task, then reloads the page automatically once it's back. The
 session daemon is deliberately never touched by this, since restarting it
@@ -342,7 +346,8 @@ you're ready (or just wait for its next natural restart). If nothing's
 registered (or on macOS, where there's no services concept here at all),
 it tells you to restart the dashboard by hand instead of trying to.
 
-The same thing is available from a terminal, if you'd rather:
+A terminal-based equivalent is also available, but **git-clone installs
+only** (unlike the in-app button, it doesn't know how to fetch/apply a ZIP):
 
 ```bash
 ./linux/update.sh     # or ./macos/update.sh
@@ -350,10 +355,6 @@ The same thing is available from a terminal, if you'd rather:
 ```powershell
 windows\update.bat
 ```
-
-Either path only works for a `git clone` install — if you're on the
-ZIP-download path (Windows only), grab the newer ZIP from Releases
-instead.
 
 ## Running it as an always-on background service (Windows)
 

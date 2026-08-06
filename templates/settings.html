@@ -34,11 +34,11 @@
   <h2 style="margin-top:0; border-top:none; padding-top:0;">Version</h2>
   <p class="hint">
     Running <code>v{{ current_version }}</code>. "Update now" pulls the
-    latest code (<code>git pull</code>), reinstalls dependencies, and
-    restarts the dashboard automatically if it's running as a registered
-    service — the session daemon is never touched, so live sessions aren't
-    affected. Only works for a git-clone install; on the ZIP-download path
-    (Windows only) grab the newer ZIP from Releases instead.
+    latest code (<code>git pull</code> for a git-clone install, or
+    downloads and applies the latest release ZIP otherwise), reinstalls
+    dependencies, and restarts the dashboard automatically if it's running
+    as a registered service — the session daemon is never touched, so
+    live sessions aren't affected.
   </p>
   <button class="btn" type="button" id="check-update-btn" onclick="checkForUpdate()">Check for updates</button>
   <button class="btn btn-primary" type="button" id="apply-update-btn" onclick="applyUpdate()" style="display:none;">Update now</button>
