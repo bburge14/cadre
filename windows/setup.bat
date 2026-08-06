@@ -17,5 +17,11 @@ if errorlevel 1 (
     exit /b 1
 )
 echo.
-echo Setup complete. Run windows\start.bat to launch the dashboard.
+echo Creating Desktop shortcut...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0make-shortcut.ps1"
+if errorlevel 1 (
+    echo Could not create a Desktop shortcut automatically -- you can still run windows\start.bat directly.
+)
+echo.
+echo Setup complete. Run windows\start.bat (or the Desktop shortcut) to launch the dashboard.
 pause

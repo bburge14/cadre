@@ -40,7 +40,15 @@ account system beyond the one admin login you create for yourself below.
    key/personal access token set up for that account, same as cloning any
    other private repo.
 
-2. **Create the virtual environment**:
+2. **Run the setup script** — `./linux/setup.sh` on Linux, `./macos/setup.sh`
+   on macOS. Each creates the virtual environment, installs everything from
+   `requirements.txt`, and drops a double-clickable "Start Agent Stack
+   Creator" launcher on your Desktop (skipped with a message if you don't
+   have a Desktop folder — headless boxes, servers, etc.). Safe to re-run
+   any time (e.g. after a `git pull` that changed `requirements.txt`).
+
+   Prefer doing it by hand, or the script can't run for some reason? Same
+   two commands either script runs under the hood:
    ```bash
    python3 -m venv venv
    ./venv/bin/pip install -r requirements.txt
@@ -54,12 +62,15 @@ account system beyond the one admin login you create for yourself below.
    # edit .env as needed
    ```
 
-4. **Run it**:
+4. **Run it** — double-click the Desktop launcher the setup script created,
+   or from a terminal:
    ```bash
-   ./venv/bin/python app.py
+   ./linux/start.sh    # or ./macos/start.sh on macOS
    ```
-   You should see `Running on http://127.0.0.1:7420` (or whatever host/port
-   you configured).
+   Either way this is just `./venv/bin/python app.py` with a couple of
+   friendly messages around it — run that directly if you'd rather. You
+   should see `Running on http://127.0.0.1:7420` (or whatever host/port you
+   configured).
 
 5. **Open it in a browser** at that address. First visit should redirect
    you to an account-creation page — pick a username and password (this is
@@ -108,14 +119,18 @@ account system beyond the one admin login you create for yourself below.
    ```
 
 2. **Double-click `windows\setup.bat`** (or run it from a terminal). This
-   creates the virtual environment and installs everything from
+   creates the virtual environment, installs everything from
    `requirements.txt` — the one step that's easy to miss if you skip
-   straight to running the app. It also installs `pywinpty`, which needs a
-   working C++ toolchain to build from source on some setups — if that
-   step fails, install the
+   straight to running the app — and creates a "Start Agent Stack Creator"
+   shortcut on your Desktop pointing at `windows\start.bat`. It also
+   installs `pywinpty`, which needs a working C++ toolchain to build from
+   source on some setups — if that step fails, install the
    [Visual C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
    (or Visual Studio Community with the "Desktop development with C++"
-   workload) and re-run `windows\setup.bat`.
+   workload) and re-run `windows\setup.bat`. If only the shortcut step
+   fails (rare — PowerShell execution policy on some locked-down machines),
+   everything else still works; just run `windows\start.bat` directly or
+   make the shortcut yourself.
 
 3. **(Optional) copy the config template** — same as Linux/macOS:
    ```powershell
