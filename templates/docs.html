@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Docs — Cadre</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<style>
+  body { font-family: -apple-system, sans-serif; background: #1b1c1e; color: #e6e6e6; margin: 0 auto; padding: 2rem; max-width: 760px; line-height: 1.5; }
+  a { color: #7ab7ff; }
+  h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.05rem; margin-top: 2.2rem; border-top: 1px solid #333; padding-top: 1.2rem; }
+  h3 { font-size: 0.92rem; color: #ddd; margin: 1.2rem 0 0.4rem; }
+  p, li { font-size: 0.88rem; color: #ccc; }
+  .sub { color: #9a9a9a; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  code { background: #2a2b2e; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.82rem; color: #e6e6e6; }
+  .btn { display: inline-block; padding: 0.4rem 0.9rem; border-radius: 5px; text-decoration: none; font-size: 0.88rem; border: 1px solid #444; color: #e6e6e6; background: #2a2b2e; cursor: pointer; margin: 2px 6px 2px 0; }
+  .toc { background: #232427; border: 1px solid #333; border-radius: 8px; padding: 0.9rem 1.2rem; margin-top: 1.2rem; }
+  .toc a { display: block; font-size: 0.85rem; padding: 0.15rem 0; }
+  .note { background: #1e2d3a; border: 1px solid #2d5b8a; border-radius: 6px; padding: 0.6rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
+</style>
+</head>
+<body>
+  <p><a class="btn" href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
+  <h1 style="display:flex; align-items:center; gap:0.6rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Cadre docs</h1>
+  <div class="sub">Day-to-day usage — creating sessions, agent stacks, and providers. For installing on a new machine, running as a background service, or uninstalling, see <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md on GitHub</a> instead — that's the deeper, less frequently needed stuff.</div>
+
+  <div class="toc">
+    <a href="#sessions">Sessions</a>
+    <a href="#stacks">Agent stacks</a>
+    <a href="#global-agents">The global agent team</a>
+    <a href="#providers">AI providers (Claude / Gemini / Codex / Kimi)</a>
+    <a href="#delegation">Delegating an agent's work to another provider</a>
+    <a href="#git-hosts">Connecting GitHub / GitLab</a>
+    <a href="#updating">Keeping Cadre updated</a>
+  </div>
+
+  <h2 id="sessions">Sessions</h2>
+  <p>
+    A session is one running Claude Code (or Gemini/Codex/Kimi) conversation,
+    rooted at a working directory on this machine. "+ New session" on the
+    dashboard lets you pick a label, a provider, and either a local
+    directory or a GitHub/GitLab repo to clone (if you've connected one —
+    see below).
+  </p>
+  <p>
+    Each session's page has Start/Stop/Restart/Delete, plus an
+    <strong>interactive terminal</strong> ("Open terminal") — a real
+    xterm.js terminal into that session's process, not just a read-only
+    log. For Claude sessions this is in addition to connecting via
+    <a href="https://claude.ai/code" target="_blank">claude.ai/code</a>
+    (Remote Control); for Gemini/Codex/Kimi it's the only way to interact
+    with them from here, since none of them has an official remote-control
+    equivalent yet.
+  </p>
+  <p>
+    If a session hits a usage/rate limit, its row gets an orange "limit
+    hit" tag and its detail page shows the actual message — it clears
+    itself the next time you restart that session.
+  </p>
+
+  <h2 id="stacks">Agent stacks</h2>
+  <p>
+    A stack is one directory's own agent team — a set of Claude Code
+    subagents that only apply to sessions rooted in that directory (or a
+    subdirectory of it). This is Claude Code's own native per-project
+    <code>.claude/agents/</code> override, not anything Cadre invents; a
+    stack pointed at <code>~/projects/myapp</code> just means "write agent
+    definitions into <code>~/projects/myapp/.claude/agents/</code>."
+  </p>
+  <h3>Creating a stack</h3>
+  <p>
+    "+ New stack" on the dashboard — give it a name and a directory (the
+    field auto-fills from the name as you type, edit it freely; the
+    directory is created automatically if it doesn't exist). Then either
+    click a preset (Coding, Content/Writing, Research/Analysis, DevOps/
+    Infrastructure, Data Science/Analytics) or check individual agents from
+    the library. You can leave both empty and add agents one at a time
+    afterward instead.
+  </p>
+  <h3>Editing a stack's agents</h3>
+  <p>
+    "View agents" (or "Edit") on a stack opens its page: a table of that
+    stack's agents with Edit/Delete, plus "+ New agent" to write one from
+    scratch directly in that stack. Editing an agent lets you set its
+    name, description (what Claude matches a request against to
+    auto-delegate to it), tools, which other agents it can itself spawn,
+    model, and system prompt.
+  </p>
+  <h3>Diagrams</h3>
+  <p>
+    "Diagram" on a stack shows its hierarchy — every agent in that stack,
+    with lines from "Coordinator" (the top-level session) to each one, and
+    lines between agents showing who can delegate to whom. Click an agent
+    to change what it's allowed to spawn. An empty stack's diagram says so
+    plainly instead of looking the same as a populated one.
+  </p>
+
+  <h2 id="global-agents">The global agent team</h2>
+  <p>
+    One team lives at <code>~/.claude/agents/</code> and applies to any
+    session <em>not</em> covered by a more specific stack — reachable from
+    "global agent team" on the dashboard. It's managed the same way as a
+    stack's agents (add/edit/delete individually), just without a
+    preset-picker of its own. If you want a whole preset applied globally,
+    create a stack whose directory <em>is</em> your home directory.
+  </p>
+
+  <h2 id="providers">AI providers</h2>
+  <p>
+    Every agent in every stack is still a <strong>Claude Code
+    subagent</strong> — that's not optional, and it's why Settings has no
+    "Claude" API-key field. What you're logged into is the <code>claude</code>
+    CLI itself. Settings shows your actual state instead of a login form:
+  </p>
+  <ul>
+    <li><strong><code>claude</code> not found</strong> — you have an
+      Anthropic account but not the CLI installed; that's a one-time
+      terminal step Cadre can't do for you
+      (<code>npm install -g @anthropic-ai/claude-code</code>).</li>
+    <li><strong>Installed but not logged in</strong> — create a session,
+      open its terminal, run <code>/login</code> there.</li>
+    <li><strong>Installed and logged in</strong> — nothing to do.</li>
+  </ul>
+  <p>
+    Gemini, Codex, and Kimi are optional and <strong>API-key only</strong> —
+    paste a key for whichever you use in Settings. Settings also flags
+    whether each CLI is even found on your <code>PATH</code>.
+  </p>
+
+  <h2 id="delegation">Delegating an agent's work to another provider</h2>
+  <p>
+    Editing an agent lets you pick a "primary AI for this agent's actual
+    work." Choosing Gemini/Codex/Kimi there rewrites that agent's
+    instructions with an auto-generated block telling it to shell out to
+    that provider's non-interactive mode and treat the result as its real
+    answer. The agent itself is still a Claude Code subagent doing the
+    orchestrating — this doesn't reduce Claude usage, it's for when you
+    specifically want a different model's output on a given agent's tasks.
+  </p>
+
+  <h2 id="git-hosts">Connecting GitHub / GitLab</h2>
+  <p>
+    Optional — only needed if you want "+ New session" to clone a repo
+    instead of pointing at a directory already on this machine. In
+    Settings, register an OAuth App (GitHub: github.com/settings/developers;
+    GitLab: your instance's User Settings → Applications) using the exact
+    callback URL Settings shows you, paste the Client ID/Secret in, save.
+    "+ New session" then shows a "Connect your account" link on the
+    GitHub/GitLab tab.
+  </p>
+
+  <h2 id="updating">Keeping Cadre updated</h2>
+  <p>
+    Settings shows the version you're running and a "Check for updates"
+    button. If a newer release exists, an "Update now" button appears —
+    click it and it pulls the latest code, reinstalls dependencies, and
+    restarts the dashboard automatically once it's back. The session
+    daemon is never touched by this, so live sessions aren't affected.
+  </p>
+  <div class="note">
+    Only works for a <code>git clone</code> install. On the Windows
+    ZIP-download path, grab the newer ZIP from
+    <a href="https://github.com/bburge14/cadre/releases" target="_blank">Releases</a>
+    instead — <code>windows\setup.bat</code> will relocate it to a stable
+    location automatically.
+  </div>
+
+  <p style="margin-top:2.5rem; color:#888;">
+    Installing on a new machine, running as a background service,
+    uninstalling, or building the Windows installer — see
+    <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>
+    and <a href="https://github.com/bburge14/cadre/blob/master/README.md" target="_blank">README.md</a>
+    on GitHub.
+  </p>
+</body>
+</html>

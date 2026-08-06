@@ -139,6 +139,12 @@ def agents_page():
     return render_template("agents.html", agents=agents_store.list_agents())
 
 
+@app.get("/docs")
+@require_auth
+def docs_page():
+    return render_template("docs.html")
+
+
 # ---- Agents ----
 
 
