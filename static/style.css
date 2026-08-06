@@ -158,6 +158,9 @@ form.inline { display: inline; margin: 0; }
 .btn-group { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .btn-group form.inline, .btn-group .btn { margin: 0; }
 
+.btn-icon { width: 34px; height: 34px; padding: 0; justify-content: center; flex-shrink: 0; }
+.btn-icon svg { display: block; width: 15px; height: 15px; }
+
 /* ---- Sections & cards ---- */
 
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.2rem; }
