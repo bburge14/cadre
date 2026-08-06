@@ -33,6 +33,12 @@
   table.agents-table th { color: #9a9a9a; font-weight: 500; }
   .section-head { display: flex; justify-content: space-between; align-items: center; }
   form.inline { display: inline; margin: 0; }
+  .tabs { display: flex; gap: 0.3rem; border-bottom: 1px solid #333; margin-top: 1.5rem; }
+  .tab-btn { background: none; border: none; color: #9a9a9a; font-size: 0.9rem; padding: 0.6rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab-btn:hover { color: #e6e6e6; }
+  .tab-btn.active { color: #e6e6e6; border-bottom-color: #2d5b8a; }
+  .tab-panel { display: none; padding-top: 1.2rem; }
+  .tab-panel.active { display: block; }
 </style>
 </head>
 <body>
@@ -54,6 +60,15 @@
   {% endwith %}
 
   {% if stack %}
+  <div class="tabs">
+    <button type="button" class="tab-btn" data-tab="agents" onclick="switchTab('agents')">Agents ({{ stack_agents | length }})</button>
+    <button type="button" class="tab-btn" data-tab="skills" onclick="switchTab('skills')">Skills ({{ stack_skills | length }})</button>
+    <button type="button" class="tab-btn" data-tab="setup" onclick="switchTab('setup')">{{ 'Directory & presets' if not stack.get('is_global') else 'Presets & library' }}</button>
+  </div>
+  {% endif %}
+
+  {% if stack %}
+  <div class="tab-panel active" id="tab-panel-agents">
   <div class="section-head">
     <h2 style="margin-top:0;">Agents in this stack</h2>
     <a class="btn btn-primary" href="{{ url_for('new_stack_agent_form', stack_id=stack.id) }}">+ New agent</a>
@@ -75,10 +90,12 @@
       </td>
     </tr>
     {% else %}
-    <tr><td colspan="4" style="color:#888;">No agents yet — add some below, or "+ New agent" to write one from scratch.</td></tr>
+    <tr><td colspan="4" style="color:#888;">No agents yet — <a href="#" onclick="switchTab('setup'); return false;">add some from the {{ 'Directory & presets' if not stack.get('is_global') else 'Presets & library' }} tab</a>, or "+ New agent" to write one from scratch.</td></tr>
     {% endfor %}
   </table>
+  </div>
 
+  <div class="tab-panel" id="tab-panel-skills">
   <div class="section-head">
     <h2 style="margin-top:0;">Skills in this stack</h2>
     <a class="btn btn-primary" href="{{ url_for('new_stack_skill_form', stack_id=stack.id) }}">+ New skill</a>
@@ -102,8 +119,10 @@
     <tr><td colspan="3" style="color:#888;">No skills yet — "+ New skill" to write one.</td></tr>
     {% endfor %}
   </table>
+  </div>
   {% endif %}
 
+  <div class="tab-panel{{ '' if stack else ' active' }}" id="tab-panel-setup">
   <form method="post" action="{{ url_for('edit_stack', stack_id=stack.id) if stack else url_for('create_stack') }}" id="stack-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="preset_id" id="preset-id-field" value="">
@@ -121,7 +140,7 @@
     </datalist>
     {% endif %}
 
-    <h2>{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
+    <h2 style="{{ 'margin-top:0;' if stack and stack.get('is_global') else '' }}">{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
     <p class="hint">Click a preset to select it (or leave none selected and just check individual agents below).</p>
     <div class="preset-grid">
       {% for preset in stack_presets %}
@@ -149,10 +168,26 @@
 
     <button class="btn btn-primary" type="submit">{{ 'Save' if stack else 'Create stack' }}</button>
   </form>
+  </div>
 </body>
 </html>
 
 <script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-panel-' + name).classList.add('active');
+  document.querySelector('.tab-btn[data-tab="' + name + '"]').classList.add('active');
+  history.replaceState(null, '', '#' + name);
+}
+{% if stack %}
+(function () {
+  const requested = location.hash.replace('#', '');
+  const valid = ['agents', 'skills', 'setup'];
+  switchTab(valid.includes(requested) ? requested : 'agents');
+})();
+{% endif %}
+
 function selectPreset(id) {
   document.getElementById('preset-id-field').value = id;
   document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
