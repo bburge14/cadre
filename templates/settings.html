@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}">&larr; back</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
   <h1 style="font-size:1.2rem;">Settings</h1>
   <p class="hint">Nothing here needs a config file or a restart — save, and it takes effect immediately. Secret fields below never show their current value (not even masked) — leave one blank to keep what's already saved, or type a new value to replace it.</p>
 

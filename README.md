@@ -44,17 +44,16 @@ enabled + lingering, so it's always up — no manual start needed. See
   not just a read-only output feed — the only way to interact with
   Gemini/Codex/Kimi sessions today, since none of them has an official
   remote-control equivalent yet.
-- **Skills**: managed the same way as agents (`skills_store.py`, mirroring
-  `agents_store.py`), both globally and per-stack via the same
-  `/stacks/<id>/skills/*` routes the global stack shares with real ones.
-  A skill is a different mechanism from an agent -- packaged instructions
-  loaded into whatever session invokes it, not a separate spawned worker
-  -- one directory per skill (`<name>/SKILL.md`), just name/description
-  frontmatter and a body. Attaching a skill to a specific agent happens on
-  that agent's own edit page (a searchable checklist), which rewrites the
-  agent's system prompt with an auto-generated block naming the selected
-  skills -- not a native per-agent field, since nothing confirms Claude
-  Code has one.
+- **Skills**: one shared list (`/skills`, `~/.claude/skills/`, unlike
+  agents there's no per-stack scoping) usable by every agent in every
+  stack, managed via `skills_store.py`. A skill is a different mechanism
+  from an agent -- packaged instructions loaded into whatever session
+  invokes it, not a separate spawned worker -- one directory per skill
+  (`<name>/SKILL.md`), just name/description frontmatter and a body.
+  Attaching a skill to a specific agent happens on that agent's own edit
+  page (a searchable checklist), which rewrites the agent's system prompt
+  with an auto-generated block naming the selected skills -- not a native
+  per-agent field, since nothing confirms Claude Code has one.
 - **Trust-prompt handling**: a brand-new session in a directory Claude
   hasn't seen before blocks on an interactive "trust this folder?" prompt.
   `session_daemon.py`'s reader thread watches for that specific prompt

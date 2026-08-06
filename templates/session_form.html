@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}">&larr; back</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit session' if session else 'New session' }}</h1>
   {% if not session %}
   <p class="hint">Starts a brand-new Claude Code session (no prior history) in the directory you pick, with Remote Control enabled — it'll show up in claude.ai/code under this label. Uses the same global agent team as every other session.</p>

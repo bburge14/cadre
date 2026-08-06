@@ -42,7 +42,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
   <h1>{{ 'Edit ' + stack.name if stack else 'New stack' }}</h1>
   {% if stack %}<p><a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">View this stack's diagram &rarr;</a></p>{% endif %}
   {% if not stack %}
@@ -62,7 +62,6 @@
   {% if stack %}
   <div class="tabs">
     <button type="button" class="tab-btn" data-tab="agents" onclick="switchTab('agents')">Agents ({{ stack_agents | length }})</button>
-    <button type="button" class="tab-btn" data-tab="skills" onclick="switchTab('skills')">Skills ({{ stack_skills | length }})</button>
     <button type="button" class="tab-btn" data-tab="setup" onclick="switchTab('setup')">{{ 'Directory & presets' if not stack.get('is_global') else 'Presets & library' }}</button>
   </div>
   {% endif %}
@@ -73,6 +72,7 @@
     <h2 style="margin-top:0;">Agents in this stack</h2>
     <a class="btn btn-primary" href="{{ url_for('new_stack_agent_form', stack_id=stack.id) }}">+ New agent</a>
   </div>
+  <p class="hint">Skills are shared across every stack — manage them from <a href="{{ url_for('skills_page') }}">Skills</a>, then attach one to a specific agent from that agent's own edit page.</p>
   <table class="agents-table">
     <tr><th>Name</th><th>Description</th><th>Model</th><th></th></tr>
     {% for agent in stack_agents %}
@@ -91,32 +91,6 @@
     </tr>
     {% else %}
     <tr><td colspan="4" style="color:#888;">No agents yet — <a href="#" onclick="switchTab('setup'); return false;">add some from the {{ 'Directory & presets' if not stack.get('is_global') else 'Presets & library' }} tab</a>, or "+ New agent" to write one from scratch.</td></tr>
-    {% endfor %}
-  </table>
-  </div>
-
-  <div class="tab-panel" id="tab-panel-skills">
-  <div class="section-head">
-    <h2 style="margin-top:0;">Skills in this stack</h2>
-    <a class="btn btn-primary" href="{{ url_for('new_stack_skill_form', stack_id=stack.id) }}">+ New skill</a>
-  </div>
-  <table class="agents-table">
-    <tr><th>Name</th><th>Description</th><th></th></tr>
-    {% for skill in stack_skills %}
-    <tr>
-      <td>{{ skill.name }}</td>
-      <td style="color:#bbb;">{{ skill.frontmatter.get('description', '') }}</td>
-      <td>
-        <a class="btn" href="{{ url_for('edit_stack_skill_form', stack_id=stack.id, name=skill.name) }}">Edit</a>
-        <form class="inline" method="post" action="{{ url_for('delete_stack_skill', stack_id=stack.id, name=skill.name) }}"
-              onsubmit="return confirm('Delete skill {{ skill.name }} from this stack?');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-danger" style="border-color:#6b3030; color:#ff9d9d;">Delete</button>
-        </form>
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="3" style="color:#888;">No skills yet — "+ New skill" to write one.</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -183,7 +157,7 @@ function switchTab(name) {
 {% if stack %}
 (function () {
   const requested = location.hash.replace('#', '');
-  const valid = ['agents', 'skills', 'setup'];
+  const valid = ['agents', 'setup'];
   switchTab(valid.includes(requested) ? requested : 'agents');
 })();
 {% endif %}

@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ back_url }}">&larr; {{ back_label }}</a></p>
+  <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit ' + name if skill else 'New skill' }}</h1>
   {% if not skill %}
   <p class="hint">Creates <code>&lt;skills-dir&gt;/&lt;name&gt;/SKILL.md</code> — a packaged set of instructions loaded into whatever session invokes it, not a separate spawned worker like an agent.</p>

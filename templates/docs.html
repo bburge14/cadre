@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}">&larr; back to dashboard</a></p>
+  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
   <h1 style="display:flex; align-items:center; gap:0.6rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Cadre docs</h1>
   <div class="sub">Day-to-day usage — creating sessions, agent stacks, and providers. For installing on a new machine, running as a background service, or uninstalling, see <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md on GitHub</a> instead — that's the deeper, less frequently needed stuff.</div>
 
@@ -147,18 +147,19 @@
     rather than delegating the work to someone else.
   </p>
   <p>
-    Skill <em>definitions</em> are managed per-stack (including "Global
-    (default)") — "Skills in this stack" on a stack's page, same
-    create/edit/delete pattern as agents but simpler: a skill only needs a
-    name, a description (what it does and when to use it), and the
+    Unlike agents, skill <em>definitions</em> aren't scoped per stack —
+    there's one shared list ("Skills" in the dashboard nav,
+    <code>~/.claude/skills/</code>), usable by every agent in every stack.
+    Create/edit/delete works the same as agents but simpler: a skill only
+    needs a name, a description (what it does and when to use it), and the
     instructions themselves — no tools/model/spawn-graph, since a skill
     runs in the invoking session's own context rather than as a separate
     agent.
   </p>
   <p>
-    "Global (default)" comes seeded with three example skills — one per
-    major flavor the Generalist preset spans, so there's a concrete answer
-    to "what's a skill actually for" instead of an empty list:
+    That one list comes seeded with three example skills — one per major
+    flavor the Generalist preset spans, so there's a concrete answer to
+    "what's a skill actually for" instead of an empty list:
     <code>commit-message-style</code> (a reference for how commits should
     read), <code>writing-tone-guide</code> (style guidance for anything
     written for someone else to read), and
@@ -168,12 +169,11 @@
   </p>
   <p>
     Attaching a skill to a specific agent happens on <em>that agent's</em>
-    edit page — a searchable "skills" checklist there, pulling from
-    whichever stack the agent belongs to (same list as that stack's
-    "Skills in this stack" table). Checking a skill there doesn't rely on
-    Claude Code natively supporting a per-agent skill field (nothing
-    confirms that exists) — it rewrites the agent's own system prompt with
-    a short auto-generated section naming the selected skills and their
+    edit page — a searchable "skills" checklist there, pulling from the
+    same shared list. Checking a skill there doesn't rely on Claude Code
+    natively supporting a per-agent skill field (nothing confirms that
+    exists) — it rewrites the agent's own system prompt with a short
+    auto-generated section naming the selected skills and their
     descriptions, telling the agent to invoke them by name when relevant.
     Reliable regardless of the exact native mechanism, since it's just
     plain instructions in a system prompt.

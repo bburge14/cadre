@@ -16,7 +16,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ back_url }}">&larr; {{ back_label }}</a></p>
+  <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit ' + filename if agent else 'New agent' }}</h1>
 
   <form method="post" action="{{ save_action }}">

@@ -25,7 +25,7 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ back_url }}">&larr; {{ back_label }}</a></p>
+  <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1>{{ heading }}</h1>
   <div class="sub">Click any agent to change what it's allowed to spawn. Lines from "Coordinator" show every agent you (the top-level session) can delegate to directly; lines between agents show delegation each one can do itself.
   {% if not nodes %}<br><strong>No agents here yet</strong> — {{ back_label }} to add some (a preset or individual agents from the library).{% endif %}
