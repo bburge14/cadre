@@ -44,7 +44,7 @@
       <label>provider <span class="hint">(which CLI runs this session)</span></label>
       <select name="provider" id="provider-select" onchange="updateProviderNote()">
         {% for provider in cli_providers %}
-        <option value="{{ provider.id }}">{{ provider.label }}</option>
+        <option value="{{ provider.id }}" {{ 'selected' if provider.id == default_provider else '' }}>{{ provider.label }}</option>
         {% endfor %}
       </select>
       <p class="hint" id="provider-remote-note"></p>

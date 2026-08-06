@@ -200,6 +200,20 @@
     paste a key for whichever you use in Settings. Settings also flags
     whether each CLI is even found on your <code>PATH</code>.
   </p>
+  <h3>Setup wizard and "Default AI"</h3>
+  <p>
+    <a href="{{ url_for('wizard_form') }}">The setup wizard</a> (shown once
+    right after creating your admin account, or reachable anytime from
+    Settings) walks through picking a provider, connecting it, and setting
+    it as your <strong>default AI</strong> — this pre-fills the provider on
+    "+ New session" and is the one used to run your Agent Stacks. The
+    default picker only ever offers providers that are both actually
+    connected <em>and</em> capable of running a stack at all — today that's
+    Claude only, since Agent Stacks is Claude Code's own native subagent
+    mechanism (see below). Gemini/Codex/Kimi can still be connected and
+    used for their own sessions, just not set as the stack-running default
+    yet.
+  </p>
 
   <h2 id="delegation">Delegating an agent's work to another provider</h2>
   <p>

@@ -105,7 +105,24 @@
     </div>
 
     <div class="tab-panel" id="tab-panel-providers">
-    <h2 style="margin-top:1.1rem;">AI CLI providers</h2>
+    <h2 style="margin-top:1.1rem;">Default AI</h2>
+    <p class="hint">
+      Pre-fills new sessions and, for a provider capable of it, runs your
+      Agent Stacks. Restricted to providers that are both connected and
+      able to run a stack — <a href="{{ url_for('wizard_form') }}">the setup wizard</a>
+      walks through connecting one step by step.
+    </p>
+    {% if orchestration_candidates %}
+    <select name="default_provider">
+      {% for p in orchestration_candidates %}
+      <option value="{{ p.id }}" {{ 'selected' if p.id == default_provider else '' }}>{{ p.label }}</option>
+      {% endfor %}
+    </select>
+    {% else %}
+    <p class="hint" style="color:var(--danger-text);">No provider currently qualifies as a default — connect one via <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
+    {% endif %}
+
+    <h2>AI CLI providers</h2>
     <p class="hint">
       API keys only — Gemini/Codex/Kimi's own account-login flows are
       baked into each CLI binary itself (unlike GitHub/GitLab, there's no

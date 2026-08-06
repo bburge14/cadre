@@ -22,6 +22,7 @@ _DEFAULTS = {
     "gemini_api_key": "",
     "codex_api_key": "",
     "kimi_api_key": "",
+    "default_provider": "claude",
 }
 
 _ENV_FALLBACK = {key: key.upper() for key in _DEFAULTS}

@@ -88,7 +88,7 @@ def setup():
     auth.create_admin(username, password)
     auth.log_in_session(username)
     flash("Admin account created.", "success")
-    return redirect(url_for("index"))
+    return redirect(url_for("wizard_form"))
 
 
 @app.get("/login")
@@ -107,6 +107,58 @@ def login():
         return redirect(url_for("index"))
     flash("Invalid username or password.", "error")
     return redirect(url_for("login_form"))
+
+
+# ---- Setup wizard: pick an AI, connect it, set it as the default/orchestrator ----
+
+
+@app.get("/wizard")
+@require_auth
+def wizard_form():
+    return render_template(
+        "wizard.html",
+        providers=providers.list_providers(),
+        provider_binaries={p.id: providers.binary_found(p.id) for p in providers.list_providers()},
+        usable={p.id: providers.usable(p.id) for p in providers.list_providers()},
+        claude_installed=providers.binary_found("claude"),
+        claude_logged_in=providers.claude_logged_in(),
+        secrets_set={f"{p.id}_api_key": bool(settings.get(f"{p.id}_api_key")) for p in providers.list_providers() if p.api_key_env_var},
+        default_provider=settings.get("default_provider"),
+    )
+
+
+@app.post("/wizard/connect")
+@require_auth
+def wizard_connect():
+    provider_id = request.form.get("provider", "")
+    try:
+        provider = providers.get(provider_id)
+    except ValueError:
+        flash("Unknown provider.", "error")
+        return redirect(url_for("wizard_form"))
+    if provider.api_key_env_var:
+        api_key = request.form.get("api_key", "").strip()
+        if api_key:
+            settings.update(**{f"{provider_id}_api_key": api_key})
+            flash(f"{provider.label} API key saved.", "success")
+    return redirect(url_for("wizard_form"))
+
+
+@app.post("/wizard/set-default")
+@require_auth
+def wizard_set_default():
+    provider_id = request.form.get("provider", "")
+    try:
+        provider = providers.get(provider_id)
+    except ValueError:
+        flash("Unknown provider.", "error")
+        return redirect(url_for("wizard_form"))
+    if provider_id not in {p.id for p in providers.orchestration_candidates()}:
+        flash(f"{provider.label} can't be set as the default yet -- it isn't connected, or can't run Agent Stacks.", "error")
+        return redirect(url_for("wizard_form"))
+    settings.update(default_provider=provider_id)
+    flash(f"{provider.label} is now your default AI.", "success")
+    return redirect(url_for("index"))
 
 
 @app.get("/logout")
@@ -671,6 +723,7 @@ def new_session_form():
         gitlab_connected=bool(git_hosts.get_token("gitlab")),
         gitlab_configured=bool(settings.get("gitlab_client_id")),
         cli_providers=providers.list_providers(),
+        default_provider=settings.get("default_provider"),
     )
 
 
@@ -769,6 +822,8 @@ def settings_form():
         provider_binaries={p.id: providers.binary_found(p.id) for p in providers.list_providers()},
         current_version=_read_version(),
         github_repo_url=f"https://github.com/{GITHUB_REPO}",
+        default_provider=settings.get("default_provider"),
+        orchestration_candidates=providers.orchestration_candidates(),
     )
 
 
@@ -970,6 +1025,14 @@ def save_settings():
         value = request.form.get(key, "").strip()
         if value:
             fields[key] = value
+
+    default_provider = request.form.get("default_provider", "")
+    if default_provider:
+        if default_provider not in {p.id for p in providers.orchestration_candidates()}:
+            flash("That provider can't be set as the default -- it isn't connected, or can't run Agent Stacks.", "error")
+            return redirect(url_for("settings_form"))
+        fields["default_provider"] = default_provider
+
     settings.update(**fields)
     flash("Settings saved.", "success")
     return redirect(url_for("settings_form"))

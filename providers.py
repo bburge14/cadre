@@ -16,6 +16,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+import settings
+
 
 @dataclass(frozen=True)
 class Provider:
@@ -25,6 +27,7 @@ class Provider:
     supports_upfront_session_id: bool
     api_key_env_var: str | None
     remote_control: bool  # has an official Claude-Code-style remote control
+    supports_orchestration: bool  # can this provider run an Agent Stack (coordinator + subagents)?
 
     def new_session_args(self, session_id: str, label: str) -> list[str]:
         if self.id == "claude":
@@ -65,22 +68,22 @@ PROVIDERS: dict[str, Provider] = {
     "claude": Provider(
         id="claude", label="Claude", binary="claude",
         supports_upfront_session_id=True, api_key_env_var=None,
-        remote_control=True,
+        remote_control=True, supports_orchestration=True,
     ),
     "gemini": Provider(
         id="gemini", label="Gemini", binary="gemini",
         supports_upfront_session_id=False, api_key_env_var="GEMINI_API_KEY",
-        remote_control=False,
+        remote_control=False, supports_orchestration=False,
     ),
     "codex": Provider(
         id="codex", label="Codex", binary="codex",
         supports_upfront_session_id=False, api_key_env_var="OPENAI_API_KEY",
-        remote_control=False,
+        remote_control=False, supports_orchestration=False,
     ),
     "kimi": Provider(
         id="kimi", label="Kimi", binary="kimi",
         supports_upfront_session_id=True, api_key_env_var="MOONSHOT_API_KEY",
-        remote_control=False,
+        remote_control=False, supports_orchestration=False,
     ),
 }
 
@@ -107,3 +110,27 @@ def claude_logged_in() -> bool:
     here after `/login` succeeds. Presence isn't a live validity check (the
     token could be expired/revoked), just "you've logged in before"."""
     return (Path.home() / ".claude" / ".credentials.json").exists()
+
+
+def usable(provider_id: str) -> bool:
+    """Whether this provider is actually connected and ready to spawn a
+    session right now -- binary on PATH, plus Claude's account login or
+    the other providers' API key."""
+    provider = get(provider_id)
+    if not binary_found(provider_id):
+        return False
+    if provider_id == "claude":
+        return claude_logged_in()
+    return bool(settings.get(f"{provider_id}_api_key"))
+
+
+def orchestration_candidates() -> list[Provider]:
+    """Providers eligible to be picked as the default/orchestrator --
+    connected right now AND capable of running an Agent Stack at all.
+    Today that's Claude only: Agent Stacks are Claude Code's own native
+    subagent mechanism (it's the one binary that reads .claude/agents/),
+    so a session running Gemini/Codex/Kimi has no orchestrator to hand a
+    stack to no matter how well-connected it is. supports_orchestration
+    exists as its own flag (not folded into usable()) so a future provider
+    that gains an equivalent mechanism only needs that one field flipped."""
+    return [p for p in PROVIDERS.values() if p.supports_orchestration and usable(p.id)]

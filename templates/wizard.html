@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Set up your AI — Cadre</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  body { max-width: 720px; }
+  .wiz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; }
+  .wiz-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.9rem; cursor: pointer; transition: border-color 0.12s ease, background 0.12s ease; text-align: center; }
+  .wiz-card:hover { border-color: #3a3d46; }
+  .wiz-card.selected { border-color: transparent; background: var(--accent-soft-bg); border-image: var(--accent-gradient) 1; }
+  .wiz-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+  .wiz-step { display: none; margin-top: 1.6rem; padding-top: 1.4rem; border-top: 1px solid var(--border-soft); }
+  .wiz-step.active { display: block; }
+  .wiz-connect-panel { display: none; }
+  .wiz-connect-panel.active { display: block; }
+</style>
+</head>
+<body>
+  <h1 class="brand" style="font-size:1.4rem; margin-top:1.5rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Set up your AI</h1>
+  <p class="sub">Pick which AI you use, connect it, and set it as your default — used to pre-fill new sessions and, if it's capable, to run your Agent Stacks. You can come back and change this anytime from Settings.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <h2 style="margin-top:0.5rem;">1. Which AI do you use?</h2>
+  <div class="wiz-grid">
+    {% for p in providers %}
+    <div class="wiz-card" id="wiz-card-{{ p.id }}" onclick="selectProvider('{{ p.id }}')">
+      <h3>{{ p.label }}</h3>
+      {% if p.supports_orchestration %}
+      <span class="badge badge-info">Runs Agent Stacks</span>
+      {% else %}
+      <span class="badge badge-off">Session-only for now</span>
+      {% endif %}
+      {% if not provider_binaries[p.id] %}
+      <div class="hint" style="color:var(--danger-text); margin-top:0.5rem;">CLI not found on PATH</div>
+      {% elif usable[p.id] %}
+      <div class="status" style="margin-top:0.5rem;">&#10003; connected</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="wiz-step" id="wiz-step-connect">
+    <h2 style="margin-top:0;">2. Connect it</h2>
+
+    <div class="wiz-connect-panel" id="wiz-connect-claude">
+      {% if not claude_installed %}
+      <p class="hint" style="color:var(--danger-text);">
+        The <code>claude</code> command-line tool isn't installed on this machine yet — a
+        one-time terminal step this app can't do for you:
+      </p>
+      <p class="hint"><code>npm install -g @anthropic-ai/claude-code</code></p>
+      {% elif not claude_logged_in %}
+      <p class="hint">
+        Installed but not logged in yet. Easiest path:
+        <a href="{{ url_for('new_session_form') }}">create a session</a>, open its terminal,
+        and run <code>/login</code> there.
+      </p>
+      {% else %}
+      <p class="status">&#10003; <code>claude</code> is installed and logged in on this machine.</p>
+      {% endif %}
+    </div>
+
+    {% for p in providers %}
+    {% if p.id != 'claude' %}
+    <div class="wiz-connect-panel" id="wiz-connect-{{ p.id }}">
+      {% if not provider_binaries[p.id] %}
+      <p class="hint" style="color:var(--danger-text);">The <code>{{ p.binary }}</code> CLI isn't found on this machine's PATH — install it first.</p>
+      {% endif %}
+      <form method="post" action="{{ url_for('wizard_connect') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="provider" value="{{ p.id }}">
+        <label>{{ p.label }} API key</label>
+        <input name="api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.get(p.id ~ '_api_key') else 'Not set' }}">
+        <button class="btn btn-primary" type="submit" style="margin-top:0.8rem;">Save key</button>
+      </form>
+      <p class="hint" style="margin-top:0.6rem;">Account login isn't wired up for {{ p.label }} here yet — an API key is the only connection method this wizard offers for it right now.</p>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="wiz-step" id="wiz-step-confirm">
+    <h2 style="margin-top:0;">3. Set as default</h2>
+    <p class="hint" id="wiz-confirm-hint"></p>
+    <form method="post" action="{{ url_for('wizard_set_default') }}" id="wiz-default-form" style="display:none;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="provider" id="wiz-default-provider-field" value="">
+      <button class="btn btn-primary" type="submit">Set as default</button>
+    </form>
+  </div>
+
+  <p style="margin-top:2rem;"><a class="btn" href="{{ url_for('index') }}">Skip for now &rarr;</a></p>
+
+<script>
+const PROVIDER_META = {
+  {% for p in providers %}"{{ p.id }}": { label: {{ p.label | tojson }}, orchestration: {{ p.supports_orchestration | tojson }}, usable: {{ usable[p.id] | tojson }} }{{ "," if not loop.last }}
+  {% endfor %}
+};
+const currentDefault = {{ default_provider | tojson }};
+
+function selectProvider(id) {
+  document.querySelectorAll('.wiz-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('wiz-card-' + id).classList.add('selected');
+
+  document.getElementById('wiz-step-connect').classList.add('active');
+  document.querySelectorAll('.wiz-connect-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById('wiz-connect-' + id).classList.add('active');
+
+  document.getElementById('wiz-step-confirm').classList.add('active');
+  const meta = PROVIDER_META[id];
+  const hint = document.getElementById('wiz-confirm-hint');
+  const form = document.getElementById('wiz-default-form');
+  if (!meta.orchestration) {
+    hint.textContent = meta.label + " can run its own sessions once connected, but can't currently act as the Agent Stacks orchestrator -- that's still Claude-only. Pick Claude here if you want your default to also run your agent stacks.";
+    form.style.display = 'none';
+  } else if (!meta.usable) {
+    hint.textContent = "Connect " + meta.label + " above first, then it can be set as your default.";
+    form.style.display = 'none';
+  } else {
+    hint.textContent = "";
+    document.getElementById('wiz-default-provider-field').value = id;
+    form.style.display = 'block';
+  }
+}
+
+if (currentDefault && PROVIDER_META[currentDefault]) {
+  selectProvider(currentDefault);
+}
+</script>
+</body>
+</html>
