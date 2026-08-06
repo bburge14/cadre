@@ -1,9 +1,11 @@
 # Cadre
 
-A self-hosted, single-user web app for managing multiple Claude Code
-sessions (each reachable remotely via claude.ai/code) and the global agent
-team at `~/.claude/agents/` that all of them share. See `SETUP.md` to
-install your own copy.
+A self-hosted, single-user web app for running and managing AI coding
+sessions — Claude, Gemini, Codex, or Kimi, your choice per session — plus
+**Agent Stacks**: a directory-scoped subagent team (Claude Code's own
+native `.claude/agents/` mechanism) for any project, not just one global
+team. A shared **Skills** library lets any agent in any stack pull in the
+same reusable instructions. See `SETUP.md` to install your own copy.
 
 Runs well as a systemd `--user` service (`cadre-app.service`),
 enabled + lingering, so it's always up — no manual start needed. See
@@ -30,7 +32,18 @@ enabled + lingering, so it's always up — no manual start needed. See
   the other three are API-key only (Settings). Any agent can also
   "delegate" its actual work to one of these via an auto-generated
   instruction block, regardless of which provider its own session runs —
-  see "AI CLI providers" in `SETUP.md`.
+  see "AI CLI providers" in `SETUP.md`. Small colored badges (not real
+  brand logos — this app fetches no external assets) show which provider
+  each agent actually uses, in a stack's agent table and its diagram.
+- **Setup wizard & default AI**: `/wizard` (shown once right after
+  creating your admin account, or reachable anytime from Settings) walks
+  through picking a provider, connecting it, and setting it as your
+  default — pre-fills new sessions and is meant to be the one that runs
+  your Agent Stacks. The default picker only ever offers a provider that's
+  both actually connected *and* capable of running a stack — today that's
+  Claude only, since Agent Stacks is Claude Code's own native subagent
+  mechanism and no other CLI's binary reads `.claude/agents/` (yet — see
+  "What's next" below).
 - **Multi-stack**: more than one agent team can exist at once, each tied to
   a directory via Claude Code's native per-project `.claude/agents/`
   override (`/stacks/<id>/edit` — create/edit/delete named stacks). The
@@ -61,6 +74,18 @@ enabled + lingering, so it's always up — no manual start needed. See
   sends that keystroke blindly, only after actually seeing the prompt text.
   The same reader also watches for usage/rate-limit messages and flags them
   on the dashboard — see "AI CLI providers" in `SETUP.md`.
+- **Directory browser**: every path field (a stack's directory, a
+  session's working directory, Settings' projects root) has a "Browse…"
+  button that lists real subdirectories on this machine (`GET
+  /api/browse-dirs`) and fills the field for you — a browser's native
+  file picker can't hand a page a real filesystem path, so this walks the
+  filesystem server-side instead, on the same machine those paths refer
+  to.
+- **Contextual help**: a small "?" next to anything unconfigured or
+  non-obvious (a CLI not found on `PATH`, an agent's primary provider not
+  actually connected, the agent/skill creation forms) expands inline
+  install commands, docs links, or pointers instead of leaving a bare
+  warning.
 - **External adoption**: status/start/stop all match by session UUID via
   `psutil`-based process discovery, so a session started outside this app
   (desktop icon, manual `claude --resume ... --remote-control`) is
@@ -74,6 +99,20 @@ enabled + lingering, so it's always up — no manual start needed. See
   it's back. Never touches the session daemon. A git-clone-only terminal
   equivalent is also available via `linux/update.sh` / `macos/update.sh` /
   `windows\update.bat` — see "Updating" in `SETUP.md`.
+
+## What's next: non-Claude Agent Stacks
+
+Right now Agent Stacks only run in Claude sessions — that's the current
+state, not a permanent one. Codex CLI, Gemini CLI, and Kimi Code CLI have
+each since shipped their own native subagent-delegation mechanism
+(config-file-driven, conceptually the same idea as Claude Code's
+`.claude/agents/*.md` + Task tool, just three different formats: TOML for
+Codex, Markdown+YAML for Gemini and Kimi) and confirmed genuine multi-step
+agentic behavior in their non-interactive modes — so a from-scratch
+orchestration engine isn't needed to get there. What's missing is a
+translation layer: the same agent definitions this app already manages,
+compiled to whichever format matches a given stack's target provider and
+written to that provider's own config directory. Not yet built.
 
 ## Operational notes
 

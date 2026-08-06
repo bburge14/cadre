@@ -1,10 +1,12 @@
 # Cadre — Setup
 
-A web dashboard for managing multiple Claude Code sessions (each reachable
-remotely via claude.ai/code) and the global subagent team they all share.
-This is self-hosted, single-user software: you run your own copy on your
-own machine, under your own Claude account. There's no shared server and no
-account system beyond the one admin login you create for yourself below.
+A web dashboard for running and managing AI coding sessions (Claude,
+Gemini, Codex, or Kimi) and Agent Stacks — a directory-scoped subagent team
+(Claude Code's own native `.claude/agents/` mechanism) for any project, not
+just one global team, plus a shared Skills library any agent can use. This
+is self-hosted, single-user software: you run your own copy on your own
+machine, under your own accounts. There's no shared server and no account
+system beyond the one admin login you create for yourself below.
 
 ## What's in git vs. what's yours alone
 
@@ -71,14 +73,20 @@ account system beyond the one admin login you create for yourself below.
 5. **Open it in a browser** at that address. First visit should redirect
    you to an account-creation page — pick a username and password (this is
    the only account this instance will ever have). After creating it,
-   you're automatically logged in and land on the dashboard — Sessions at
-   the top, your Agent Stacks below it (empty at first, with a "+ New
-   stack" button). That's success.
+   you're automatically logged in and land on the setup wizard — pick
+   which AI you use, connect it (Claude: create a session and run
+   `/login`; Gemini/Codex/Kimi: paste an API key), and set it as your
+   default. "Skip for now" if you'd rather do this later — it's always
+   reachable again from Settings. Either way you land on the dashboard
+   next — Sessions at the top, your Agent Stacks below it (empty at
+   first, with a "+ New stack" button). That's success.
 
 6. **Create a stack** (or skip to "back to dashboard" and manage agents
    one at a time instead — see below). A stack is a directory's own
    `.claude/agents/` team: pick a name, an absolute directory path (created
-   automatically if it doesn't exist), and either click a preset
+   automatically if it doesn't exist — "Browse…" next to the field opens a
+   folder picker if you'd rather click through than type one), and either
+   click a preset
    (Generalist, Coding, Content/Writing, Research/Analysis, DevOps/
    Infrastructure, Data Science/Analytics) or check individual agents from
    the library. Not sure which fits yet? Generalist is a reasonable
@@ -173,6 +181,11 @@ Skip this section entirely if you only ever plan to point sessions at
 directories already on this machine — nothing else depends on it.
 
 ## AI CLI providers (Claude / Gemini / Codex / Kimi)
+
+The setup wizard (`/wizard`, also linked from Settings) walks through
+connecting one of these step by step; this section is the manual/reference
+version of the same thing, and covers per-agent delegation, which the
+wizard doesn't.
 
 Every agent in every stack is still a **Claude Code subagent** — that part
 isn't optional, and it's why there's no "Claude" row in the API-key list
