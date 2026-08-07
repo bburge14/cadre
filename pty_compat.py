@@ -44,6 +44,12 @@ if IS_WINDOWS:
         def pid(self) -> int:
             return self._proc.pid
 
+        def resize(self, rows: int, cols: int) -> None:
+            try:
+                self._proc.setwinsize(rows, cols)
+            except Exception:
+                pass
+
         def terminate(self) -> None:
             try:
                 self._proc.terminate(force=True)
@@ -51,10 +57,13 @@ if IS_WINDOWS:
                 pass
 
 else:
+    import fcntl
     import os
     import pty
     import signal
+    import struct
     import subprocess
+    import termios
 
     class PtySession:
         def __init__(self, args: list[str], cwd: str, extra_env: dict | None = None) -> None:
@@ -85,6 +94,17 @@ else:
         @property
         def pid(self) -> int:
             return self._proc.pid
+
+        def resize(self, rows: int, cols: int) -> None:
+            # TIOCSWINSZ on the master fd is what actually changes what a
+            # full-screen TUI (vim, htop, or the CLI itself) thinks its
+            # window is -- the kernel sends SIGWINCH to the pty's
+            # foreground process group on its own once this is set, no
+            # explicit signal needed.
+            try:
+                fcntl.ioctl(self._master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+            except OSError:
+                pass
 
         def terminate(self) -> None:
             try:

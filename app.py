@@ -54,6 +54,11 @@ def inject_dashboard_theme():
     return {"dashboard_theme": settings.get("dashboard_theme")}
 
 
+@app.context_processor
+def inject_terminal_theme():
+    return {"terminal_theme": settings.get("terminal_theme")}
+
+
 def _static_asset_version() -> str:
     """A browser caches style.css aggressively by default, with nothing
     telling it a CSS-only change (no template/route change) means the
@@ -1526,6 +1531,38 @@ def apply_update():
 _SETTINGS_TABS = {"account", "version", "githosts", "providers", "sessions", "appearance"}
 
 
+def _apply_terminal_theme_to_all_sessions(choice: str) -> int:
+    """Rewrites every known session's own provider config to the given
+    theme (dark/light/auto) -- apply_theme() otherwise only ever runs at
+    session-creation time, so without this, changing the theme would
+    affect new sessions only. A CLI that's already running read its
+    config at startup, though, so this alone won't change what's on
+    screen for a running session -- it still needs a restart (via its
+    own Start/Stop/Restart controls) to re-read the file just written."""
+    applied = 0
+    for entry in sessions_store.list_sessions():
+        try:
+            terminal_theme.apply_theme(entry["workdir"], entry.get("provider", "claude"), choice)
+            applied += 1
+        except Exception as exc:
+            print(f"terminal_theme re-apply failed for {entry.get('workdir')}: {exc}")
+    return applied
+
+
+@app.post("/settings/terminal-theme")
+@require_auth
+def save_terminal_theme():
+    # Lives on the terminal pages themselves, not in Settings -- it's
+    # about the CLI running inside a session, which is right where you're
+    # looking at it, not a dashboard-wide preference buried in a form.
+    choice = request.form.get("terminal_theme", "")
+    if choice not in ("auto", "dark", "light"):
+        return {"ok": False, "error": "invalid theme"}, 400
+    settings.update(terminal_theme=choice)
+    applied = _apply_terminal_theme_to_all_sessions(choice)
+    return {"ok": True, "applied": applied}
+
+
 @app.post("/settings")
 @require_auth
 def save_settings():
@@ -1538,9 +1575,6 @@ def save_settings():
         "gitlab_client_id": request.form.get("gitlab_client_id", ""),
         "projects_root": request.form.get("projects_root", ""),
     }
-    terminal_theme_choice = request.form.get("terminal_theme", "")
-    if terminal_theme_choice in ("auto", "dark", "light"):
-        fields["terminal_theme"] = terminal_theme_choice
     dashboard_theme_choice = request.form.get("dashboard_theme", "")
     if dashboard_theme_choice in ("default", "galaxy", "circuit", "aurora", "code-rain", "slate", "ember"):
         fields["dashboard_theme"] = dashboard_theme_choice
@@ -1560,27 +1594,6 @@ def save_settings():
         fields["default_provider"] = default_provider
 
     settings.update(**fields)
-
-    if "terminal_theme" in fields:
-        # apply_theme() only ever ran at session-creation time -- a theme
-        # change here previously affected new sessions only, leaving
-        # already-created ones on whatever they got at creation. Rewrite
-        # every known session's config now too. A CLI that's already
-        # running read its config at startup, though, so this alone won't
-        # change what's on screen for a running session -- it still needs
-        # a restart (via its own Start/Stop/Restart controls) to re-read
-        # the file we just wrote.
-        applied = 0
-        for entry in sessions_store.list_sessions():
-            try:
-                terminal_theme.apply_theme(entry["workdir"], entry.get("provider", "claude"), fields["terminal_theme"])
-                applied += 1
-            except Exception as exc:
-                print(f"terminal_theme re-apply failed for {entry.get('workdir')}: {exc}")
-        if applied:
-            flash(f"Settings saved. Terminal theme re-applied to {applied} existing session(s) -- already-running ones need a restart to pick it up.", "success")
-            return redirect(url_for("settings_form", _anchor=anchor))
-
     flash("Settings saved.", "success")
     return redirect(url_for("settings_form", _anchor=anchor))
 

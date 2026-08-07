@@ -306,7 +306,21 @@ async def _terminal_handler(websocket) -> None:
     pump_task = asyncio.ensure_future(_pump_output())
     try:
         async for message in websocket:
-            pty_session.write(message.encode("utf-8", errors="replace"))
+            # Every client->server message is tagged with a 1-byte type
+            # prefix so a resize control message can share this channel
+            # with raw keystroke data without any ambiguity -- the tag is
+            # always prepended by the client itself, never inferred from
+            # the payload, so it's safe even though raw terminal input can
+            # legitimately contain \x00/\x01 bytes (Ctrl+@, Ctrl+A).
+            if message.startswith("\x01"):
+                try:
+                    size = json.loads(message[1:])
+                    pty_session.resize(int(size["rows"]), int(size["cols"]))
+                except (ValueError, KeyError, TypeError):
+                    pass
+            else:
+                data = message[1:] if message.startswith("\x00") else message
+                pty_session.write(data.encode("utf-8", errors="replace"))
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:

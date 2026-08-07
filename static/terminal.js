@@ -12,11 +12,24 @@ function createTerminalConnection(sessionId, opts) {
   let reconnectTimer = null;
   let manuallyClosed = false;
 
+  // Every outgoing message is tagged with a 1-byte type prefix so a
+  // resize control message can share the connection with raw keystroke
+  // data unambiguously -- see session_daemon.py's _terminal_handler.
   // Registered once, not per-reconnect -- re-registering on every
   // connect() would stack duplicate handlers and send each keystroke
   // multiple times after a few reconnects.
   term.onData((data) => {
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send("\x00" + data);
+  });
+
+  // xterm.js fires this on any dimension change -- a window resize via
+  // setupTerminalFit's fitAddon.fit(), not just user typing -- so this
+  // single listener covers every case the terminal's size can change.
+  // Without forwarding it, the browser's terminal display resizes but
+  // the actual pty (and the CLI running in it) never finds out, so a
+  // full-screen program keeps rendering for whatever size it started at.
+  term.onResize(({ cols, rows }) => {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send("\x01" + JSON.stringify({ cols, rows }));
   });
 
   async function connect() {
@@ -42,7 +55,17 @@ function createTerminalConnection(sessionId, opts) {
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = proto + "//" + window.location.hostname + ":" + data.port + "/pty/" + sessionId + "?token=" + data.token;
     ws = new WebSocket(wsUrl);
-    ws.onopen = () => { reconnectAttempt = 0; onStatus("connected"); };
+    ws.onopen = () => {
+      reconnectAttempt = 0;
+      onStatus("connected");
+      // A reconnect re-attaches to the same long-running pty, which
+      // still thinks it's whatever size it was last told -- possibly
+      // stale if the browser window changed size while disconnected
+      // (that resize event fired, but had no open socket to send over).
+      // Re-declare the current size on every fresh connection so it's
+      // never wrong just because of a drop/reconnect.
+      ws.send("\x01" + JSON.stringify({ cols: term.cols, rows: term.rows }));
+    };
     ws.onmessage = (event) => { term.write(event.data); };
     ws.onclose = (event) => {
       if (manuallyClosed) { onStatus("disconnected"); return; }

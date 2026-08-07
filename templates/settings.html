@@ -202,21 +202,6 @@
     <p class="hint" style="color:var(--danger-text);">No provider currently qualifies as a default — connect one via <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
     {% endif %}
 
-    <h2>Terminal theme</h2>
-    <p class="hint">
-      Applied automatically to every new session, and re-applied to every
-      existing session's own config as soon as you save here — each CLI
-      has its own theme system, mapped to a single dark/light/auto choice.
-      A session that's already <em>running</em> read its config at
-      startup though, so it needs a restart (its own Start/Stop/Restart
-      controls) to actually pick up the change.
-    </p>
-    <select name="terminal_theme">
-      {% for opt in ['auto', 'dark', 'light'] %}
-      <option value="{{ opt }}" {{ 'selected' if opt == values.terminal_theme else '' }}>{{ opt | capitalize }}</option>
-      {% endfor %}
-    </select>
-
     <h2>AI CLI providers</h2>
     <p class="hint">
       API keys only — Gemini/Codex/Kimi's own account-login flows are
@@ -250,7 +235,7 @@
 
     <div class="tab-panel" id="tab-panel-appearance">
     <h2 style="margin-top:1.1rem;">Dashboard theme</h2>
-    <p class="hint">Just this dashboard's own look — separate from "Terminal theme" on the AI providers tab, which is about the CLI inside each session.</p>
+    <p class="hint">Just this dashboard's own look — separate from the terminal theme, which lives on the terminal page itself since it's about the CLI inside each session, not this dashboard.</p>
     <input type="hidden" name="dashboard_theme" id="dashboard-theme-field" value="{{ values.dashboard_theme }}">
 
     <p class="theme-section-label">Static</p>
