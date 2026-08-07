@@ -32,6 +32,7 @@
     <a href="#git-hosts">Connecting GitHub / GitLab</a>
     <a href="#appearance">Dashboard appearance</a>
     <a href="#account">Account &amp; recovery</a>
+    <a href="#remote-access">Reaching it from other devices</a>
     <a href="#updating">Keeping Cadre updated</a>
   </div>
 
@@ -350,6 +351,29 @@
     security answer too, a terminal-based script
     (<code>reset-admin.sh</code> / <code>.ps1</code> / <code>.bat</code>,
     in the repo) is the hard fallback — see "Locked out?" in
+    <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>.
+  </p>
+
+  <h2 id="remote-access">Reaching it from other devices</h2>
+  <p>
+    By default this only listens on the machine it's running on. Step 4 of
+    the <a href="{{ url_for('wizard_form') }}">setup wizard</a> shows
+    whether that's still the case, and if
+    <a href="https://tailscale.com" target="_blank">Tailscale</a> is
+    installed and running on this machine, shows its IP directly — no
+    digging through <code>.env</code> or a terminal to find it.
+  </p>
+  <p>
+    Getting reachable from another device always takes the same two steps:
+    set <code>CADRE_HOST=0.0.0.0</code> in <code>.env</code>, then restart.
+    From there, Tailscale (a private network between your own devices, no
+    port-forwarding needed) is the easiest path to reach it from outside
+    your own LAN too, not just on the same Wi-Fi. Forwarding a router port
+    straight to this app is possible but not recommended without a reverse
+    proxy in front handling real TLS first — this is a plain-HTTP dev
+    server underneath, and login/CSRF protection isn't a substitute for
+    encrypting the connection itself. Full walkthrough for all three
+    options: "Reaching it from another device" in
     <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>.
   </p>
 

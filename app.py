@@ -20,6 +20,7 @@ import agents_store
 import auth
 import config
 import git_hosts
+import network_info
 import presets
 import providers
 import session_manager
@@ -243,6 +244,8 @@ def wizard_form():
         claude_logged_in=providers.claude_logged_in(),
         secrets_set={f"{p.id}_api_key": bool(settings.get(f"{p.id}_api_key")) for p in providers.list_providers() if p.api_key_env_var},
         default_provider=settings.get("default_provider"),
+        current_host=config.HOST,
+        tailscale=network_info.tailscale_status(),
     )
 
 

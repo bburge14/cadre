@@ -191,6 +191,13 @@ you have to remember to check on.
   it's back. Never touches the session daemon. A git-clone-only terminal
   equivalent is also available via `linux/update.sh` / `macos/update.sh` /
   `windows\update.bat` — see "Updating" in `SETUP.md`.
+- **Remote access, made discoverable**: the setup wizard's step 4
+  (`/wizard`) shows whether this instance is currently reachable from
+  other devices, detects a running Tailscale install and shows its IP
+  directly (`network_info.py`), and points at the full walkthrough
+  (Tailscale, plain LAN, or port-forwarding behind a reverse proxy) in
+  `SETUP.md` — instead of that being a fact you had to already know to go
+  looking for.
 
 ## What's next
 
@@ -199,11 +206,6 @@ you have to remember to check on.
   schema-correct per each CLI's own docs, but hasn't been run against a
   real Codex/Gemini/Kimi install by anyone yet — that's the actual next
   step, not more code.
-- **Remote access beyond the LAN, made discoverable.** The interactive
-  terminal already works for any provider; what's missing is a guided
-  path to reaching it from outside your own network (Tailscale walkthrough
-  as the easy option, plain port-forwarding for advanced users) instead of
-  that being a fact you have to already know to go looking for.
 
 ## Operational notes
 

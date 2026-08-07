@@ -452,15 +452,64 @@ import PyInstaller's static analysis didn't catch), that's exactly the kind
 of thing that only surfaces once actually run — expect a debugging pass
 here, most likely in `windows/app.spec`'s `datas`/`hiddenimports` lists.
 
-## Reaching it from another device (Tailscale/LAN)
+## Reaching it from another device
 
 By default this only listens on `127.0.0.1` — reachable from this machine
-alone. To reach it from your phone or another device on your Tailscale
-network or LAN, set `CADRE_HOST=0.0.0.0` in `.env` and restart.
-**Do not** additionally expose that port to the open internet without a
-reverse proxy handling TLS — this is a plain-HTTP dev server underneath,
-and while it now has real login/CSRF protection, it was never hardened
-against being placed directly on the public internet.
+alone. Getting it onto your phone or another computer takes two steps no
+matter which option below you pick:
+
+1. Set `CADRE_HOST=0.0.0.0` in `.env` — this makes the app listen on every
+   network interface on this machine, not just the loopback one.
+2. Restart it: `sudo systemctl --user restart cadre-app.service` (Linux),
+   or however you normally restart it on your platform (see "Running it as
+   an always-on background service" above).
+
+That alone is enough on a trusted home LAN — anything else on the same
+network can now reach `http://<this-machine's-LAN-IP>:7420`. The wizard's
+step 4 (`/wizard`) shows whether `CADRE_HOST` is currently `0.0.0.0` or
+still the default, so you can confirm the setting took without digging
+through `.env` by hand.
+
+### Option A: Tailscale (recommended)
+
+[Tailscale](https://tailscale.com) puts this machine and your other
+devices (phone, laptop) on their own private network, reachable by each
+other from anywhere with an internet connection — no port-forwarding, no
+public exposure, no dynamic DNS to maintain.
+
+1. Install it on this machine and on whatever device you want to reach the
+   dashboard from: [tailscale.com/download](https://tailscale.com/download).
+2. Sign in on both (`tailscale up` on this machine if it's headless) — same
+   Tailscale account on both ends.
+3. Find this machine's Tailscale IP: `tailscale ip -4`, or check
+   [login.tailscale.com/admin/machines](https://login.tailscale.com/admin/machines).
+   The wizard's step 4 also shows this automatically once Tailscale is
+   installed and running.
+4. Set `CADRE_HOST=0.0.0.0` and restart (above), then open
+   `http://<tailscale-ip>:7420` from the other device. It works over
+   cellular data too, not just when both devices are on the same Wi-Fi.
+
+### Option B: plain LAN
+
+No install needed beyond step 1/2 above — just use this machine's regular
+LAN IP (`ip addr` / `ipconfig`) instead of a Tailscale one. Only reachable
+from devices on the same local network, and only while this machine's IP
+doesn't change (most home routers hand out the same IP by default, but
+don't guarantee it).
+
+### Option C: port forwarding onto the open internet — advanced, not recommended without TLS
+
+Forwarding a router port straight to this app puts it on the public
+internet. **Do not do this without a reverse proxy (Caddy, nginx, etc.) in
+front of it terminating real TLS first.** This is a plain-HTTP dev server
+underneath; the login/CSRF protection built into the app is not a
+substitute for encrypting the connection itself, and an unencrypted
+session cookie on the open internet can be intercepted. If you still want
+this, put a reverse proxy in front handling HTTPS (Caddy's automatic
+Let's-Encrypt mode is the least setup), point it at `127.0.0.1:7420` (leave
+`CADRE_HOST` at its default in that case — only the proxy needs to be
+reachable from outside), and forward the router port to the *proxy*, not
+directly to this app.
 
 ## Per-machine settings to double check
 

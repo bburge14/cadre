@@ -109,6 +109,48 @@
     </form>
   </div>
 
+  <div class="wiz-step active" style="display:block;">
+    <h2 style="margin-top:0;">4. Reach it from other devices <span class="hint">(optional)</span></h2>
+    <p class="sub">By default this only listens on this machine. Two ways to reach it from your
+      phone or another computer:</p>
+
+    {% if current_host == '0.0.0.0' %}
+    <p class="status">&#10003; Already listening on <code>0.0.0.0</code> — reachable from other
+      devices on your network already.</p>
+    {% else %}
+    <p class="hint">Still listening on <code>127.0.0.1</code> only (this machine). Set
+      <code>CADRE_HOST=0.0.0.0</code> in <code>.env</code> and restart to open it up to your
+      network or Tailscale.</p>
+    {% endif %}
+
+    <div class="wiz-grid">
+      <div class="wiz-card" style="cursor:default;">
+        <h3>Tailscale <span class="badge badge-info">recommended</span></h3>
+        {% if tailscale.ip %}
+        <p class="status">&#10003; detected and running — reachable at
+          <code>http://{{ tailscale.ip }}:7420</code> once <code>CADRE_HOST=0.0.0.0</code> is set.</p>
+        {% elif tailscale.installed %}
+        <p class="hint">Installed but not logged in yet — run <code>tailscale up</code> in a
+          terminal on this machine, then reload this page.</p>
+        {% else %}
+        <p class="hint">A private network between your own devices — no port-forwarding or
+          public exposure needed. Not detected on this machine.</p>
+        <p class="hint"><a href="https://tailscale.com/download" target="_blank">tailscale.com/download</a></p>
+        {% endif %}
+        <p class="hint" style="margin-top:0.6rem;">Full walkthrough: "Reaching it from another
+          device" in <code>SETUP.md</code>.</p>
+      </div>
+      <div class="wiz-card" style="cursor:default;">
+        <h3>Port forwarding</h3>
+        <p class="hint" style="color:var(--danger-text);">Puts this on the open internet —
+          don't do this without a reverse proxy in front handling TLS first. This is a plain-HTTP
+          dev server underneath; login/CSRF protection doesn't substitute for that.</p>
+        <p class="hint">See "Reaching it from another device" in <code>SETUP.md</code> before
+          attempting this.</p>
+      </div>
+    </div>
+  </div>
+
   <p style="margin-top:2rem;"><a class="btn" href="{{ url_for('index') }}">Skip for now &rarr;</a></p>
 
 <script>
