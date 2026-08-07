@@ -49,6 +49,13 @@
     background-image: repeating-linear-gradient(100deg, transparent 0, transparent 7px, rgba(160,200,230,0.5) 8px, transparent 9px, transparent 12px);
     background-size: 11px 22px;
   }
+  .theme-swatch-lava-lamp {
+    background-color: #0f0a14;
+    background-image:
+      radial-gradient(circle at 30% 75%, rgba(251,113,133,0.8), transparent 45%),
+      radial-gradient(circle at 65% 40%, rgba(249,115,22,0.75), transparent 42%),
+      radial-gradient(circle at 45% 90%, rgba(244,63,94,0.7), transparent 40%);
+  }
   .theme-swatch-slate {
     background-color: #0a0e1a;
     background-image:
@@ -415,7 +422,7 @@
     <div class="theme-section-header" onclick="toggleThemeSection(this)">
       <svg class="theme-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       <span class="theme-section-label">Animated</span>
-      <span class="theme-section-count">7</span>
+      <span class="theme-section-count">8</span>
     </div>
     <div class="theme-grid">
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" onclick="selectDashboardTheme('galaxy')">
@@ -445,6 +452,10 @@
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'rain' else '' }}" data-theme-value="rain" onclick="selectDashboardTheme('rain')">
         <div class="theme-swatch theme-swatch-rain"></div>
         <span>Rainfall</span>
+      </div>
+      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'lava-lamp' else '' }}" data-theme-value="lava-lamp" onclick="selectDashboardTheme('lava-lamp')">
+        <div class="theme-swatch theme-swatch-lava-lamp"></div>
+        <span>Lava Lamp</span>
       </div>
     </div>
     </div>

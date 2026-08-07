@@ -1,34 +1,35 @@
-// Canvas-based background effects for dashboard themes that a pure CSS
-// gradient can't convincingly pull off (proven true for Code Rain --
+// Canvas/DOM-based background effects for dashboard themes that a pure
+// CSS gradient can't convincingly pull off (proven true for Code Rain --
 // a CSS-only approximation didn't read as falling code at all -- and
-// again for Rainfall below). Everything else (galaxy, circuit, aurora,
-// ...) is static/CSS and doesn't need JS at all.
+// again for Rainfall and Lava Lamp below). Everything else (galaxy,
+// circuit, aurora, ...) is static/CSS and doesn't need JS at all.
 (function () {
-  // Shared by every effect below: a canvas appended as a sibling of
-  // <body> (not a descendant) deliberately -- body has its own load-in
-  // animation (a transform, even though it settles at translateY(0) and
-  // stays there via fill-mode "both"), and any ancestor with a non-none
-  // computed transform becomes the containing block for position:fixed
-  // descendants. Nested inside body, a canvas would size itself to
-  // body's own centered max-width column instead of the real viewport,
-  // leaving the sides of the screen blank -- the same bug independently
-  // found and fixed for the CSS-only star/particle themes (see
-  // style.css's html[data-theme="galaxy"]::before comment). As a
-  // sibling of body, a canvas is unaffected by body's CSS either way.
-  function makeCanvas(id) {
-    const canvas = document.createElement("canvas");
-    canvas.id = id;
-    canvas.style.position = "fixed";
-    canvas.style.inset = "0";
-    canvas.style.zIndex = "-1";
-    canvas.style.pointerEvents = "none";
-    document.documentElement.appendChild(canvas);
-    return canvas;
+  // Shared by every effect below: appended as a sibling of <body> (not a
+  // descendant) deliberately -- body has its own load-in animation (a
+  // transform, even though it settles at translateY(0) and stays there
+  // via fill-mode "both"), and any ancestor with a non-none computed
+  // transform OR filter becomes the containing block for position:fixed
+  // descendants. Nested inside body, an effect element would size itself
+  // to body's own centered max-width column instead of the real
+  // viewport, leaving the sides of the screen blank -- the same bug
+  // independently found and fixed for the CSS-only star/particle themes
+  // (see style.css's html[data-theme="galaxy"]::before comment). As a
+  // sibling of body, an effect element is unaffected by body's CSS
+  // either way.
+  function attachFixedLayer(el) {
+    el.style.position = "fixed";
+    el.style.inset = "0";
+    el.style.zIndex = "-1";
+    el.style.pointerEvents = "none";
+    document.documentElement.appendChild(el);
+    return el;
   }
 
   function startCodeRain() {
     if (document.getElementById("code-rain-canvas")) return null;
-    const canvas = makeCanvas("code-rain-canvas");
+    const canvas = document.createElement("canvas");
+    canvas.id = "code-rain-canvas";
+    attachFixedLayer(canvas);
     const ctx = canvas.getContext("2d");
     const chars = "01";
     const fontSize = 15;
@@ -67,12 +68,20 @@
     }
 
     const interval = setInterval(draw, 50);
-    return { canvas, interval, resize };
+    return {
+      stop() {
+        clearInterval(interval);
+        window.removeEventListener("resize", resize);
+        canvas.remove();
+      },
+    };
   }
 
   function startRainfall() {
     if (document.getElementById("rainfall-canvas")) return null;
-    const canvas = makeCanvas("rainfall-canvas");
+    const canvas = document.createElement("canvas");
+    canvas.id = "rainfall-canvas";
+    attachFixedLayer(canvas);
     const ctx = canvas.getContext("2d");
     // Slight left-leaning wind on every drop -- a perfectly vertical
     // rain canvas reads as static noise more than weather; the shared
@@ -126,23 +135,62 @@
     }
 
     const interval = setInterval(draw, 30);
-    return { canvas, interval, resize };
+    return {
+      stop() {
+        clearInterval(interval);
+        window.removeEventListener("resize", resize);
+        canvas.remove();
+      },
+    };
   }
 
-  const EFFECTS = { "code-rain": startCodeRain, "rain": startRainfall };
-  let running = null; // { theme, canvas, interval, resize }
+  function startLavaLamp() {
+    if (document.getElementById("lava-lamp-layer")) return null;
+    // No canvas here -- CSS animation instead. The classic "goo" trick:
+    // blur the whole group heavily, then crank contrast back up so soft
+    // blurred edges snap back to hard ones -- wherever two blobs'
+    // blurred halos overlap, contrast pulls that overlap solid too,
+    // reading as one blob merging into another instead of two circles
+    // overlapping. filter (like transform) creates a containing block
+    // for position:fixed descendants -- irrelevant here since nothing
+    // inside this layer is itself position:fixed, only position:absolute
+    // relative to this already-fixed, already-outside-body wrapper.
+    const layer = document.createElement("div");
+    layer.id = "lava-lamp-layer";
+    attachFixedLayer(layer);
+    layer.style.overflow = "hidden";
+    layer.style.filter = "blur(28px) contrast(22)";
+
+    const COLORS = ["#fb7185", "#f97316", "#f43f5e", "#fb923c", "#e11d48"];
+    const BLOB_COUNT = 8;
+    for (let i = 0; i < BLOB_COUNT; i++) {
+      const blob = document.createElement("div");
+      blob.className = "lava-blob";
+      const size = 90 + Math.random() * 150;
+      blob.style.width = size + "px";
+      blob.style.height = size + "px";
+      blob.style.left = Math.random() * 90 + "%";
+      blob.style.background = COLORS[i % COLORS.length];
+      blob.style.animationDuration = 22 + Math.random() * 16 + "s";
+      blob.style.animationDelay = -Math.random() * 30 + "s";
+      layer.appendChild(blob);
+    }
+
+    return { stop: () => layer.remove() };
+  }
+
+  const EFFECTS = { "code-rain": startCodeRain, "rain": startRainfall, "lava-lamp": startLavaLamp };
+  let running = null; // { theme, stop }
 
   function sync() {
     const theme = document.documentElement.dataset.theme;
     if (running && running.theme !== theme) {
-      clearInterval(running.interval);
-      window.removeEventListener("resize", running.resize);
-      running.canvas.remove();
+      running.stop();
       running = null;
     }
     if (!running && EFFECTS[theme]) {
       const started = EFFECTS[theme]();
-      if (started) running = { theme, ...started };
+      if (started) running = { theme, stop: started.stop };
     }
   }
 

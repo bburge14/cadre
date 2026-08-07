@@ -227,6 +227,39 @@ html[data-theme="rain"] {
   background-attachment: fixed;
 }
 
+/* Lava Lamp: plain dark backdrop here, same as Code Rain/Rain above --
+   static/theme-effects.js draws the actual gooey rising-blob effect on a
+   DOM layer (not canvas) when it detects this theme. Warm pink/rose +
+   orange lamp-glass palette, distinct from Ember's straight orange/red
+   rising embers -- this is meant to read as thick, slow-moving wax, not
+   sparks. */
+html[data-theme="lava-lamp"] {
+  --accent: #fb7185;
+  --accent-hover: #fda4af;
+  --accent-2: #f97316;
+  --accent-gradient: linear-gradient(135deg, #fb7185, #f97316);
+  --accent-soft-bg: #3a1220;
+  --accent-soft-text: #fda4af;
+  background-color: #0f0a14;
+  background-image: radial-gradient(ellipse 1100px 600px at 50% 110%, rgba(251, 113, 133, 0.10), transparent 65%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+#lava-lamp-layer .lava-blob {
+  position: absolute;
+  bottom: -10%;
+  border-radius: 50%;
+  opacity: 0.85;
+  animation-name: lava-rise;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+@keyframes lava-rise {
+  0% { transform: translateY(5vh) scale(0.9); }
+  50% { transform: translateY(-65vh) scale(1.15); }
+  100% { transform: translateY(5vh) scale(0.9); }
+}
+
 /* Ember: same single-repeating-tile-pseudo-element trick as Galaxy's
    stars (one layer, one background-position animation -- no per-layer
    desync risk), but warm-colored dots drifting straight UP instead of
