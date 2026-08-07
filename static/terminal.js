@@ -39,6 +39,16 @@ function resolveXtermTheme(choice) {
   return prefersLight ? XTERM_THEMES.light : XTERM_THEMES.dark;
 }
 
+// The wrapper div around the terminal (padding + any leftover space
+// past however many rows/cols actually fit) has its own background,
+// separate from xterm.js's own canvas -- without this, a light theme
+// only recolors the terminal's populated rows, leaving a black band of
+// unstyled wrapper showing everywhere else.
+function syncTerminalWrapperBackground(wrapperId, theme) {
+  const el = document.getElementById(wrapperId);
+  if (el) el.style.background = theme.background;
+}
+
 function createTerminalConnection(sessionId, opts) {
   const { tokenUrl, csrfToken, term, onStatus, onNotRunning } = opts;
   let ws = null;

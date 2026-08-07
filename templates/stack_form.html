@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
-<script src="{{ url_for('static', filename='theme-effects.js') }}"></script>
+<script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <style>
   .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem; }
   .preset-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem; cursor: pointer; transition: border-color 0.12s ease, background 0.12s ease; }

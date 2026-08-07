@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
-<script src="{{ url_for('static', filename='theme-effects.js') }}"></script>
+<script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
   body { max-width: 760px; }
@@ -97,8 +97,8 @@
     </form>
   </div>
 
-<script src="{{ url_for('static', filename='vendor/xterm.js') }}"></script>
-<script src="{{ url_for('static', filename='terminal.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/xterm.js') }}?v={{ asset_version }}"></script>
+<script src="{{ url_for('static', filename='terminal.js') }}?v={{ asset_version }}"></script>
 <script>
 let wasLimitHit = {{ 'true' if status.limit_hit else 'false' }};
 if ("Notification" in window && Notification.permission === "default") {
@@ -155,8 +155,10 @@ function toggleTerminal() {
 
   const firstOpen = !term;
   if (firstOpen) {
-    term = new Terminal({ convertEol: true, fontSize: 13, theme: resolveXtermTheme("{{ terminal_theme }}") });
+    const initialTheme = resolveXtermTheme("{{ terminal_theme }}");
+    term = new Terminal({ convertEol: true, fontSize: 13, theme: initialTheme });
     term.open(document.getElementById("terminal"));
+    syncTerminalWrapperBackground("terminal-container", initialTheme);
     // Without this, the terminal never resizes to fill #terminal-container
     // at all -- it just sits at whatever size it happened to render at
     // first, which also meant the drag handle on the container resized

@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#16171a">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
-<script src="{{ url_for('static', filename='theme-effects.js') }}"></script>
+<script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
   html, body { height: 100%; }
@@ -57,9 +57,9 @@
     <button class="btn btn-primary" onclick="sessionAction('start')">Start it</button>
   </div>
 
-<script src="{{ url_for('static', filename='vendor/xterm.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/xterm-addon-fit.js') }}"></script>
-<script src="{{ url_for('static', filename='terminal.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/xterm.js') }}?v={{ asset_version }}"></script>
+<script src="{{ url_for('static', filename='vendor/xterm-addon-fit.js') }}?v={{ asset_version }}"></script>
+<script src="{{ url_for('static', filename='terminal.js') }}?v={{ asset_version }}"></script>
 <script>
 const SESSION_ID = "{{ session.id }}";
 const CSRF_TOKEN = "{{ csrf_token() }}";
@@ -68,8 +68,10 @@ let connection = null;
 let notRunning = false;
 let pollTimer = null;
 
-const term = new Terminal({ convertEol: true, fontSize: 14, theme: resolveXtermTheme("{{ terminal_theme }}") });
+const initialTheme = resolveXtermTheme("{{ terminal_theme }}");
+const term = new Terminal({ convertEol: true, fontSize: 14, theme: initialTheme });
 term.open(document.getElementById("terminal"));
+syncTerminalWrapperBackground("terminal-wrap", initialTheme);
 fitAddon = setupTerminalFit(term);
 
 function showNotRunning() {
@@ -125,7 +127,9 @@ async function saveTerminalTheme(choice) {
     const data = await res.json();
     // The CLI's own config needs a restart to pick up, but xterm.js's
     // colors are ours to control directly -- update those live, now.
-    term.options.theme = resolveXtermTheme(choice);
+    const newTheme = resolveXtermTheme(choice);
+    term.options.theme = newTheme;
+    syncTerminalWrapperBackground("terminal-wrap", newTheme);
     select.title = data.ok
       ? "Terminal theme (applied to " + data.applied + " session(s) -- already-running ones need a restart to pick it up)"
       : "Terminal theme (save failed)";

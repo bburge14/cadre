@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
-<script src="{{ url_for('static', filename='theme-effects.js') }}"></script>
+<script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <style>
   body { max-width: 420px; padding-top: 4rem; }
   .btn { width: 100%; margin-top: 1.3rem; justify-content: center; }
