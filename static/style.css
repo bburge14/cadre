@@ -122,10 +122,10 @@ html[data-theme="circuit"] {
   --accent-soft-text: #86f0c0;
   background-color: #050d08;
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='120'%20height='120'%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.5'%20opacity='0.5'%3E%3Cpath%20d='M0%2030H35V10H60'/%3E%3Cpath%20d='M120%2090H85V110H60'/%3E%3Cpath%20d='M20%20120V85H50V60'/%3E%3Cpath%20d='M100%200V35H70V60'/%3E%3Cpath%20d='M60%2060H90'/%3E%3C/g%3E%3Cg%20fill='%2338e096'%20opacity='0.65'%3E%3Ccircle%20cx='60'%20cy='10'%20r='2.5'/%3E%3Ccircle%20cx='60'%20cy='110'%20r='2.5'/%3E%3Ccircle%20cx='50'%20cy='60'%20r='2.5'/%3E%3Ccircle%20cx='70'%20cy='60'%20r='2.5'/%3E%3Ccircle%20cx='0'%20cy='30'%20r='2'/%3E%3Ccircle%20cx='120'%20cy='90'%20r='2'/%3E%3Ccircle%20cx='20'%20cy='120'%20r='2'/%3E%3Ccircle%20cx='100'%20cy='0'%20r='2'/%3E%3C/g%3E%3C/svg%3E"),
-    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(56, 224, 150, 0.12), transparent 60%),
-    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(34, 197, 220, 0.12), transparent 60%);
-  background-size: 120px 120px, auto, auto;
+    url("data:image/svg+xml,%3Csvg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.2'%20opacity='0.16'%3E%3Cpath%20d='M0%2040H46V13H80'/%3E%3Cpath%20d='M160%20120H113V147H80'/%3E%3Cpath%20d='M27%20160V113H67V80'/%3E%3Cpath%20d='M133%200V46H93V80'/%3E%3Cpath%20d='M80%2080H120'/%3E%3C/g%3E%3Cg%20fill='%2338e096'%20opacity='0.22'%3E%3Ccircle%20cx='80'%20cy='13'%20r='2.2'/%3E%3Ccircle%20cx='80'%20cy='147'%20r='2.2'/%3E%3Ccircle%20cx='67'%20cy='80'%20r='2.2'/%3E%3Ccircle%20cx='93'%20cy='80'%20r='2.2'/%3E%3Ccircle%20cx='0'%20cy='40'%20r='1.8'/%3E%3Ccircle%20cx='160'%20cy='120'%20r='1.8'/%3E%3Ccircle%20cx='27'%20cy='160'%20r='1.8'/%3E%3Ccircle%20cx='133'%20cy='0'%20r='1.8'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(56, 224, 150, 0.10), transparent 60%),
+    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(34, 197, 220, 0.10), transparent 60%);
+  background-size: 160px 160px, auto, auto;
   background-repeat: repeat, no-repeat, no-repeat;
   background-attachment: fixed;
 }

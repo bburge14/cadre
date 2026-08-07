@@ -69,11 +69,21 @@
     }
   }
 
-  sync();
-  // Covers any future live data-theme swap (e.g. a settings preview)
-  // without needing this script to know about it specifically.
-  new MutationObserver(sync).observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme"],
-  });
+  function init() {
+    sync();
+    // Covers any future live data-theme swap (e.g. a settings preview)
+    // without needing this script to know about it specifically.
+    new MutationObserver(sync).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+
+  // This script is loaded from <head>, before <body> exists yet --
+  // startCodeRain() needs document.body, so wait for it on first parse.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 })();
