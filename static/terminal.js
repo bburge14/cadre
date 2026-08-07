@@ -351,19 +351,38 @@ const MAX_TERM_ROWS = 60;
 function setupTerminalFit(term) {
   function fit() {
     const size = computeFitSize(term);
-    if (!size) return;
+    if (!size) return false;
     const cols = Math.min(size.cols, MAX_TERM_COLS);
     const rows = Math.min(size.rows, MAX_TERM_ROWS);
-    if (cols !== term.cols || rows !== term.rows) term.resize(cols, rows);
+    if (cols === term.cols && rows === term.rows) return true;
+    // FitAddon's own (broken) fit() clears the render surface immediately
+    // before resizing -- matching that one behavior exactly, just
+    // without the property access that actually crashes.
+    term._core._renderService.clear();
+    term.resize(cols, rows);
+    return true;
   }
 
-  // Character-cell measurement or the container's own layout may not
-  // be ready on the very first call (fresh terminal, or right after a
+  // Character-cell measurement or the container's own layout may not be
+  // ready on the very first call (fresh terminal, or right after a
   // display:none -> visible flip) -- there's no event for "now it's
-  // ready," so retry across a spread of delays instead of gambling on
-  // one. Cheap to over-call -- fit() is a no-op once the size already
-  // matches what's there.
-  [0, 50, 150, 300, 600, 1000].forEach((delay) => setTimeout(fit, delay));
+  // ready." Previously this fired fit() at a fixed spread of delays
+  // (0/50/150/300/600ms) regardless of whether earlier ones had already
+  // succeeded -- if a websocket connection landed its backlog replay in
+  // the middle of that window (a real terminal can easily have a lot of
+  // freshly-written content by then), *each* later retry that computed
+  // even a slightly different size reflowed that same large buffer
+  // again, immediately after the last reflow, before it had settled --
+  // overlapping, corrupted-looking text, not a clean redraw. Polling
+  // instead and stopping at the first successful measurement means
+  // exactly one resize happens during startup, not up to six; the
+  // ResizeObserver below still catches anything that first measurement
+  // got slightly wrong, the same way it catches any later real resize.
+  let attempts = 0;
+  const settleTimer = setInterval(() => {
+    attempts += 1;
+    if (fit() || attempts >= 20) clearInterval(settleTimer);
+  }, 50);
 
   // term.element's own parent is the div passed to term.open() -- its
   // size is driven by outer CSS/flex layout, not by xterm itself, so
