@@ -67,13 +67,29 @@ function createTerminalConnection(sessionId, opts) {
   });
 
   // xterm.js fires this on any dimension change -- a window resize via
-  // setupTerminalFit's fitAddon.fit(), not just user typing -- so this
-  // single listener covers every case the terminal's size can change.
-  // Without forwarding it, the browser's terminal display resizes but
-  // the actual pty (and the CLI running in it) never finds out, so a
+  // setupTerminalFit's fit(), not just user typing -- so this single
+  // listener covers every case the terminal's size can change. Without
+  // forwarding it, the browser's terminal display resizes but the
+  // actual pty (and the CLI running in it) never finds out, so a
   // full-screen program keeps rendering for whatever size it started at.
+  //
+  // Debounced before it ever reaches the server -- setupTerminalFit
+  // retries several times while the page is still settling (fonts,
+  // layout, an animation), and each of those can fire onResize with a
+  // slightly different size as measurements stabilize. The client-side
+  // xterm.js resize itself is cheap and harmless to do repeatedly, but
+  // each one that reaches the real pty triggers a SIGWINCH, and a CLI
+  // with its own full-screen redraw (Claude Code's own TUI) doing that
+  // several times in a tight burst is what produced garbled, overlapping
+  // screen contents in practice -- multiple redraws for different
+  // assumed widths landing on top of each other. Only sending the
+  // settled, final size avoids that redraw storm entirely.
+  let resizeSendTimer = null;
   term.onResize(({ cols, rows }) => {
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send("\x01" + JSON.stringify({ cols, rows }));
+    clearTimeout(resizeSendTimer);
+    resizeSendTimer = setTimeout(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send("\x01" + JSON.stringify({ cols, rows }));
+    }, 250);
   });
 
   async function connect() {
