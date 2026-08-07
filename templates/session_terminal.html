@@ -21,30 +21,24 @@
      inside it. */
   html, body { height: 100%; overflow-x: hidden; }
   body { max-width: none; padding: 0; display: flex; flex-direction: column; }
+  /* Grid, not flex + absolute positioning -- the previous approach
+     (absolutely centering the title against the header) had no idea how
+     wide the left-side controls actually were, so at plenty of ordinary
+     desktop widths the title just rendered on top of them; a media-
+     query breakpoint was a guess at a threshold, not a real fix, and
+     didn't cover the actual overlap range. A 1fr/auto/1fr grid can't
+     overlap by construction: the left and right columns always claim
+     equal space no matter the title's width, and the title's own column
+     is sized to its content and never shares space with anything else. */
   .term-header {
-    display: flex; align-items: center; justify-content: space-between;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
     padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--border-soft);
-    flex-shrink: 0; gap: 0.6rem; position: relative;
+    flex-shrink: 0; gap: 0.6rem;
   }
-  /* Absolutely positioned against the header itself, not flex:1'd into
-     the leftover space next to the controls -- that only centers within
-     whatever's left after the left-side group, which drifts off the
-     page's actual center depending on how wide that group is. This
-     centers on the real midpoint of the header every time -- but on a
-     narrow window the left-side controls group can extend past that
-     midpoint itself, and absolute positioning has no awareness of
-     siblings to avoid, so it'll happily render right on top of them.
-     Falls back to normal flow (no true centering, but never
-     overlapping) below a width where that's a real risk. */
+  .term-header-left { display: flex; align-items: center; gap: 0.6rem; min-width: 0; overflow: hidden; }
   .term-header .label {
     font-size: 0.9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    position: absolute; left: 50%; transform: translateX(-50%);
-    max-width: 40%; pointer-events: none;
-  }
-  @media (max-width: 760px) {
-    .term-header .label {
-      position: static; transform: none; flex: 1; max-width: none; text-align: right;
-    }
+    text-align: center; max-width: 100%;
   }
   .term-header .term-status { font-size: 0.76rem; color: var(--text-faint); flex-shrink: 0; }
   /* min-width:0 + overflow:hidden on both -- without them, a flex
@@ -69,18 +63,20 @@
 </head>
 <body>
   <div class="term-header">
-    <a class="btn btn-icon" href="{{ url_for('session_detail', session_id=session.id) }}" title="Back to session" aria-label="Back to session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
-    <div class="btn-group">
-      <button class="btn btn-icon" title="Start" aria-label="Start" onclick="sessionAction('start')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-      <button class="btn btn-icon" title="Stop" aria-label="Stop" onclick="sessionAction('stop')"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
-      <button class="btn btn-icon btn-primary" title="Restart" aria-label="Restart" onclick="sessionAction('restart')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></button>
+    <div class="term-header-left">
+      <a class="btn btn-icon" href="{{ url_for('session_detail', session_id=session.id) }}" title="Back to session" aria-label="Back to session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+      <div class="btn-group">
+        <button class="btn btn-icon" title="Start" aria-label="Start" onclick="sessionAction('start')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="btn btn-icon" title="Stop" aria-label="Stop" onclick="sessionAction('stop')"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
+        <button class="btn btn-icon btn-primary" title="Restart" aria-label="Restart" onclick="sessionAction('restart')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></button>
+      </div>
+      <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0; width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        {% for value, label in terminal_theme_options %}
+        <option value="{{ value }}" {{ 'selected' if value == terminal_theme else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <span class="term-status" id="term-status">connecting…</span>
     </div>
-    <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0; width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-      {% for value, label in terminal_theme_options %}
-      <option value="{{ value }}" {{ 'selected' if value == terminal_theme else '' }}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <span class="term-status" id="term-status">connecting…</span>
     <span class="label">{{ session.label }}</span>
   </div>
 
