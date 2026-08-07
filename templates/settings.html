@@ -56,6 +56,14 @@
       radial-gradient(circle at 65% 40%, rgba(249,115,22,0.75), transparent 42%),
       radial-gradient(circle at 45% 90%, rgba(244,63,94,0.7), transparent 40%);
   }
+  .theme-swatch-drip {
+    background-color: #05141a;
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(140,210,225,0.7), transparent 20%),
+      radial-gradient(circle at 55% 10%, rgba(140,210,225,0.6), transparent 16%),
+      radial-gradient(circle at 80% 20%, rgba(140,210,225,0.7), transparent 18%),
+      linear-gradient(180deg, rgba(140,210,225,0.35) 0%, transparent 55%);
+  }
   .theme-swatch-slate {
     background-color: #0a0e1a;
     background-image:
@@ -136,7 +144,8 @@
 </style>
 </head>
 <body>
-  <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar(active='settings') }}
   <h1>Settings</h1>
   <p class="hint">Nothing here needs a config file or a restart — save, and it takes effect immediately. Secret fields below never show their current value (not even masked) — leave one blank to keep what's already saved, or type a new value to replace it.</p>
 
@@ -422,7 +431,7 @@
     <div class="theme-section-header" onclick="toggleThemeSection(this)">
       <svg class="theme-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       <span class="theme-section-label">Animated</span>
-      <span class="theme-section-count">8</span>
+      <span class="theme-section-count">9</span>
     </div>
     <div class="theme-grid">
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" onclick="selectDashboardTheme('galaxy')">
@@ -456,6 +465,10 @@
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'lava-lamp' else '' }}" data-theme-value="lava-lamp" onclick="selectDashboardTheme('lava-lamp')">
         <div class="theme-swatch theme-swatch-lava-lamp"></div>
         <span>Lava Lamp</span>
+      </div>
+      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'drip' else '' }}" data-theme-value="drip" onclick="selectDashboardTheme('drip')">
+        <div class="theme-swatch theme-swatch-drip"></div>
+        <span>Drip</span>
       </div>
     </div>
     </div>

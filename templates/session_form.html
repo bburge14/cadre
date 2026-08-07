@@ -18,6 +18,8 @@
 </style>
 </head>
 <body>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar() }}
   <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit session' if session else 'New session' }}</h1>
   {% if not session %}

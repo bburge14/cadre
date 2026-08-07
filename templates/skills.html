@@ -9,7 +9,8 @@
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 </head>
 <body>
-  <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar() }}
   <div class="section-head">
     <h1>Skills</h1>
     <a class="btn btn-primary" href="{{ url_for('new_skill_form') }}">+ New skill</a>

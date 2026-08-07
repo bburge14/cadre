@@ -26,6 +26,8 @@
 </head>
 <body>
   {% from '_provider_badge.html' import provider_badge %}
+  {% from '_topbar.html' import topbar %}
+  {{ topbar() }}
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
   <h1>{{ 'Edit ' + stack.name if stack else 'New stack' }}</h1>
   {% if stack %}<p><a class="btn" href="{{ url_for('stack_diagram', stack_id=stack.id) }}">View this stack's diagram &rarr;</a></p>{% endif %}

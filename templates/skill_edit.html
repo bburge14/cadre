@@ -12,6 +12,8 @@
 </style>
 </head>
 <body>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar() }}
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1>{{ 'Edit ' + name if skill else 'New skill' }}</h1>
   {% if not skill %}

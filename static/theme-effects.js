@@ -179,7 +179,90 @@
     return { stop: () => layer.remove() };
   }
 
-  const EFFECTS = { "code-rain": startCodeRain, "rain": startRainfall, "lava-lamp": startLavaLamp };
+  function startDrip() {
+    if (document.getElementById("drip-canvas")) return null;
+    const canvas = document.createElement("canvas");
+    canvas.id = "drip-canvas";
+    attachFixedLayer(canvas);
+    const ctx = canvas.getContext("2d");
+    let drips;
+
+    // Each drip point cycles: a droplet slowly grows at a fixed x along
+    // the top edge (with a thin feed-thread drawn up to the ceiling),
+    // then detaches and falls, accelerating and stretching into a
+    // teardrop shape as it speeds up -- distinct from Rain's constant-
+    // velocity streaks, which never grow or change shape.
+    function makeDrip(x) {
+      return { x, state: "growing", r: 2, growTarget: 6 + Math.random() * 6, y: 0, vy: 0 };
+    }
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const spacing = 70;
+      const count = Math.max(6, Math.floor(canvas.width / spacing));
+      const step = canvas.width / count;
+      drips = new Array(count).fill(0).map((_, i) => makeDrip((i + 0.5) * step + (Math.random() * 24 - 12)));
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const d of drips) {
+        if (d.state === "growing") {
+          d.r += 0.045;
+          ctx.strokeStyle = "rgba(150, 220, 230, 0.25)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(d.x, 0);
+          ctx.lineTo(d.x, d.r);
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(140, 210, 225, 0.55)";
+          ctx.beginPath();
+          ctx.ellipse(d.x, d.r, d.r * 0.8, d.r, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (d.r >= d.growTarget) {
+            d.state = "falling";
+            d.y = d.r;
+            d.vy = 1;
+          }
+        } else {
+          d.vy += 0.35; // gravity
+          d.y += d.vy;
+          const stretch = Math.min(1 + d.vy * 0.08, 3.5);
+
+          ctx.fillStyle = "rgba(140, 210, 225, 0.5)";
+          ctx.beginPath();
+          ctx.ellipse(d.x, d.y, 3.2, 3.2 * stretch, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // A small glossy highlight -- the detail that reads as "wet"
+          // rather than just a plain falling dot.
+          ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+          ctx.beginPath();
+          ctx.ellipse(d.x - 1, d.y - stretch, 1, 1.4, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (d.y - 3.2 * stretch > canvas.height) {
+            Object.assign(d, makeDrip(d.x));
+          }
+        }
+      }
+    }
+
+    const interval = setInterval(draw, 30);
+    return {
+      stop() {
+        clearInterval(interval);
+        window.removeEventListener("resize", resize);
+        canvas.remove();
+      },
+    };
+  }
+
+  const EFFECTS = { "code-rain": startCodeRain, "rain": startRainfall, "lava-lamp": startLavaLamp, "drip": startDrip };
   let running = null; // { theme, stop }
 
   function sync() {

@@ -260,6 +260,25 @@ html[data-theme="lava-lamp"] {
   100% { transform: translateY(5vh) scale(0.9); }
 }
 
+/* Drip: plain dark backdrop here, same as Code Rain/Rain/Lava Lamp above
+   -- static/theme-effects.js draws the actual growing/falling droplet
+   canvas effect when it detects this theme. Cool glassy cyan/teal, read
+   as condensation running down glass rather than Rain's cooler storm
+   blue-gray streaks -- different motion (grow-then-fall, not constant
+   fall) needed its own distinct palette too, not just a recolor. */
+html[data-theme="drip"] {
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-2: #0891b2;
+  --accent-gradient: linear-gradient(135deg, #22d3ee, #0891b2);
+  --accent-soft-bg: #0a2530;
+  --accent-soft-text: #a5f3fc;
+  background-color: #05141a;
+  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(34, 211, 238, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* Ember: same single-repeating-tile-pseudo-element trick as Galaxy's
    stars (one layer, one background-position animation -- no per-layer
    desync risk), but warm-colored dots drifting straight UP instead of

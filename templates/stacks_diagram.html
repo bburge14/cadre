@@ -25,6 +25,8 @@
 </head>
 <body>
   {% from '_provider_badge.html' import provider_badge %}
+  {% from '_topbar.html' import topbar %}
+  {{ topbar() }}
   <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1>{{ heading }}</h1>
   <div class="sub">

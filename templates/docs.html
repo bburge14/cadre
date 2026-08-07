@@ -16,7 +16,8 @@
 </style>
 </head>
 <body>
-  <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar(active='docs') }}
   <h1 class="brand" style="font-size:1.4rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Cadre docs</h1>
   <div class="sub">Day-to-day usage — creating sessions, agent stacks, and providers. For installing on a new machine, running as a background service, or uninstalling, see <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md on GitHub</a> instead — that's the deeper, less frequently needed stuff.</div>
 

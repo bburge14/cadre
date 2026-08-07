@@ -22,6 +22,8 @@
 </style>
 </head>
 <body>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar() }}
   <h1 class="brand" style="font-size:1.4rem; margin-top:1.5rem;"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="28" height="28">Set up your AI</h1>
   <p class="sub">Pick which AI you use, connect it, and set it as your default — used to pre-fill new sessions and, if it's capable, to run your Agent Stacks. You can come back and change this anytime from Settings.</p>
 
