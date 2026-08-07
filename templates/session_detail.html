@@ -145,7 +145,7 @@ function toggleTerminal() {
 
   const firstOpen = !term;
   if (firstOpen) {
-    term = new Terminal({ convertEol: true, fontSize: 13, theme: { background: "#000000" } });
+    term = new Terminal({ convertEol: true, fontSize: 13, theme: resolveXtermTheme("{{ terminal_theme }}") });
     term.open(document.getElementById("terminal"));
   }
 

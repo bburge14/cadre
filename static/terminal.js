@@ -5,6 +5,40 @@
    (mobile network switch, tab backgrounded, a brief daemon restart)
    recovers on its own instead of just sitting there disconnected. */
 
+/* The "terminal theme" setting (dark/light/auto) only ever wrote to the
+   CLI's own config file -- it never touched xterm.js itself, which every
+   call site hardcoded to a plain black background regardless. xterm.js
+   is a browser-rendered emulator we fully control ourselves (not the
+   user's native terminal app), so there's no OS-specific command needed
+   here -- just give it a real theme object. "auto" follows the browser's
+   own light/dark preference since there's no OS-level signal otherwise
+   meaningful to a terminal running inside a web page. */
+const XTERM_THEMES = {
+  dark: {
+    background: "#000000", foreground: "#e0e0e0", cursor: "#e0e0e0",
+    black: "#000000", red: "#e06c75", green: "#98c379", yellow: "#e5c07b",
+    blue: "#61afef", magenta: "#c678dd", cyan: "#56b6c2", white: "#dcdfe4",
+    brightBlack: "#5c6370", brightRed: "#e06c75", brightGreen: "#98c379",
+    brightYellow: "#e5c07b", brightBlue: "#61afef", brightMagenta: "#c678dd",
+    brightCyan: "#56b6c2", brightWhite: "#ffffff",
+  },
+  light: {
+    background: "#ffffff", foreground: "#383a42", cursor: "#383a42",
+    black: "#383a42", red: "#e45649", green: "#50a14f", yellow: "#c18401",
+    blue: "#4078f2", magenta: "#a626a4", cyan: "#0184bc", white: "#fafafa",
+    brightBlack: "#a0a1a7", brightRed: "#e45649", brightGreen: "#50a14f",
+    brightYellow: "#c18401", brightBlue: "#4078f2", brightMagenta: "#a626a4",
+    brightCyan: "#0184bc", brightWhite: "#ffffff",
+  },
+};
+
+function resolveXtermTheme(choice) {
+  if (choice === "light") return XTERM_THEMES.light;
+  if (choice === "dark") return XTERM_THEMES.dark;
+  const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  return prefersLight ? XTERM_THEMES.light : XTERM_THEMES.dark;
+}
+
 function createTerminalConnection(sessionId, opts) {
   const { tokenUrl, csrfToken, term, onStatus, onNotRunning } = opts;
   let ws = null;

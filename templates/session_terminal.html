@@ -68,7 +68,7 @@ let connection = null;
 let notRunning = false;
 let pollTimer = null;
 
-const term = new Terminal({ convertEol: true, fontSize: 14, theme: { background: "#000000" } });
+const term = new Terminal({ convertEol: true, fontSize: 14, theme: resolveXtermTheme("{{ terminal_theme }}") });
 term.open(document.getElementById("terminal"));
 fitAddon = setupTerminalFit(term);
 
@@ -123,6 +123,9 @@ async function saveTerminalTheme(choice) {
       body: "terminal_theme=" + encodeURIComponent(choice) + "&csrf_token=" + encodeURIComponent(CSRF_TOKEN),
     });
     const data = await res.json();
+    // The CLI's own config needs a restart to pick up, but xterm.js's
+    // colors are ours to control directly -- update those live, now.
+    term.options.theme = resolveXtermTheme(choice);
     select.title = data.ok
       ? "Terminal theme (applied to " + data.applied + " session(s) -- already-running ones need a restart to pick it up)"
       : "Terminal theme (save failed)";

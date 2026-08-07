@@ -23,7 +23,7 @@
     document.documentElement.appendChild(canvas);
 
     const ctx = canvas.getContext("2d");
-    const chars = "01アイウエオカキクケコサシスセソタチツテト";
+    const chars = "01";
     const fontSize = 15;
     let columns, drops;
 

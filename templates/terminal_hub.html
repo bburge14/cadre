@@ -142,7 +142,7 @@ function selectSession(id) {
   if (connection) connection.close();
 
   if (!term) {
-    term = new Terminal({ convertEol: true, fontSize: 13, theme: { background: "#000000" } });
+    term = new Terminal({ convertEol: true, fontSize: 13, theme: resolveXtermTheme("{{ terminal_theme }}") });
     term.open(document.getElementById("terminal"));
     fitAddon = setupTerminalFit(term);
   }
@@ -195,7 +195,10 @@ async function saveTerminalTheme(choice) {
     const data = await res.json();
     // Rewrites config on disk immediately; a session that's already
     // running read its config at startup though, so this alone won't
-    // change what's on screen until it's restarted.
+    // change what's on screen until it's restarted. The xterm.js colors
+    // themselves are a separate thing we fully control ourselves though
+    // (not the CLI's config) -- update those live, right now.
+    if (term) term.options.theme = resolveXtermTheme(choice);
     select.title = data.ok
       ? "Terminal theme (applied to " + data.applied + " session(s) -- already-running ones need a restart to pick it up)"
       : "Terminal theme (save failed)";
