@@ -1542,7 +1542,7 @@ def save_settings():
     if terminal_theme_choice in ("auto", "dark", "light"):
         fields["terminal_theme"] = terminal_theme_choice
     dashboard_theme_choice = request.form.get("dashboard_theme", "")
-    if dashboard_theme_choice in ("default", "galaxy", "circuit", "aurora", "code-rain"):
+    if dashboard_theme_choice in ("default", "galaxy", "circuit", "aurora", "code-rain", "slate", "ember"):
         fields["dashboard_theme"] = dashboard_theme_choice
     # Secret fields: the form never shows the existing value, so a blank
     # submission means "leave it as-is," not "clear it" -- only overwrite

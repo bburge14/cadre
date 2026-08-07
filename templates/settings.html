@@ -43,6 +43,21 @@
     background-image: repeating-linear-gradient(90deg, transparent 0, transparent 9px, rgba(150,255,190,0.55) 10px, transparent 11px, transparent 13px, rgba(34,197,94,0.3) 14px, transparent 15px);
     background-size: 13px 16px;
   }
+  .theme-swatch-slate {
+    background-color: #0a0e1a;
+    background-image:
+      radial-gradient(ellipse 90px 55px at 20% -10%, rgba(129,140,248,0.4), transparent 65%),
+      radial-gradient(ellipse 80px 50px at 100% 100%, rgba(56,189,248,0.32), transparent 60%);
+  }
+  .theme-swatch-ember {
+    background-color: #0f0704;
+    background-image:
+      radial-gradient(ellipse 100px 60px at 50% 130%, rgba(249,115,22,0.5), transparent 65%),
+      radial-gradient(1.5px 1.5px at 20% 30%, #fdba74, transparent), radial-gradient(1px 1px at 55% 60%, #fb923c, transparent),
+      radial-gradient(2px 2px at 80% 20%, rgba(253,186,116,0.9), transparent), radial-gradient(1px 1px at 35% 80%, #fdba74, transparent);
+  }
+  .theme-section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); margin: 1.2rem 0 0.4rem; }
+  .theme-section-label:first-of-type { margin-top: 0.8rem; }
 </style>
 </head>
 <body>
@@ -55,6 +70,7 @@
       <div class="flash {{ category }}">{{ msg }}</div>
     {% endfor %}
   {% endwith %}
+  <div id="js-flash"></div>
 
   <div class="tabs">
     <button type="button" class="tab-btn" data-tab="account" onclick="switchTab('account')">Account</button>
@@ -67,8 +83,8 @@
 
   <div class="tab-panel" id="tab-panel-account">
   <h2 style="margin-top:1.1rem;">Account</h2>
-  <p class="hint">Signed in as <code>{{ current_username }}</code>. Every change below requires your current password, same as any real account settings page.</p>
-  <form method="post" action="{{ url_for('save_account') }}">
+  <p class="hint">Signed in as <code id="current-username-label">{{ current_username }}</code>. Every change below requires your current password, same as any real account settings page.</p>
+  <form method="post" action="{{ url_for('save_account') }}" id="account-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>current password <span class="hint">(required for any change below)</span></label>
     <input name="current_password" type="password" required>
@@ -234,18 +250,28 @@
     <h2 style="margin-top:1.1rem;">Dashboard theme</h2>
     <p class="hint">Just this dashboard's own look — separate from "Terminal theme" on the AI providers tab, which is about the CLI inside each session.</p>
     <input type="hidden" name="dashboard_theme" id="dashboard-theme-field" value="{{ values.dashboard_theme }}">
+
+    <p class="theme-section-label">Static</p>
     <div class="theme-grid">
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'default' else '' }}" data-theme-value="default" onclick="selectDashboardTheme('default')">
         <div class="theme-swatch theme-swatch-default"></div>
         <span>Default</span>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" onclick="selectDashboardTheme('galaxy')">
-        <div class="theme-swatch theme-swatch-galaxy"></div>
-        <span>Galaxy</span>
-      </div>
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'circuit' else '' }}" data-theme-value="circuit" onclick="selectDashboardTheme('circuit')">
         <div class="theme-swatch theme-swatch-circuit"></div>
         <span>Circuit Board</span>
+      </div>
+      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'slate' else '' }}" data-theme-value="slate" onclick="selectDashboardTheme('slate')">
+        <div class="theme-swatch theme-swatch-slate"></div>
+        <span>Slate</span>
+      </div>
+    </div>
+
+    <p class="theme-section-label">Animated</p>
+    <div class="theme-grid">
+      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" onclick="selectDashboardTheme('galaxy')">
+        <div class="theme-swatch theme-swatch-galaxy"></div>
+        <span>Galaxy</span>
       </div>
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'aurora' else '' }}" data-theme-value="aurora" onclick="selectDashboardTheme('aurora')">
         <div class="theme-swatch theme-swatch-aurora"></div>
@@ -254,6 +280,10 @@
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'code-rain' else '' }}" data-theme-value="code-rain" onclick="selectDashboardTheme('code-rain')">
         <div class="theme-swatch theme-swatch-code-rain"></div>
         <span>Code Rain</span>
+      </div>
+      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'ember' else '' }}" data-theme-value="ember" onclick="selectDashboardTheme('ember')">
+        <div class="theme-swatch theme-swatch-ember"></div>
+        <span>Ember</span>
       </div>
     </div>
     </div>
@@ -279,6 +309,50 @@ function switchTab(name) {
   switchTab(valid.includes(requested) ? requested : 'version');
 })();
 
+function showBanner(msg, isError) {
+  const el = document.getElementById('js-flash');
+  el.innerHTML = '<div class="flash ' + (isError ? 'error' : 'success') + '">' + msg + '</div>';
+  clearTimeout(showBanner._t);
+  showBanner._t = setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+// Every save on this page used to be a real form submit -- a full
+// navigation that adds a browser-history entry. Stack up a few saves
+// (a theme pick, an account change, a settings save) and pressing back
+// afterward has to pop through every one of them before it actually
+// leaves Settings, which just looked like "back is broken." Saving via
+// fetch() instead means no navigation ever happens here at all, so back
+// always takes you exactly one step: back to wherever you came from.
+async function ajaxSaveForm(form, successMsg) {
+  try {
+    const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+    if (!res.ok) throw new Error('save failed');
+    showBanner(successMsg, false);
+    return true;
+  } catch (e) {
+    // Fall back to a normal submit so a real server-side error surfaces
+    // via the usual flash-message flow instead of failing silently.
+    form.submit();
+    return false;
+  }
+}
+
+document.getElementById('settings-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  ajaxSaveForm(e.target, 'Settings saved.');
+});
+
+document.getElementById('account-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const newUsername = form.new_username.value.trim();
+  const ok = await ajaxSaveForm(form, 'Account updated.');
+  if (ok) {
+    if (newUsername) document.getElementById('current-username-label').textContent = newUsername;
+    form.reset();
+  }
+});
+
 async function selectDashboardTheme(name) {
   document.getElementById('dashboard-theme-field').value = name;
   document.querySelectorAll('.theme-card').forEach(el => {
@@ -295,18 +369,8 @@ async function selectDashboardTheme(name) {
   // Auto-saves immediately -- clicking a theme card used to only update
   // the visual selection client-side, leaving it unsaved (and the rest
   // of the dashboard unchanged) until a separate, easy-to-miss click on
-  // "Save" further down the page. Saved via fetch() rather than a real
-  // form submit/navigation: a real submit adds a new browser-history
-  // entry, so pressing back afterward would land back on this same
-  // Settings page instead of wherever you actually came from.
-  try {
-    const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
-    if (!res.ok) throw new Error('save failed');
-  } catch (e) {
-    // Fall back to a normal submit so the error surfaces via the usual
-    // flash-message flow instead of failing silently.
-    form.submit();
-  }
+  // "Save" further down the page.
+  await ajaxSaveForm(form, 'Theme saved.');
 }
 
 let latestKnownVersion = null;
