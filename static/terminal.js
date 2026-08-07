@@ -144,13 +144,18 @@ function createTerminalConnection(sessionId, opts) {
 
 /* Sizes the terminal to fill its container instead of sitting at
    xterm's fixed default (80x24) inside whatever box happens to hold
-   it -- makes a real difference on the full-page terminal view. Only
-   the client-side character grid is resized; the actual pty on the
-   server still thinks it's whatever size it was created at (resize
-   isn't wired into session_daemon.py's WebSocket protocol yet), so a
-   full-screen TUI program (vim, htop) may still render for the old
-   size until that's added. Re-fits on window resize/orientation
-   change, debounced. */
+   it. Only the client-side character grid is resized here -- the real
+   pty resize (so a full-screen program like Claude Code itself
+   actually uses the extra room) happens via term.onResize, wired up in
+   createTerminalConnection above.
+
+   Watches the container with a ResizeObserver rather than a window
+   'resize' listener -- a plain window listener only fires for the
+   whole browser window changing size, which misses every other way
+   the terminal's own box can resize: a CSS drag handle (see
+   #terminal-container's `resize: vertical` in session_detail.html), a
+   sidebar toggling, any layout shift that isn't the window itself.
+   ResizeObserver catches all of those the same way. */
 function setupTerminalFit(term) {
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
@@ -162,11 +167,15 @@ function setupTerminalFit(term) {
   // a re-fit. Two rAFs reliably land after that layout pass.
   requestAnimationFrame(() => requestAnimationFrame(() => fitAddon.fit()));
 
+  // term.element's own parent is the div passed to term.open() -- its
+  // size is driven by outer CSS/flex layout, not by xterm itself, so
+  // observing it can't create a fit-triggers-resize-triggers-fit loop.
   let resizeTimer = null;
-  window.addEventListener("resize", () => {
+  const observer = new ResizeObserver(() => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => fitAddon.fit(), 150);
   });
+  observer.observe(term.element.parentElement || term.element);
 
   return fitAddon;
 }

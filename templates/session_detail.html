@@ -15,8 +15,17 @@
   .status-off { background: var(--text-faint); }
   .workdir { color: var(--text-faint); font-family: ui-monospace, monospace; font-size: 0.85rem; }
   pre#output { background: var(--surface-2); border: 1px solid var(--border); padding: 0.8rem; border-radius: var(--radius-sm); max-height: 420px; overflow-y: auto; font-size: 0.78rem; white-space: pre-wrap; margin-top: 1rem; }
-  #terminal-container { display: none; margin-top: 1rem; background: #000; border-radius: var(--radius-sm); padding: 0.5rem; }
-  #terminal { height: 420px; }
+  /* resize:vertical gives it a native browser drag handle in the
+     bottom-right corner -- same idea as dragging an OS terminal
+     window's edge, just scoped to this one panel on the page instead
+     of the whole browser window. overflow can't be "visible" for
+     resize to apply at all; "hidden" (not "auto") since xterm.js
+     manages its own internal scrollback, not the outer div's. */
+  #terminal-container {
+    display: none; margin-top: 1rem; background: #000; border-radius: var(--radius-sm);
+    padding: 0.5rem; height: 420px; min-height: 200px; resize: vertical; overflow: hidden;
+  }
+  #terminal { height: 100%; }
   .term-status { font-size: 0.78rem; color: var(--text-faint); margin-top: 0.3rem; }
   .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border-soft); }
   .limit-banner { display: none; background: var(--warning-bg); color: var(--warning-text); border: 1px solid #7a4a1a; border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
