@@ -641,6 +641,27 @@ code {
 .sub { color: var(--text-dim); font-size: 0.86rem; margin-bottom: 1.75rem; max-width: 68ch; }
 .hint { color: var(--text-faint); font-size: 0.79rem; }
 
+/* ---- Section nav (long single-scroll forms) ----
+   Generic: static/section-nav.js discovers every `h2[id]` inside
+   `.page-main` and builds this sidebar from them, so a page opts in
+   just by using this markup shape -- no per-page JS needed. Hidden by
+   the script itself when a page has fewer than 2 sections, since a nav
+   with one link isn't navigation. */
+.page-with-nav { display: flex; gap: 2.5rem; align-items: flex-start; }
+.page-main { flex: 1; min-width: 0; max-width: 640px; }
+.section-nav {
+  position: sticky; top: 1.5rem; width: 170px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 0.1rem;
+  padding-top: 0.3rem;
+}
+.section-nav a {
+  display: block; padding: 0.32rem 0 0.32rem 0.7rem; font-size: 0.82rem;
+  color: var(--text-faint); border-left: 2px solid var(--border-soft);
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.section-nav a:hover { color: var(--text-dim); text-decoration: none; }
+.section-nav a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 500; }
+
 /* ---- Buttons ---- */
 
 .btn {

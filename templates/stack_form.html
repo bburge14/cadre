@@ -8,6 +8,7 @@
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <script src="{{ url_for('static', filename='tabs.js') }}?v={{ asset_version }}"></script>
+<script src="{{ url_for('static', filename='section-nav.js') }}?v={{ asset_version }}"></script>
 <style>
   .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem; }
   .preset-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem; cursor: pointer; transition: border-color 0.12s ease, background 0.12s ease; }
@@ -84,11 +85,16 @@
   {% endif %}
 
   <div class="tab-panel{{ '' if stack else ' active' }}" id="tab-panel-setup">
-  <form method="post" action="{{ url_for('edit_stack', stack_id=stack.id) if stack else url_for('create_stack') }}" id="stack-form">
+  <div class="page-with-nav">
+    <nav class="section-nav"></nav>
+    <div class="page-main">
+    <form method="post" action="{{ url_for('edit_stack', stack_id=stack.id) if stack else url_for('create_stack') }}" id="stack-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="preset_id" id="preset-id-field" value="">
 
     {% if not (stack and stack.get('is_global')) %}
+    <section>
+    <h2 id="details" style="margin-top:0;">Directory</h2>
     <label>name</label>
     <input type="text" name="name" value="{{ stack.name if stack else (prefill_name | default('')) }}" required>
 
@@ -102,9 +108,11 @@
       <option value="{{ dir }}">
       {% endfor %}
     </datalist>
+    </section>
     {% endif %}
 
-    <h2 style="{{ 'margin-top:0;' if stack and stack.get('is_global') else '' }}">{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
+    <section>
+    <h2 id="preset" style="{{ 'margin-top:0;' if stack and stack.get('is_global') else '' }}">{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
     <p class="hint">Click a preset to select it (or leave none selected and just check individual agents below).</p>
     <div class="preset-grid">
       {% for preset in stack_presets %}
@@ -115,8 +123,10 @@
       </div>
       {% endfor %}
     </div>
+    </section>
 
-    <h2>Or pick individual agents from the library</h2>
+    <section>
+    <h2 id="library">Or pick individual agents from the library</h2>
     <ul class="agent-list">
       {% for agent in library %}
       <li>
@@ -129,9 +139,12 @@
       </li>
       {% endfor %}
     </ul>
+    </section>
 
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if stack else 'Create stack' }}</button>
   </form>
+    </div>
+  </div>
   </div>
 
   {% include '_dirbrowser_modal.html' %}

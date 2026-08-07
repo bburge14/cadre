@@ -7,24 +7,30 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
-<style>
-  body { max-width: 760px; }
-</style>
+<script src="{{ url_for('static', filename='section-nav.js') }}?v={{ asset_version }}"></script>
 </head>
 <body>
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
   <h1>{{ 'Edit ' + filename if agent else 'New agent' }}</h1>
 
-  <form method="post" action="{{ save_action }}">
+  <div class="page-with-nav">
+    <nav class="section-nav"></nav>
+    <div class="page-main">
+    <form method="post" action="{{ save_action }}">
     <input type="hidden" name="filename" value="{{ filename or '' }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+    <section>
+    <h2 id="basics" style="margin-top:0;">Basics</h2>
     <label>name <span class="hint">(lowercase-hyphenated, e.g. rust-engineer)</span></label>
     <input name="name" value="{{ agent.frontmatter.get('name', '') if agent else '' }}" required>
 
     <label>description <span class="hint">(what Claude matches your request against to auto-delegate here)</span></label>
     <input name="description" value="{{ agent.frontmatter.get('description', '') if agent else '' }}" required>
+    </section>
 
+    <section>
+    <h2 id="tools">Tools &amp; delegation</h2>
     <label>tools <span class="hint">(comma-separated built-in tools only, e.g. "Read, Edit, Write, Bash, Grep, Glob" — blank = inherit all. Which agents this one can spawn is set below, not typed here.)</span>
       <details class="help"><summary></summary><div class="help-body">
         <p>Common ones to combine:</p>
@@ -48,7 +54,10 @@
       {% endfor %}
     </div>
     {% endif %}
+    </section>
 
+    <section>
+    <h2 id="skills">Skills</h2>
     <label>skills <span class="hint">(which skills this agent should use — invoked by name when relevant to what it's doing; different from "can spawn," a skill isn't a separate worker)</span></label>
     {% if available_skills %}
     <input type="text" id="skill-search" placeholder="Search skills..." style="margin-bottom:0.4rem;" oninput="filterSkills()">
@@ -63,7 +72,10 @@
     {% else %}
     <p class="hint">No skills exist yet — <a href="{{ url_for('skills_page') }}">create one</a>, then come back here to attach it to this agent.</p>
     {% endif %}
+    </section>
 
+    <section>
+    <h2 id="provider">Provider &amp; model</h2>
     <label>primary AI for this agent's actual work <span class="hint">(Claude always runs the agent container itself — picking another provider here makes its instructions delegate the real work to that provider via Bash and use its output as the answer)</span></label>
     <select name="primary_provider" id="primary-provider-select" onchange="updatePrimaryProviderNote(); updateModelFieldVisibility();">
       {% set current_provider = agent.frontmatter.get('primary_provider', 'claude') if agent else 'claude' %}
@@ -111,12 +123,18 @@
         <option value="{{ opt }}" {{ 'selected' if opt == current_color else '' }}>{{ opt }}</option>
       {% endfor %}
     </select>
+    </section>
 
+    <section>
+    <h2 id="prompt">System prompt</h2>
     <label>system prompt (markdown body)</label>
     <textarea name="body">{{ agent.body if agent else '' }}</textarea>
+    </section>
 
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">Save &amp; restart session</button>
-  </form>
+    </form>
+    </div>
+  </div>
 
 <script>
 function filterSkills() {
