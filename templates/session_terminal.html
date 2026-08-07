@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="{{ session.label }}">
 <meta name="theme-color" content="#16171a">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
+<script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
   html, body { height: 100%; }

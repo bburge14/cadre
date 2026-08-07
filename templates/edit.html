@@ -5,6 +5,8 @@
 <title>{{ 'Edit' if agent else 'New' }} agent — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
+<script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
+<script src="{{ url_for('static', filename='theme-effects.js') }}"></script>
 <style>
   body { max-width: 760px; }
 </style>

@@ -52,15 +52,27 @@ html {
   background-attachment: fixed;
 }
 
-/* ---- Dashboard theme: Galaxy ---- */
-/* Nebula glow lives on <html> (static -- big soft blurs don't need to
-   move to read as atmospheric). Stars are a single repeating tile on a
-   body::before pseudo-element, kept to one layer deliberately so its
-   background-position animation only ever has one value to track --
-   several independent radial-gradient star layers would each need their
-   own position value kept in sync in the same @keyframes, which is a
-   trap for a subtle desync bug down the line. */
+/* ---- Dashboard themes ----
+   Each theme overrides --accent/--accent-hover/--accent-2/
+   --accent-gradient/--accent-soft-bg/--accent-soft-text on top of its
+   background -- every button/link/badge/focus-ring already references
+   these custom properties, so the whole app's color scheme shifts with
+   zero changes needed anywhere else. */
+
+/* Galaxy: nebula glow lives on <html> (static -- big soft blurs don't
+   need to move to read as atmospheric). Stars are a single repeating
+   tile on a body::before pseudo-element, kept to one layer deliberately
+   so its background-position animation only ever has one value to
+   track -- several independent radial-gradient star layers would each
+   need their own position value kept in sync in the same @keyframes,
+   which is a trap for a subtle desync bug down the line. */
 html[data-theme="galaxy"] {
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-2: #ec4899;
+  --accent-gradient: linear-gradient(135deg, #a78bfa, #ec4899);
+  --accent-soft-bg: #201a3d;
+  --accent-soft-text: #cdb9fb;
   background-color: #050318;
   background-image:
     radial-gradient(ellipse 1100px 700px at 15% 0%, rgba(139, 92, 246, 0.28), transparent 60%),
@@ -96,32 +108,39 @@ html[data-theme="galaxy"] body::before {
   to { background-position: -400px 300px; }
 }
 
-/* ---- Dashboard theme: Circuit Board ---- */
-/* A fine trace grid (two thin linear-gradients) with a "via" dot at
-   every intersection (a third, tiled radial-gradient layer), plus two
-   static ambient glows in green/cyan. Fully static -- a grid this
-   regular reads as "powered circuit" without needing motion, and
-   deliberately doesn't animate so it reads differently from Galaxy at
-   a glance rather than just being "the same trick, different colors." */
+/* Circuit Board: a real (if simple) tileable PCB trace pattern -- bent
+   traces with right angles and pads/vias, as an inline SVG data URI,
+   not a uniform dot grid (which read as graph paper, not a circuit
+   board, per direct feedback). Two static ambient glows underneath in
+   copper-green/cyan for depth. */
 html[data-theme="circuit"] {
+  --accent: #38e096;
+  --accent-hover: #5df0ae;
+  --accent-2: #22c5dc;
+  --accent-gradient: linear-gradient(135deg, #38e096, #22c5dc);
+  --accent-soft-bg: #0d2a1c;
+  --accent-soft-text: #86f0c0;
   background-color: #050d08;
   background-image:
-    linear-gradient(rgba(56, 224, 150, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 224, 150, 0.09) 1px, transparent 1px),
-    radial-gradient(circle, rgba(56, 224, 150, 0.4) 1.4px, transparent 1.4px),
-    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(56, 224, 150, 0.10), transparent 60%),
-    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(34, 197, 220, 0.10), transparent 60%);
-  background-size: 42px 42px, 42px 42px, 42px 42px, auto, auto;
-  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat;
+    url("data:image/svg+xml,%3Csvg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='120'%20height='120'%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.5'%20opacity='0.5'%3E%3Cpath%20d='M0%2030H35V10H60'/%3E%3Cpath%20d='M120%2090H85V110H60'/%3E%3Cpath%20d='M20%20120V85H50V60'/%3E%3Cpath%20d='M100%200V35H70V60'/%3E%3Cpath%20d='M60%2060H90'/%3E%3C/g%3E%3Cg%20fill='%2338e096'%20opacity='0.65'%3E%3Ccircle%20cx='60'%20cy='10'%20r='2.5'/%3E%3Ccircle%20cx='60'%20cy='110'%20r='2.5'/%3E%3Ccircle%20cx='50'%20cy='60'%20r='2.5'/%3E%3Ccircle%20cx='70'%20cy='60'%20r='2.5'/%3E%3Ccircle%20cx='0'%20cy='30'%20r='2'/%3E%3Ccircle%20cx='120'%20cy='90'%20r='2'/%3E%3Ccircle%20cx='20'%20cy='120'%20r='2'/%3E%3Ccircle%20cx='100'%20cy='0'%20r='2'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(56, 224, 150, 0.12), transparent 60%),
+    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(34, 197, 220, 0.12), transparent 60%);
+  background-size: 120px 120px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
   background-attachment: fixed;
 }
 
-/* ---- Dashboard theme: Aurora ---- */
-/* Three big color bands treated as one background-image (so one shared
-   background-position animation applies uniformly to all of them,
-   unlike Galaxy's stars, which needed distinct per-layer positions).
-   Slow ease-in-out drift alternating back and forth. */
+/* Aurora: three big color bands treated as one background-image (so one
+   shared background-position animation applies uniformly to all of
+   them, unlike Galaxy's stars, which needed distinct per-layer
+   positions). Slow ease-in-out drift alternating back and forth. */
 html[data-theme="aurora"] {
+  --accent: #4cdcaa;
+  --accent-hover: #6ee8c0;
+  --accent-2: #8b5cf6;
+  --accent-gradient: linear-gradient(135deg, #4cdcaa, #8b5cf6);
+  --accent-soft-bg: #0f2a24;
+  --accent-soft-text: #8ceccb;
   background-color: #030711;
   background-image:
     radial-gradient(ellipse 1400px 500px at 30% -10%, rgba(76, 220, 170, 0.22), transparent 60%),
@@ -137,32 +156,19 @@ html[data-theme="aurora"] {
   to { background-position: 100% 40%; }
 }
 
-/* ---- Dashboard theme: Code Rain ---- */
-/* Thin vertical column lines plus short bright "drip" segments per
-   column, animated straight down -- evokes falling-code without
-   literal characters (which would need a canvas/JS, not pure CSS).
-   Kept very low-opacity (0.35 on the whole pseudo-element) since this
-   is the busiest/most motion-heavy option -- it sits behind real
-   readable UI text on every page, not just a landing screen. */
+/* Code Rain: the background here is just a plain dark backdrop --
+   static/theme-effects.js draws the actual falling-character effect on
+   a canvas when it detects this theme. A CSS-only approximation (thin
+   animated gradient columns) didn't read as "code rain" at all per
+   direct feedback; real falling glyphs need a canvas, not gradients. */
 html[data-theme="code-rain"] {
+  --accent: #22c55e;
+  --accent-hover: #4ade80;
+  --accent-2: #16a34a;
+  --accent-gradient: linear-gradient(135deg, #22c55e, #0d9488);
+  --accent-soft-bg: #062012;
+  --accent-soft-text: #7de8a8;
   background-color: #010401;
-}
-html[data-theme="code-rain"] body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.35;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(34, 197, 94, 0.14) 0px, rgba(34, 197, 94, 0.14) 1px, transparent 1px, transparent 26px),
-    repeating-linear-gradient(180deg, transparent 0, transparent 18px, rgba(34, 197, 94, 0.55) 19px, transparent 20px, transparent 60px);
-  background-size: 100% 100%, 26px 400px;
-  animation: code-rain-fall 6s linear infinite;
-}
-@keyframes code-rain-fall {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 0 0, 0 400px; }
 }
 
 body {
