@@ -52,6 +52,50 @@ html {
   background-attachment: fixed;
 }
 
+/* ---- Dashboard theme: Galaxy ---- */
+/* Nebula glow lives on <html> (static -- big soft blurs don't need to
+   move to read as atmospheric). Stars are a single repeating tile on a
+   body::before pseudo-element, kept to one layer deliberately so its
+   background-position animation only ever has one value to track --
+   several independent radial-gradient star layers would each need their
+   own position value kept in sync in the same @keyframes, which is a
+   trap for a subtle desync bug down the line. */
+html[data-theme="galaxy"] {
+  background-color: #050318;
+  background-image:
+    radial-gradient(ellipse 1100px 700px at 15% 0%, rgba(139, 92, 246, 0.28), transparent 60%),
+    radial-gradient(ellipse 900px 650px at 90% 10%, rgba(76, 139, 240, 0.22), transparent 55%),
+    radial-gradient(ellipse 800px 900px at 50% 100%, rgba(219, 39, 119, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="galaxy"] body::before {
+  content: "";
+  position: fixed;
+  inset: -50px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 110px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 160px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 210px 190px, #fff, transparent),
+    radial-gradient(2px 2px at 260px 40px, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1px 1px at 40px 220px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 300px 150px, #fff, transparent),
+    radial-gradient(1px 1px at 340px 260px, #fff, transparent),
+    radial-gradient(1px 1px at 120px 280px, #fff, transparent),
+    radial-gradient(2px 2px at 370px 90px, rgba(255,255,255,0.9), transparent);
+  background-repeat: repeat;
+  background-size: 400px 300px;
+  opacity: 0.75;
+  animation: galaxy-drift 220s linear infinite;
+}
+@keyframes galaxy-drift {
+  from { background-position: 0 0; }
+  to { background-position: -400px 300px; }
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: transparent;
@@ -163,7 +207,7 @@ form.inline { display: inline; margin: 0; }
 
 /* ---- Sections & cards ---- */
 
-.section-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.2rem; }
+.section-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
 .section-head h2 { margin: 0; }
 
 h1 { font-size: 1.35rem; font-weight: 650; letter-spacing: -0.01em; }

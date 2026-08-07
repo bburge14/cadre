@@ -24,6 +24,7 @@ _DEFAULTS = {
     "kimi_api_key": "",
     "default_provider": "claude",
     "terminal_theme": "auto",
+    "dashboard_theme": "default",
 }
 
 _ENV_FALLBACK = {key: key.upper() for key in _DEFAULTS}

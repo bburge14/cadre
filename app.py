@@ -49,6 +49,11 @@ def inject_csrf_token():
     return {"csrf_token": auth.csrf_token}
 
 
+@app.context_processor
+def inject_dashboard_theme():
+    return {"dashboard_theme": settings.get("dashboard_theme")}
+
+
 @app.before_request
 def enforce_csrf():
     # setup/login/forgot_password are all pre-authentication -- their
@@ -1507,6 +1512,9 @@ def save_settings():
     terminal_theme_choice = request.form.get("terminal_theme", "")
     if terminal_theme_choice in ("auto", "dark", "light"):
         fields["terminal_theme"] = terminal_theme_choice
+    dashboard_theme_choice = request.form.get("dashboard_theme", "")
+    if dashboard_theme_choice in ("default", "galaxy"):
+        fields["dashboard_theme"] = dashboard_theme_choice
     # Secret fields: the form never shows the existing value, so a blank
     # submission means "leave it as-is," not "clear it" -- only overwrite
     # when the user actually typed something.
