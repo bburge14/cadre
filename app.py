@@ -91,6 +91,18 @@ def inject_terminal_theme():
     return {"terminal_theme": settings.get("terminal_theme"), "terminal_theme_options": TERMINAL_THEME_OPTIONS}
 
 
+# Values must match an `html[data-theme="..."]` block in static/style.css.
+# Kept as one list (not just inline in save_settings()'s membership check)
+# so a new theme card in settings.html and its acceptance here can't drift
+# out of sync the way the old inline 7-item tuple already had before this
+# batch of 12 new ones.
+DASHBOARD_THEME_VALUES = {
+    "default", "circuit", "slate", "light", "ocean", "volcanic", "amethyst",
+    "forest", "neon-city", "blood-moon", "frost", "desert", "toxic",
+    "galaxy", "aurora", "code-rain", "ember", "sakura", "deep-space",
+}
+
+
 def _static_asset_version() -> str:
     """A browser caches style.css aggressively by default, with nothing
     telling it a CSS-only change (no template/route change) means the
@@ -1612,7 +1624,7 @@ def save_settings():
         "projects_root": request.form.get("projects_root", ""),
     }
     dashboard_theme_choice = request.form.get("dashboard_theme", "")
-    if dashboard_theme_choice in ("default", "galaxy", "circuit", "aurora", "code-rain", "slate", "ember"):
+    if dashboard_theme_choice in DASHBOARD_THEME_VALUES:
         fields["dashboard_theme"] = dashboard_theme_choice
     # Secret fields: the form never shows the existing value, so a blank
     # submission means "leave it as-is," not "clear it" -- only overwrite

@@ -27,6 +27,14 @@
   --danger-text: #ff9d9d;
   --warning-bg: #3a2712;
   --warning-text: #ffb066;
+  /* Emphasis borders (hover states, callout boxes) -- kept as their own
+     variables rather than reusing --border, since these need to be
+     visibly darker/richer than the resting border on a dark theme but
+     the opposite (darker, not lighter) direction on a light one. */
+  --border-strong: #3a3d46;
+  --danger-border: #5a2a2c;
+  --success-border: #1f4a2c;
+  --accent-border: #2d5b8a;
   --radius: 8px;
   --radius-sm: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.24);
@@ -233,6 +241,275 @@ html[data-theme="ember"] body::before {
   to { background-position: 0 -340px; }
 }
 
+/* Light: the one non-dark theme -- overrides the full base palette
+   (--bg/--surface/--text/... below, not just the accent set every other
+   theme touches), since every dark theme so far only had to swap colors
+   sitting on top of an already-dark base. Verified nothing else in this
+   stylesheet hardcodes a dark-only assumption outside these variables. */
+html[data-theme="light"] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --surface-hover: #e3e6ec;
+  --border: #d7dae1;
+  --border-soft: #e6e8ed;
+  --text: #1b1d22;
+  --text-dim: #565963;
+  --text-faint: #8a8d97;
+  --accent: #3b6fd6;
+  --accent-hover: #2f5cc0;
+  --accent-2: #7c4fe0;
+  --accent-gradient: linear-gradient(135deg, #3b6fd6, #7c4fe0);
+  --accent-soft-bg: #e8effb;
+  --accent-soft-text: #2f5cc0;
+  --success-bg: #e3f6e8;
+  --success-text: #1f8a45;
+  --danger: #d92d2d;
+  --danger-bg: #fbe6e6;
+  --danger-text: #c22323;
+  --warning-bg: #fdf1de;
+  --warning-text: #a85d0a;
+  --border-strong: #b7bbc4;
+  --danger-border: #f0b3b3;
+  --success-border: #a6dab5;
+  --accent-border: #b9cdf2;
+  --shadow: 0 1px 3px rgba(20, 20, 30, 0.10), 0 1px 2px rgba(20, 20, 30, 0.08);
+  background-color: #f4f5f7;
+  background-image:
+    radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(59, 111, 214, 0.07), transparent 60%),
+    radial-gradient(ellipse 900px 500px at 100% 0%, rgba(124, 79, 224, 0.06), transparent 55%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Ocean Deep: calm navy/teal, no motion -- the underwater counterpart to
+   Slate's indigo/sky. */
+html[data-theme="ocean"] {
+  --accent: #22b8cf;
+  --accent-hover: #4dd0e1;
+  --accent-2: #2563eb;
+  --accent-gradient: linear-gradient(135deg, #22b8cf, #2563eb);
+  --accent-soft-bg: #0d2b36;
+  --accent-soft-text: #7fd8e8;
+  background-color: #020c14;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 20% -10%, rgba(34, 184, 207, 0.18), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(37, 99, 235, 0.16), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Sakura: same single-repeating-tile trick as Galaxy/Ember, but pink
+   petals drifting DOWN (positive Y) instead of Galaxy's diagonal drift
+   or Ember's rise -- reads as falling blossoms, not a re-skin of either. */
+html[data-theme="sakura"] {
+  --accent: #f472b6;
+  --accent-hover: #f9a8d4;
+  --accent-2: #fb7185;
+  --accent-gradient: linear-gradient(135deg, #f472b6, #fb7185);
+  --accent-soft-bg: #3a1428;
+  --accent-soft-text: #f9b8d4;
+  background-color: #1a0a14;
+  background-image:
+    radial-gradient(ellipse 1000px 600px at 25% -10%, rgba(244, 114, 182, 0.20), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 90% 100%, rgba(251, 113, 133, 0.16), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="sakura"] body::before {
+  content: "";
+  position: fixed;
+  inset: -50px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 30px 20px, #fbcfe8, transparent),
+    radial-gradient(1.5px 1.5px at 100px 90px, #f9a8d4, transparent),
+    radial-gradient(2.5px 2.5px at 170px 40px, rgba(249, 168, 212, 0.9), transparent),
+    radial-gradient(1.5px 1.5px at 230px 150px, #fbcfe8, transparent),
+    radial-gradient(2px 2px at 60px 180px, #f472b6, transparent),
+    radial-gradient(1.5px 1.5px at 300px 60px, #fbcfe8, transparent),
+    radial-gradient(2.5px 2.5px at 340px 200px, rgba(244, 114, 182, 0.9), transparent),
+    radial-gradient(1.5px 1.5px at 380px 100px, #f9a8d4, transparent);
+  background-repeat: repeat;
+  background-size: 400px 260px;
+  opacity: 0.7;
+  animation: sakura-fall 24s linear infinite;
+}
+@keyframes sakura-fall {
+  from { background-position: 0 0; }
+  to { background-position: 40px 260px; }
+}
+
+/* Volcanic: near-black/deep red, static -- moodier and redder than
+   Ember's warmer orange rising-sparks version of the same idea. */
+html[data-theme="volcanic"] {
+  --accent: #ef4444;
+  --accent-hover: #f87171;
+  --accent-2: #c2410c;
+  --accent-gradient: linear-gradient(135deg, #ef4444, #c2410c);
+  --accent-soft-bg: #2c0a0a;
+  --accent-soft-text: #fca5a5;
+  background-color: #0a0303;
+  background-image:
+    radial-gradient(ellipse 1000px 700px at 50% 110%, rgba(239, 68, 68, 0.20), transparent 65%),
+    radial-gradient(ellipse 800px 500px at 90% 0%, rgba(194, 65, 12, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Amethyst: rich purple/violet glow, static, no starfield or texture. */
+html[data-theme="amethyst"] {
+  --accent: #a855f7;
+  --accent-hover: #c084fc;
+  --accent-2: #d946ef;
+  --accent-gradient: linear-gradient(135deg, #a855f7, #d946ef);
+  --accent-soft-bg: #2c1344;
+  --accent-soft-text: #d8b4fe;
+  background-color: #120a1e;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 20% -10%, rgba(168, 85, 247, 0.20), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(217, 70, 239, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Forest: deep olive-green/brown, earthy, static. */
+html[data-theme="forest"] {
+  --accent: #65a30d;
+  --accent-hover: #84cc16;
+  --accent-2: #92400e;
+  --accent-gradient: linear-gradient(135deg, #65a30d, #92400e);
+  --accent-soft-bg: #1a2410;
+  --accent-soft-text: #bef264;
+  background-color: #0d130a;
+  background-image:
+    radial-gradient(ellipse 1000px 600px at 15% -10%, rgba(101, 163, 13, 0.16), transparent 60%),
+    radial-gradient(ellipse 850px 550px at 100% 100%, rgba(146, 64, 14, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Neon City: hot pink/cyan two-tone, static -- a different circuit for
+   the cyberpunk aesthetic than Circuit Board's green PCB traces. */
+html[data-theme="neon-city"] {
+  --accent: #ec4899;
+  --accent-hover: #f472b6;
+  --accent-2: #06b6d4;
+  --accent-gradient: linear-gradient(135deg, #ec4899, #06b6d4);
+  --accent-soft-bg: #2a0a2e;
+  --accent-soft-text: #f9a8e0;
+  background-color: #08040f;
+  background-image:
+    radial-gradient(ellipse 1000px 600px at 10% -10%, rgba(236, 72, 153, 0.22), transparent 60%),
+    radial-gradient(ellipse 900px 600px at 100% 100%, rgba(6, 182, 212, 0.20), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Blood Moon: a single big off-center red glow reading as an eclipse,
+   static -- deeper/redder than Volcanic's ground-level lava glow. */
+html[data-theme="blood-moon"] {
+  --accent: #dc2626;
+  --accent-hover: #ef4444;
+  --accent-2: #ea580c;
+  --accent-gradient: linear-gradient(135deg, #dc2626, #ea580c);
+  --accent-soft-bg: #2e0a0a;
+  --accent-soft-text: #fca5a5;
+  background-color: #0c0403;
+  background-image:
+    radial-gradient(ellipse 700px 700px at 80% 10%, rgba(220, 38, 38, 0.26), transparent 60%),
+    radial-gradient(ellipse 900px 500px at 20% 100%, rgba(234, 88, 12, 0.12), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Frost: pale icy cyan/blue, static -- cooler and lighter-feeling than
+   Slate's muted indigo, without going all the way to the Light theme. */
+html[data-theme="frost"] {
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-2: #67e8f9;
+  --accent-gradient: linear-gradient(135deg, #38bdf8, #67e8f9);
+  --accent-soft-bg: #0c2733;
+  --accent-soft-text: #a5f3fc;
+  background-color: #071a22;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 20% -10%, rgba(56, 189, 248, 0.18), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(103, 232, 249, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Desert: warm amber/gold, static -- a different warm palette than
+   Ember's red-orange, no rising particles. */
+html[data-theme="desert"] {
+  --accent: #d97706;
+  --accent-hover: #f59e0b;
+  --accent-2: #eab308;
+  --accent-gradient: linear-gradient(135deg, #d97706, #eab308);
+  --accent-soft-bg: #2e1c05;
+  --accent-soft-text: #fcd34d;
+  background-color: #140d04;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 50% 110%, rgba(217, 119, 6, 0.20), transparent 65%),
+    radial-gradient(ellipse 800px 500px at 10% 0%, rgba(234, 179, 8, 0.12), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Deep Space: nearly pure black, minimal -- reuses Galaxy's own
+   galaxy-drift keyframe (a plain background-position animation, not
+   Galaxy-specific despite the name) for a much sparser, dimmer, colder
+   star field and no nebula glow at all -- the deliberately quiet option
+   next to Galaxy's much busier, warmer-colored version of the same idea. */
+html[data-theme="deep-space"] {
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-2: #a5b4fc;
+  --accent-gradient: linear-gradient(135deg, #60a5fa, #a5b4fc);
+  --accent-soft-bg: #0f1725;
+  --accent-soft-text: #bfdbfe;
+  background-color: #020308;
+  background-image: radial-gradient(ellipse 700px 400px at 50% 0%, rgba(96, 165, 250, 0.06), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="deep-space"] body::before {
+  content: "";
+  position: fixed;
+  inset: -50px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 60px 80px, #fff, transparent),
+    radial-gradient(1px 1px at 220px 260px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 340px 130px, rgba(255,255,255,0.85), transparent),
+    radial-gradient(1px 1px at 140px 320px, #fff, transparent),
+    radial-gradient(1px 1px at 380px 40px, #fff, transparent);
+  background-repeat: repeat;
+  background-size: 450px 350px;
+  opacity: 0.5;
+  animation: galaxy-drift 420s linear infinite;
+}
+
+/* Toxic: acid lime green against dark violet, static -- the highest-
+   contrast, most saturated pairing in the set. */
+html[data-theme="toxic"] {
+  --accent: #a3e635;
+  --accent-hover: #bef264;
+  --accent-2: #7c3aed;
+  --accent-gradient: linear-gradient(135deg, #a3e635, #7c3aed);
+  --accent-soft-bg: #1a2e05;
+  --accent-soft-text: #d9f99d;
+  background-color: #0a0614;
+  background-image:
+    radial-gradient(ellipse 1000px 600px at 15% -10%, rgba(163, 230, 53, 0.16), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(124, 58, 237, 0.20), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* Circuit Board and Code Rain are busy/animated enough directly behind
    text (traces, falling glyphs) to hurt legibility of plain body copy
    that isn't already sitting on a .card's own opaque surface -- unlike
@@ -352,7 +629,7 @@ code {
   transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
   line-height: 1.2;
 }
-.btn:hover { background: var(--surface-hover); border-color: #3a3d46; text-decoration: none; transform: translateY(-1px); }
+.btn:hover { background: var(--surface-hover); border-color: var(--border-strong); text-decoration: none; transform: translateY(-1px); }
 .btn:active { transform: translateY(1px); }
 .btn-primary {
   background: var(--accent-gradient);
@@ -365,7 +642,7 @@ code {
   box-shadow: 0 2px 14px rgba(76, 139, 240, 0.4);
   transform: translateY(-1px);
 }
-.btn-danger { border-color: #5a2a2c; color: var(--danger-text); background: var(--surface-2); }
+.btn-danger { border-color: var(--danger-border); color: var(--danger-text); background: var(--surface-2); }
 .btn-danger:hover { background: var(--danger-bg); border-color: var(--danger); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
@@ -402,7 +679,7 @@ h3 { font-size: 0.9rem; font-weight: 600; color: var(--text-dim); margin: 1.1rem
   margin-bottom: 1.75rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.card:hover { border-color: #34373f; box-shadow: var(--shadow); }
+.card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
 .card-pad { padding: 1rem 1.2rem; }
 
 /* ---- Tables ---- */
@@ -452,11 +729,11 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
 /* ---- Flash messages ---- */
 
 .flash { padding: 0.65rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.2rem; font-size: 0.86rem; border: 1px solid transparent; }
-.flash.success { background: var(--success-bg); color: var(--success-text); border-color: #1f4a2c; }
-.flash.error { background: var(--danger-bg); color: var(--danger-text); border-color: #5a2a2c; }
+.flash.success { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
+.flash.error { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
 
 .status { font-size: 0.82rem; color: var(--success-text); margin-top: 0.5rem; }
-.note { background: var(--accent-soft-bg); border: 1px solid #2d5b8a; border-radius: var(--radius-sm); padding: 0.65rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
+.note { background: var(--accent-soft-bg); border: 1px solid var(--accent-border); border-radius: var(--radius-sm); padding: 0.65rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
 
 /* ---- Forms ---- */
 
@@ -626,7 +903,7 @@ details.help > .help-body p:last-child { margin-bottom: 0; }
   z-index: 2; color: var(--text-dim); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
 .tabs-arrow.visible { opacity: 1; pointer-events: auto; }
-.tabs-arrow.visible:hover { background: var(--surface-hover); border-color: #3a3d46; color: var(--text); }
+.tabs-arrow.visible:hover { background: var(--surface-hover); border-color: var(--border-strong); color: var(--text); }
 .tabs-arrow.visible:active { transform: translateY(-50%) translateY(1px); }
 .tabs-arrow-left { left: 2px; }
 .tabs-arrow-right { right: 2px; }
