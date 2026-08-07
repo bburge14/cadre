@@ -120,22 +120,32 @@ you have to remember to check on.
   full-screen program like Claude Code itself actually uses the extra
   room — capped and debounced so a burst of resize events during page
   load can't turn into overlapping, garbled redraws.
-- **Terminal color themes**: 17 options (dark/light/auto plus named
+- **Terminal color themes**: 23 options (dark/light/auto plus named
   palettes — Dracula, Solarized Dark/Light, Nord, Monokai, Gruvbox Dark,
   Tokyo Night, One Dark, Catppuccin Mocha, Synthwave, Matrix, Ayu Dark,
-  GitHub Dark, Cyberpunk), picked right on the terminal page itself, not
-  buried in Settings — it's about the CLI inside a session, not a
-  dashboard-wide preference. Applied to new sessions and retroactively to
-  every existing one when changed (`terminal_theme.py`); also
-  best-effort-mapped onto each CLI's own native theme system for anyone
-  using that provider's Remote Control outside this app, where a real
-  match exists in that CLI's own catalog.
+  GitHub Dark, Cyberpunk, plus six original combos: Rose Quartz, Deep
+  Forest, Abyssal, Sunset Blvd, Arctic Frost, Blood Moon), picked right on
+  the terminal page itself, not buried in Settings — it's about the CLI
+  inside a session, not a dashboard-wide preference. Applied to new
+  sessions and retroactively to every existing one when changed
+  (`terminal_theme.py`); also best-effort-mapped onto each CLI's own
+  native theme system for anyone using that provider's Remote Control
+  outside this app, where a real match exists in that CLI's own catalog.
 - **Dashboard appearance**: separate from the terminal theme above —
-  Settings > Appearance picks this dashboard's own look. 3 static themes
-  (Default, Circuit Board, Slate) and 4 animated ones (Galaxy, Aurora,
-  Code Rain, Ember), each overriding the whole app's accent-color
-  variables too, not just the background, so buttons/links/badges shift
-  with it everywhere.
+  Settings > Appearance picks this dashboard's own look. Same-mechanic
+  themes are grouped under one parent card with an expandable colorway
+  row, rather than each color being its own top-level card: **Glow** (12
+  flat-gradient colorways), **Circuit Board** (an actual PCB trace/via/
+  chip pattern, 4 colorways), **Particle Drift** (4 starfield/ember/petal
+  colorways), **Aurora** (standalone), **Code Rain** (6 colorways),
+  **Rainfall** (6 colorways), **Lava Lamp** (3 colorways), and **Drip** (a
+  goo-filtered liquid-runner effect with a stretch/snap/droplet physics
+  state machine, 6 colorways — Slime, Venom, Blood, Tar, Acid, Mercury).
+  42 colorways total across 8 named themes. Every colorway overrides the
+  whole app's accent-color variables too, not just the background, so
+  buttons/links/badges shift with it everywhere; a shared legibility
+  scrim (`--content-scrim`) keeps body text readable over even the
+  busiest animated backgrounds.
 - **Hand off to fresh session**: retires a long/bloated session by
   creating a brand-new one in the same directory and stopping the old
   one, writing a `CLAUDE.md` continuity nudge first

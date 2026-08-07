@@ -326,12 +326,40 @@
   <h2 id="appearance">Dashboard appearance</h2>
   <p>
     Separate from the terminal theme above — Settings &gt; Appearance
-    picks this dashboard's own look, not the CLI inside a session. 3
-    static themes (Default, Circuit Board, Slate) and 4 animated ones
-    (Galaxy, Aurora, Code Rain, Ember), each with its own accent color
-    too, so buttons/links/badges shift along with the background instead
-    of staying the same blue regardless of theme. Picking one saves
-    immediately, no separate "Save" click needed.
+    picks this dashboard's own look, not the CLI inside a session.
+    Same-mechanic themes are grouped under one parent card with an
+    expandable colorway row instead of each color getting its own
+    top-level card — click a family's card to switch into its first
+    colorway and reveal the rest. Eight named themes, 42 colorways total:
+  </p>
+  <ul>
+    <li><strong>Glow</strong> — 12 flat-gradient colorways (Default, Slate,
+      Light, Ocean Deep, Volcanic, Amethyst, Forest, Neon City, Blood Moon,
+      Frost, Desert, Toxic)</li>
+    <li><strong>Circuit Board</strong> — an actual PCB trace pattern (via
+      pads with a drilled hole, an IC chip footprint, SMD resistor pads),
+      4 colorways (Green, Amber, Blue, Crimson)</li>
+    <li><strong>Particle Drift</strong> — 4 colorways (Galaxy, Ember,
+      Sakura, Deep Space)</li>
+    <li><strong>Aurora</strong> — standalone, no colorways</li>
+    <li><strong>Code Rain</strong> — falling-glyph canvas effect, 6
+      colorways (Matrix Green, Cyber Blue, Crimson, Gold, Violet, Ice)</li>
+    <li><strong>Rainfall</strong> — falling-streak canvas effect, 6
+      colorways (Storm Blue, Violet Night, Acid Rain, Crimson Storm,
+      Neon, Ash)</li>
+    <li><strong>Lava Lamp</strong> — CSS goo-filter rising blobs, 3
+      colorways (Magma, Cosmic, Toxic)</li>
+    <li><strong>Drip</strong> — an SVG goo-filter liquid effect with a
+      real stretch/snap/droplet physics state machine, 6 colorways
+      (Slime, Venom, Blood, Tar, Acid, Mercury)</li>
+  </ul>
+  <p>
+    Every colorway overrides the whole app's accent-color variables too,
+    not just the background, so buttons/links/badges shift along with it
+    instead of staying the same blue regardless of theme. A shared
+    legibility scrim keeps body text readable even over the busiest
+    animated backgrounds. Picking one saves immediately, no separate
+    "Save" click needed.
   </p>
 
   <h2 id="account">Account &amp; recovery</h2>
