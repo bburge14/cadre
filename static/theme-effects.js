@@ -311,7 +311,15 @@
         speed: 0.4 + Math.random() * 1.4,
         currentLength,
         state: spawnSnapping ? "snapping" : "stretching",
-        waveOffset: (Math.random() - 0.5) * 18,
+        // Zero or negative only, never positive -- the pool's own fill
+        // (drawn separately in draw() below) only covers down to
+        // waveY(x) at each x, with no idea any individual runner has
+        // its own offset. A positive offset pulls a runner's attach
+        // point below that line, leaving an uncovered wedge of
+        // background between the pool's edge and the runner's actual
+        // start -- a negative offset instead pulls it up into the
+        // pool's already-filled region, which just overlaps (harmless).
+        waveOffset: -Math.random() * 12,
         dropletActive: false,
         dropY: 0,
         dropSpeed: 0,
