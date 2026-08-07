@@ -15,7 +15,11 @@
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
-  html, body { height: 100%; }
+  /* Hard backstop, not just a fix for the one known cause above --
+     nothing on this page should ever be able to force a horizontal
+     scrollbar on the whole app shell, regardless of what overflows
+     inside it. */
+  html, body { height: 100%; overflow-x: hidden; }
   body { max-width: none; padding: 0; display: flex; flex-direction: column; }
   .term-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -24,8 +28,15 @@
   }
   .term-header .label { font-size: 0.9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .term-header .term-status { font-size: 0.76rem; color: var(--text-faint); flex-shrink: 0; }
-  #terminal-wrap { flex: 1; min-height: 0; background: #000; padding: 0.4rem; display: flex; flex-direction: column; }
-  #terminal { flex: 1; min-height: 0; }
+  /* min-width:0 + overflow:hidden on both -- without them, a flex
+     child defaults to never shrinking below its content's intrinsic
+     width, and xterm.js sets its own inner canvas width in pixels
+     based on its column count. If that ever computes wider than the
+     actual panel (e.g. a fit that ran before layout fully settled),
+     the flex child would just grow to fit it instead of clipping,
+     dragging the whole page into horizontal scroll. */
+  #terminal-wrap { flex: 1; min-height: 0; min-width: 0; overflow: hidden; background: #000; padding: 0.4rem; display: flex; flex-direction: column; }
+  #terminal { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
   #term-not-running {
     flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center;
     gap: 0.8rem; color: var(--text-dim); font-size: 0.88rem; text-align: center; padding: 2rem;
