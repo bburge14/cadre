@@ -1523,9 +1523,15 @@ def apply_update():
     return result
 
 
+_SETTINGS_TABS = {"account", "version", "githosts", "providers", "sessions", "appearance"}
+
+
 @app.post("/settings")
 @require_auth
 def save_settings():
+    active_tab = request.form.get("active_tab", "")
+    anchor = active_tab if active_tab in _SETTINGS_TABS else None
+
     fields = {
         "github_client_id": request.form.get("github_client_id", ""),
         "gitlab_base_url": request.form.get("gitlab_base_url", "").rstrip("/") or "https://gitlab.com",
@@ -1550,12 +1556,12 @@ def save_settings():
     if default_provider:
         if default_provider not in {p.id for p in providers.orchestration_candidates()}:
             flash("That provider can't be set as the default -- it isn't connected, or can't run Agent Stacks.", "error")
-            return redirect(url_for("settings_form"))
+            return redirect(url_for("settings_form", _anchor=anchor))
         fields["default_provider"] = default_provider
 
     settings.update(**fields)
     flash("Settings saved.", "success")
-    return redirect(url_for("settings_form"))
+    return redirect(url_for("settings_form", _anchor=anchor))
 
 
 @app.post("/settings/account")

@@ -131,7 +131,8 @@
   {% endif %}
   </div>
 
-  <form method="post" action="{{ url_for('save_settings') }}">
+  <form method="post" action="{{ url_for('save_settings') }}" id="settings-form">
+    <input type="hidden" name="active_tab" id="active-tab-field" value="version">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="tab-panel" id="tab-panel-githosts">
@@ -268,6 +269,8 @@ function switchTab(name) {
   document.getElementById('tab-panel-' + name).classList.add('active');
   document.querySelector('.tab-btn[data-tab="' + name + '"]').classList.add('active');
   history.replaceState(null, '', '#' + name);
+  const activeTabField = document.getElementById('active-tab-field');
+  if (activeTabField) activeTabField.value = name;
 }
 (function () {
   const requested = location.hash.replace('#', '');
@@ -280,6 +283,14 @@ function selectDashboardTheme(name) {
   document.querySelectorAll('.theme-card').forEach(el => {
     el.classList.toggle('selected', el.dataset.themeValue === name);
   });
+  // Auto-saves immediately -- clicking a theme card used to only update
+  // the visual selection client-side, leaving it unsaved (and the rest
+  // of the dashboard unchanged) until a separate, easy-to-miss click on
+  // "Save" further down the page. This submits the whole settings form,
+  // which is safe: every other field already reflects its current saved
+  // value (secrets use "blank = leave as-is"), so nothing else changes.
+  document.getElementById('active-tab-field').value = 'appearance';
+  document.getElementById('settings-form').submit();
 }
 
 let latestKnownVersion = null;
