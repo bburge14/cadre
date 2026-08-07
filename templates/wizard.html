@@ -137,16 +137,16 @@
           public exposure needed. Not detected on this machine.</p>
         <p class="hint"><a href="https://tailscale.com/download" target="_blank">tailscale.com/download</a></p>
         {% endif %}
-        <p class="hint" style="margin-top:0.6rem;">Full walkthrough: "Reaching it from another
-          device" in <code>SETUP.md</code>.</p>
+        <p class="hint" style="margin-top:0.6rem;">Full walkthrough:
+          <a href="{{ url_for('docs_page') }}#remote-access">Docs &raquo; Reaching it from other devices</a>.</p>
       </div>
       <div class="wiz-card" style="cursor:default;">
         <h3>Port forwarding</h3>
         <p class="hint" style="color:var(--danger-text);">Puts this on the open internet —
           don't do this without a reverse proxy in front handling TLS first. This is a plain-HTTP
           dev server underneath; login/CSRF protection doesn't substitute for that.</p>
-        <p class="hint">See "Reaching it from another device" in <code>SETUP.md</code> before
-          attempting this.</p>
+        <p class="hint">See <a href="{{ url_for('docs_page') }}#remote-access">Docs &raquo; Reaching it from other devices</a>
+          before attempting this.</p>
       </div>
     </div>
   </div>

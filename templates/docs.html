@@ -357,24 +357,48 @@
   <h2 id="remote-access">Reaching it from other devices</h2>
   <p>
     By default this only listens on the machine it's running on. Step 4 of
-    the <a href="{{ url_for('wizard_form') }}">setup wizard</a> shows
-    whether that's still the case, and if
+    the <a href="{{ url_for('wizard_form') }}">setup wizard</a> and
+    Settings &gt; Network both show whether that's still the case, and if
     <a href="https://tailscale.com" target="_blank">Tailscale</a> is
-    installed and running on this machine, shows its IP directly — no
+    installed and running on this machine, show its IP directly — no
     digging through <code>.env</code> or a terminal to find it.
   </p>
   <p>
-    Getting reachable from another device always takes the same two steps:
-    set <code>CADRE_HOST=0.0.0.0</code> in <code>.env</code>, then restart.
-    From there, Tailscale (a private network between your own devices, no
-    port-forwarding needed) is the easiest path to reach it from outside
-    your own LAN too, not just on the same Wi-Fi. Forwarding a router port
-    straight to this app is possible but not recommended without a reverse
-    proxy in front handling real TLS first — this is a plain-HTTP dev
-    server underneath, and login/CSRF protection isn't a substitute for
-    encrypting the connection itself. Full walkthrough for all three
-    options: "Reaching it from another device" in
-    <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>.
+    Getting reachable from another device always takes the same two steps
+    first: set <code>CADRE_HOST=0.0.0.0</code> in <code>.env</code>, then
+    restart it. That alone is enough on a trusted home LAN — anything else
+    on the same network can then reach
+    <code>http://&lt;this-machine's-LAN-IP&gt;:7420</code>.
+  </p>
+  <p>
+    <strong>Tailscale (recommended)</strong> puts this machine and your
+    other devices on their own private network reachable from anywhere
+    with an internet connection — no port-forwarding, no public exposure,
+    no dynamic DNS. Install it on this machine and whatever device you
+    want to reach the dashboard from
+    (<a href="https://tailscale.com/download" target="_blank">tailscale.com/download</a>),
+    sign in on both with the same account, then find this machine's
+    Tailscale IP with <code>tailscale ip -4</code> (or check the wizard/
+    Settings &gt; Network pages above, which show it automatically). Open
+    <code>http://&lt;tailscale-ip&gt;:7420</code> from the other device —
+    works over cellular data too, not just shared Wi-Fi.
+  </p>
+  <p>
+    <strong>Plain LAN</strong> needs no install beyond the two steps
+    above — just use this machine's regular LAN IP instead of a Tailscale
+    one. Only reachable from devices on the same local network, and only
+    while this machine's IP doesn't change.
+  </p>
+  <p>
+    <strong>Port forwarding</strong> onto the open internet is possible but
+    not recommended without a reverse proxy (Caddy, nginx, etc.) in front
+    of it terminating real TLS first — this is a plain-HTTP dev server
+    underneath, and the login/CSRF protection built into the app is not a
+    substitute for encrypting the connection itself. If you still want
+    this: put a reverse proxy in front handling HTTPS, point it at
+    <code>127.0.0.1:7420</code> (leave <code>CADRE_HOST</code> at its
+    default in that case), and forward the router port to the proxy, not
+    directly to this app.
   </p>
 
   <h2 id="updating">Keeping Cadre updated</h2>
