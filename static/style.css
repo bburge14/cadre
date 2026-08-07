@@ -208,6 +208,30 @@ html[data-theme="code-rain"] {
   background-color: #010401;
 }
 
+/* Code Rain colorways: same mechanic (theme-effects.js's startCodeRain,
+   which reads its glyph colors from CODE_RAIN_PALETTES keyed by this
+   data-theme value), different palette -- the consolidated picker's
+   answer to "add colorways to code rain/rainfall/lava/drip too" rather
+   than each color being its own unrelated top-level theme. */
+html[data-theme="code-rain-cyber"] {
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-2: #0ea5e9;
+  --accent-gradient: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  --accent-soft-bg: #062230;
+  --accent-soft-text: #a5e4fc;
+  background-color: #010a10;
+}
+html[data-theme="code-rain-crimson"] {
+  --accent: #f43f5e;
+  --accent-hover: #fb7185;
+  --accent-2: #be123c;
+  --accent-gradient: linear-gradient(135deg, #f43f5e, #be123c);
+  --accent-soft-bg: #300608;
+  --accent-soft-text: #fca5b5;
+  background-color: #0a0102;
+}
+
 /* Rain: same deal as Code Rain just above -- a plain dark backdrop here,
    static/theme-effects.js draws the actual falling rain-streak canvas
    effect when it detects this theme. Cool storm blue-gray rather than
@@ -227,6 +251,33 @@ html[data-theme="rain"] {
   background-attachment: fixed;
 }
 
+/* Rain colorways -- see the Code Rain colorways comment above; same
+   pattern, this time for startRainfall's RAIN_PALETTES. */
+html[data-theme="rain-violet"] {
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-2: #7c3aed;
+  --accent-gradient: linear-gradient(135deg, #a78bfa, #7c3aed);
+  --accent-soft-bg: #1c1330;
+  --accent-soft-text: #ddd6fe;
+  background-color: #120b1f;
+  background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(167, 139, 250, 0.1), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="rain-acid"] {
+  --accent: #84cc16;
+  --accent-hover: #a3e635;
+  --accent-2: #4d7c0f;
+  --accent-gradient: linear-gradient(135deg, #84cc16, #4d7c0f);
+  --accent-soft-bg: #1a2408;
+  --accent-soft-text: #d9f99d;
+  background-color: #0d1406;
+  background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(132, 204, 22, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* Lava Lamp: plain dark backdrop here, same as Code Rain/Rain above --
    static/theme-effects.js draws the actual gooey rising-blob effect on a
    DOM layer (not canvas) when it detects this theme. Warm pink/rose +
@@ -242,6 +293,32 @@ html[data-theme="lava-lamp"] {
   --accent-soft-text: #fda4af;
   background-color: #0f0a14;
   background-image: radial-gradient(ellipse 1100px 600px at 50% 110%, rgba(251, 113, 133, 0.10), transparent 65%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+/* Lava Lamp colorways -- see the Code Rain colorways comment above; same
+   pattern, this time for startLavaLamp's LAVA_PALETTES. */
+html[data-theme="lava-lamp-cosmic"] {
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-2: #6366f1;
+  --accent-gradient: linear-gradient(135deg, #a78bfa, #6366f1);
+  --accent-soft-bg: #1e1b3a;
+  --accent-soft-text: #ddd6fe;
+  background-color: #0a0a18;
+  background-image: radial-gradient(ellipse 1100px 600px at 50% 110%, rgba(167, 139, 250, 0.1), transparent 65%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="lava-lamp-toxic"] {
+  --accent: #a3e635;
+  --accent-hover: #bef264;
+  --accent-2: #65a30d;
+  --accent-gradient: linear-gradient(135deg, #a3e635, #65a30d);
+  --accent-soft-bg: #1c2408;
+  --accent-soft-text: #ecfccb;
+  background-color: #0a0f04;
+  background-image: radial-gradient(ellipse 1100px 600px at 50% 110%, rgba(163, 230, 53, 0.1), transparent 65%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
@@ -275,6 +352,34 @@ html[data-theme="drip"] {
   --accent-soft-text: #a5f3fc;
   background-color: #05141a;
   background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(34, 211, 238, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Drip colorways -- see the Code Rain colorways comment above; same
+   pattern, this time for startDrip's DRIP_PALETTES (the runners'/pool's
+   own fill color, not just the page accent). */
+html[data-theme="drip-honey"] {
+  --accent: #fbbf24;
+  --accent-hover: #fcd34d;
+  --accent-2: #d97706;
+  --accent-gradient: linear-gradient(135deg, #fbbf24, #d97706);
+  --accent-soft-bg: #2e2005;
+  --accent-soft-text: #fde68a;
+  background-color: #1a1206;
+  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(251, 191, 36, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="drip-cyan"] {
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-2: #0891b2;
+  --accent-gradient: linear-gradient(135deg, #22d3ee, #0891b2);
+  --accent-soft-bg: #062730;
+  --accent-soft-text: #a5f3fc;
+  background-color: #04101a;
+  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(34, 211, 238, 0.12), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }

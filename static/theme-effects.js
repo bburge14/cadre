@@ -25,12 +25,22 @@
     return el;
   }
 
+  // Same falling-glyph mechanic, different palette per colorway -- keyed
+  // by data-theme so the consolidated picker's "Code Rain" family card
+  // can offer more than one look without a second copy of this function.
+  const CODE_RAIN_PALETTES = {
+    "code-rain": { bright: "180, 255, 210", fade: "1, 4, 1" },
+    "code-rain-cyber": { bright: "180, 230, 255", fade: "1, 10, 16" },
+    "code-rain-crimson": { bright: "255, 180, 195", fade: "10, 1, 2" },
+  };
+
   function startCodeRain() {
     if (document.getElementById("code-rain-canvas")) return null;
     const canvas = document.createElement("canvas");
     canvas.id = "code-rain-canvas";
     attachFixedLayer(canvas);
     const ctx = canvas.getContext("2d");
+    const palette = CODE_RAIN_PALETTES[document.documentElement.dataset.theme] || CODE_RAIN_PALETTES["code-rain"];
     const chars = "01";
     const fontSize = 15;
     let columns, drops;
@@ -45,7 +55,7 @@
     window.addEventListener("resize", resize);
 
     function draw() {
-      ctx.fillStyle = "rgba(1, 4, 1, 0.08)";
+      ctx.fillStyle = `rgba(${palette.fade}, 0.08)`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.font = fontSize + "px monospace";
@@ -57,7 +67,7 @@
         // Leading character bright, rest of the trail dims via the fade
         // fillRect above (repeated translucent overpaint), not per-glyph
         // opacity -- much cheaper than tracking a trail array per column.
-        ctx.fillStyle = "rgba(180, 255, 210, 0.85)";
+        ctx.fillStyle = `rgba(${palette.bright}, 0.85)`;
         ctx.fillText(char, x, y);
 
         if (y > canvas.height && Math.random() > 0.975) {
@@ -77,12 +87,19 @@
     };
   }
 
+  const RAIN_PALETTES = {
+    rain: "160, 200, 230",
+    "rain-violet": "190, 160, 230",
+    "rain-acid": "170, 220, 120",
+  };
+
   function startRainfall() {
     if (document.getElementById("rainfall-canvas")) return null;
     const canvas = document.createElement("canvas");
     canvas.id = "rainfall-canvas";
     attachFixedLayer(canvas);
     const ctx = canvas.getContext("2d");
+    const dropColor = RAIN_PALETTES[document.documentElement.dataset.theme] || RAIN_PALETTES.rain;
     // Slight left-leaning wind on every drop -- a perfectly vertical
     // rain canvas reads as static noise more than weather; the shared
     // diagonal is what actually sells "falling," same reason Code Rain
@@ -118,7 +135,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.lineCap = "round";
       for (const d of drops) {
-        ctx.strokeStyle = `rgba(160, 200, 230, ${d.opacity})`;
+        ctx.strokeStyle = `rgba(${dropColor}, ${d.opacity})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(d.x, d.y);
@@ -161,7 +178,12 @@
     layer.style.overflow = "hidden";
     layer.style.filter = "blur(28px) contrast(22)";
 
-    const COLORS = ["#fb7185", "#f97316", "#f43f5e", "#fb923c", "#e11d48"];
+    const LAVA_PALETTES = {
+      "lava-lamp": ["#fb7185", "#f97316", "#f43f5e", "#fb923c", "#e11d48"],
+      "lava-lamp-cosmic": ["#a78bfa", "#818cf8", "#c4b5fd", "#6366f1", "#8b5cf6"],
+      "lava-lamp-toxic": ["#a3e635", "#84cc16", "#bef264", "#65a30d", "#d9f99d"],
+    };
+    const COLORS = LAVA_PALETTES[document.documentElement.dataset.theme] || LAVA_PALETTES["lava-lamp"];
     const BLOB_COUNT = 8;
     for (let i = 0; i < BLOB_COUNT; i++) {
       const blob = document.createElement("div");
@@ -179,216 +201,305 @@
     return { stop: () => layer.remove() };
   }
 
+  // A real SVG goo filter (blur, then a feColorMatrix that pushes alpha
+  // toward binary opaque/transparent, then blend back) -- ported from
+  // Bradey's reference implementation. display:none on the <svg> is
+  // fine; filter primitives don't need to render to be referenced by
+  // url(#id) from the wrapper div's own CSS filter below.
+  function ensureGooFilter() {
+    if (document.getElementById("drip-goo-filter")) return;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("style", "display:none;");
+    svg.innerHTML =
+      '<defs><filter id="drip-goo-filter">' +
+      '<feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur" />' +
+      '<feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 50 -25" result="goo" />' +
+      '<feBlend in="SourceGraphic" in2="goo" />' +
+      "</filter></defs>";
+    document.documentElement.appendChild(svg);
+  }
+
   function startDrip() {
-    if (document.getElementById("drip-canvas")) return null;
+    if (document.getElementById("drip-wrapper")) return null;
+    ensureGooFilter();
+
+    const wrapper = document.createElement("div");
+    wrapper.id = "drip-wrapper";
+    attachFixedLayer(wrapper);
+    wrapper.style.filter = "url(#drip-goo-filter)";
+    wrapper.style.overflow = "hidden";
+
     const canvas = document.createElement("canvas");
-    canvas.id = "drip-canvas";
-    attachFixedLayer(canvas);
+    wrapper.appendChild(canvas);
     const ctx = canvas.getContext("2d");
-    const LIQUID = "rgba(120, 200, 220, 0.65)";
-    const SHINE = "rgba(220, 250, 255, 0.55)";
-    let columns, t;
+    const DRIP_PALETTES = {
+      drip: "#ffffff",
+      "drip-honey": "#fbbf24",
+      "drip-cyan": "#22d3ee",
+    };
+    const LIQUID = DRIP_PALETTES[document.documentElement.dataset.theme] || DRIP_PALETTES.drip;
+    const RUNNER_COUNT = 8;
+    let runners, animT, rafId;
 
-    // The whole liquid mass -- band plus every icicle -- is built and
-    // filled as ONE continuous path per frame, not a wavy band plus
-    // separately-filled icicle shapes layered on top of it. Separate
-    // opaque fills only ever look seamless where they happen to overlap
-    // by exactly the right amount; anywhere they don't (which was most
-    // of the width, at the spacing this needs to not look sparse) shows
-    // as a visible notch or gap. One continuous outline can't have that
-    // problem by construction -- there's only ever one edge.
-    function randomMaxLen() {
-      // Skewed toward short/medium (pow > 1 biases random() down before
-      // scaling), with occasional much longer runs -- most real drips
-      // are short, a few run far longer, not a flat/uniform spread.
-      return 30 + Math.pow(Math.random(), 1.6) * 280;
+    // A second, unfiltered canvas layered on top of the goo-filtered one
+    // for crisp specular highlights -- the goo filter's feColorMatrix
+    // pushes alpha toward binary opaque/transparent, so any soft
+    // gradient drawn *inside* the filtered wrapper would just get
+    // flattened back to a flat fill instead of reading as a highlight.
+    // Kept fully separate from the base liquid drawing above (not
+    // wired into updateRunner/drawRunner/draw at all beyond one new
+    // call at the end of draw()) so the shapes/motion that already
+    // read right are untouched.
+    const shineCanvas = document.createElement("canvas");
+    attachFixedLayer(shineCanvas);
+    const shineCtx = shineCanvas.getContext("2d");
+
+    function resizeShine() {
+      shineCanvas.width = window.innerWidth;
+      shineCanvas.height = window.innerHeight;
     }
+    resizeShine();
+    window.addEventListener("resize", resizeShine);
 
-    function makeColumn(x) {
-      const maxLen = randomMaxLen();
+    function makeRunner(x) {
       return {
         x,
-        bandY: 12 + Math.random() * 4,
-        bandPhase: Math.random() * Math.PI * 2,
-        shoulderHalfWidth: 16 + Math.random() * 10,
-        // Starts at a random point along its OWN full range, not near
-        // zero -- every column beginning its growth in lockstep from
-        // "just spawned" was exactly what read as static/synchronized/
-        // same-length, since real variation only appeared after each
-        // column had independently completed a full grow-and-release
-        // cycle, which (at the old slow growRate) took anywhere from 20
-        // to 90+ real seconds. Starting pre-scattered across the range
-        // means the very first frame already shows a real spread.
-        len: Math.random() * maxLen,
-        maxLen,
-        // Several times faster than before (was 0.12-0.4, ~4-13px/sec)
-        // so growth is something you can actually see happening within
-        // a few seconds, not an imperceptible creep.
-        growRate: 0.6 + Math.random() * 1.4,
-        tipR: 5 + Math.random() * 4,
-        // A slow side-to-side sway, more pronounced toward the tip than
-        // at the band -- the detail that reads as flowing/viscous liquid
-        // rather than a rigid, frozen icicle hanging perfectly straight.
-        wobblePhase: Math.random() * Math.PI * 2,
-        wobbleSpeed: 0.5 + Math.random() * 0.6,
-        wobbleAmp: 1.5 + Math.random() * 2.5,
-        state: "trickling",
+        width: 15 + Math.random() * 15,
+        maxLength: 140 + Math.random() * 240,
+        speed: 0.6 + Math.random() * 1.0,
+        currentLength: Math.random() * 40,
+        state: "stretching", // "stretching" | "snapping"
+        dropletActive: false,
         dropY: 0,
-        dropVy: 0,
+        dropSpeed: 0,
+        dropRadius: 0,
       };
     }
 
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      const spacing = 95;
-      const count = Math.max(6, Math.floor(canvas.width / spacing));
-      const step = canvas.width / count;
-      columns = new Array(count).fill(0).map((_, i) => makeColumn((i + 0.5) * step + (Math.random() * 24 - 12)));
+      const spacing = canvas.width / RUNNER_COUNT;
+      runners = new Array(RUNNER_COUNT).fill(0).map((_, i) => {
+        const x = i * spacing + Math.random() * (spacing - 30) + 15;
+        return makeRunner(x);
+      });
     }
     resize();
     window.addEventListener("resize", resize);
-    t = 0;
+    animT = 0;
 
-    function bandY(c) {
-      return c.bandY + Math.sin(t + c.bandPhase) * 1.2;
+    // A slow sway plus a faster ripple, layered -- an uneven, alive pool
+    // surface rather than a single flat sine wave.
+    function waveY(x) {
+      const slowSway = Math.sin(animT * 0.012 + x * 0.002) * 30;
+      const fastRipple = Math.sin(animT * 0.035 + x * 0.008) * 8;
+      return 70 + slowSway + fastRipple;
     }
 
-    function drawSurface() {
-      ctx.beginPath();
-      ctx.moveTo(-30, -30);
-      ctx.lineTo(-30, bandY(columns[0]));
-
-      for (let i = 0; i < columns.length; i++) {
-        const c = columns[i];
-        const topY = bandY(c);
-        const tipY = topY + c.len;
-        const neckY = topY + c.len * 0.55;
-        const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
-        const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
-        const sw = c.shoulderHalfWidth;
-        // Sway grows with distance from the band -- anchored (0) right
-        // at the shoulder, most pronounced at the tip -- so it reads as
-        // a flexible flowing strand, not a rigid rod pivoting stiffly.
-        const wobble = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
-        const neckX = c.x + wobble * 0.45;
-        const tipX = c.x + wobble;
-
-        // Down the icicle's left side, around the bulb, back up the
-        // right side -- an icicle silhouette, not a thin stroked line
-        // with a separate circle glued to the end of it.
-        ctx.lineTo(c.x - sw, topY);
-        ctx.quadraticCurveTo(c.x - sw * 0.7, topY + c.len * 0.25, neckX - neckHalfWidth, neckY);
-        ctx.quadraticCurveTo(tipX - tipR * 1.1, neckY + (tipY - neckY) * 0.35, tipX - tipR, tipY - tipR * 0.3);
-        ctx.quadraticCurveTo(tipX - tipR, tipY + tipR * 0.55, tipX, tipY + tipR * 0.65);
-        ctx.quadraticCurveTo(tipX + tipR, tipY + tipR * 0.55, tipX + tipR, tipY - tipR * 0.3);
-        ctx.quadraticCurveTo(tipX + tipR * 1.1, neckY + (tipY - neckY) * 0.35, neckX + neckHalfWidth, neckY);
-        ctx.quadraticCurveTo(c.x + sw * 0.7, topY + c.len * 0.25, c.x + sw, topY);
-
-        // The shallow "valley" back up to band level before the next
-        // icicle -- both endpoints sit at nearly the same y (the band's
-        // own small wave), so this reads as a thin continuous strip
-        // connecting every icicle, not a gap.
-        const next = columns[i + 1];
-        if (next) {
-          const nextTopY = bandY(next);
-          const midX = (c.x + sw + (next.x - next.shoulderHalfWidth)) / 2;
-          const midY = (topY + nextTopY) / 2;
-          ctx.quadraticCurveTo(c.x + sw, topY, midX, midY);
-        } else {
-          ctx.lineTo(canvas.width + 30, topY);
+    function updateRunner(r) {
+      const startY = waveY(r.x);
+      if (r.state === "stretching") {
+        r.currentLength += r.speed;
+        if (r.currentLength >= r.maxLength) {
+          // Snap: spawn a falling droplet right where the tip was, then
+          // the strand itself retracts (not an instant reset) before
+          // stretching out again -- the visible recoil after a real
+          // drip's mass pulls free, not just a clean disappearance.
+          r.state = "snapping";
+          r.dropletActive = true;
+          r.dropY = startY + r.currentLength;
+          r.dropSpeed = r.speed * 1.2;
+          r.dropRadius = r.width * 0.45;
+        }
+      } else {
+        r.currentLength -= 6;
+        if (r.currentLength <= 30) {
+          r.state = "stretching";
+          r.maxLength = 140 + Math.random() * 240;
+          r.speed = 0.6 + Math.random() * 1.0;
         }
       }
-      ctx.lineTo(canvas.width + 30, -30);
-      ctx.closePath();
-      ctx.fillStyle = LIQUID;
-      ctx.fill();
+
+      if (r.dropletActive) {
+        r.dropSpeed += 0.22; // gravity
+        r.dropY += r.dropSpeed;
+        if (r.dropY > canvas.height + 50) r.dropletActive = false;
+      }
+      return startY;
     }
 
-    function drawShine(c) {
-      const topY = bandY(c);
-      const tipY = topY + c.len;
-      const neckY = topY + c.len * 0.55;
-      const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
-      const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
-      const wobble = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
-      const neckX = c.x + wobble * 0.45;
-      const tipX = c.x + wobble;
-      // A thin brighter curve down one side of each icicle reads as a
-      // wet highlight -- purely a translucent stroke, so unlike the
-      // main fill it's harmless for several to overlap. Follows the same
-      // wobble as the fill so it stays glued to the strand's left edge
-      // instead of drifting off it as the strand sways.
+    function drawRunner(r, startY) {
+      ctx.fillStyle = LIQUID;
       ctx.beginPath();
-      ctx.moveTo(c.x - c.shoulderHalfWidth * 0.45, topY + c.len * 0.08);
-      ctx.quadraticCurveTo(neckX - neckHalfWidth * 0.6, neckY, tipX - tipR * 0.35, tipY - tipR * 0.4);
-      ctx.strokeStyle = SHINE;
-      ctx.lineWidth = 1.4;
-      ctx.lineCap = "round";
-      ctx.stroke();
+      ctx.moveTo(r.x - r.width / 2, startY);
+
+      const tipY = startY + r.currentLength;
+      if (r.state === "stretching") {
+        // Narrows as it stretches further from resting width -- the
+        // longer/thinner a real strand gets pulled, the more it thins,
+        // capped at 45% narrower so it never vanishes to a hairline.
+        const activeWidth = r.width * (1 - (r.currentLength / r.maxLength) * 0.45);
+        ctx.quadraticCurveTo(r.x - r.width / 3, tipY - activeWidth, r.x - activeWidth / 2, tipY);
+        ctx.arc(r.x, tipY, activeWidth / 2, Math.PI, 0, true);
+        ctx.quadraticCurveTo(r.x + r.width / 3, tipY - activeWidth, r.x + r.width / 2, startY);
+      } else {
+        ctx.quadraticCurveTo(r.x, tipY + 15, r.x + r.width / 2, startY);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      if (r.dropletActive) {
+        ctx.beginPath();
+        ctx.arc(r.x, r.dropY, r.dropRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Reads runners' current state (already advanced by updateRunner in
+    // the main draw() loop below) and re-derives startY itself via the
+    // same pure waveY(x) rather than threading it through -- keeps this
+    // additive, with zero edits to the existing update/draw functions'
+    // own bodies.
+    function drawShine() {
+      shineCtx.clearRect(0, 0, shineCanvas.width, shineCanvas.height);
+
+      // A bright crest highlight riding the pool's own wave -- a wet
+      // surface catches light along its high points, not evenly.
+      shineCtx.beginPath();
+      shineCtx.moveTo(0, waveY(0) - 3);
+      for (let x = 0; x <= shineCanvas.width; x += 10) {
+        shineCtx.lineTo(x, waveY(x) - 3);
+      }
+      shineCtx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+      shineCtx.lineWidth = 2.5;
+      shineCtx.lineCap = "round";
+      shineCtx.globalAlpha = 0.7;
+      shineCtx.stroke();
+      shineCtx.globalAlpha = 1;
+
+      for (const r of runners) {
+        const startY = waveY(r.x);
+        const tipY = startY + r.currentLength;
+
+        if (r.state === "stretching" && r.currentLength > 6) {
+          const activeWidth = r.width * (1 - (r.currentLength / r.maxLength) * 0.45);
+
+          // A soft dark shading streak down the runner's right third --
+          // a highlight alone doesn't read against an already-white
+          // base fill (white-on-white is invisible), so this shadow is
+          // what actually gives the strand a round, glassy cross-section
+          // rather than a flat cutout. Mirrors the highlight's curve.
+          const sx = r.x + r.width * 0.24;
+          shineCtx.beginPath();
+          shineCtx.moveTo(sx, startY + 4);
+          shineCtx.quadraticCurveTo(r.x + activeWidth * 0.35, startY + (tipY - startY) * 0.55, r.x + activeWidth * 0.18, tipY - activeWidth * 0.25);
+          const shadowGrad = shineCtx.createLinearGradient(sx, startY, sx, tipY);
+          shadowGrad.addColorStop(0, "rgba(40, 60, 70, 0.28)");
+          shadowGrad.addColorStop(1, "rgba(40, 60, 70, 0.05)");
+          shineCtx.strokeStyle = shadowGrad;
+          shineCtx.lineWidth = Math.max(1.4, r.width * 0.18);
+          shineCtx.lineCap = "round";
+          shineCtx.stroke();
+
+          // A thin bright streak down the runner's left third -- the
+          // curved-glass-rod highlight a cylindrical strand of liquid
+          // actually shows, following the same taper the base shape
+          // uses so it stays glued to the strand's surface as it thins.
+          const hx = r.x - r.width * 0.22;
+          shineCtx.beginPath();
+          shineCtx.moveTo(hx, startY + 4);
+          shineCtx.quadraticCurveTo(r.x - activeWidth * 0.3, startY + (tipY - startY) * 0.55, r.x - activeWidth * 0.15, tipY - activeWidth * 0.3);
+          const grad = shineCtx.createLinearGradient(hx, startY, hx, tipY);
+          grad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+          grad.addColorStop(1, "rgba(255, 255, 255, 0.25)");
+          shineCtx.strokeStyle = grad;
+          shineCtx.lineWidth = Math.max(1.2, r.width * 0.14);
+          shineCtx.lineCap = "round";
+          shineCtx.stroke();
+        }
+
+        if (r.dropletActive) {
+          // A dark crescent along the droplet's lower-right rim gives it
+          // the same round-glass shading as the runners above, without
+          // which the bright highlight below would again be invisible
+          // against the droplet's own white fill.
+          shineCtx.beginPath();
+          shineCtx.ellipse(
+            r.x + r.dropRadius * 0.3,
+            r.dropY + r.dropRadius * 0.25,
+            r.dropRadius * 0.55,
+            r.dropRadius * 0.45,
+            0.5,
+            0,
+            Math.PI * 2
+          );
+          shineCtx.fillStyle = "rgba(40, 60, 70, 0.22)";
+          shineCtx.fill();
+
+          // Classic glossy-sphere highlight: a small bright ellipse
+          // offset up and to the left of the droplet's own center.
+          shineCtx.beginPath();
+          shineCtx.ellipse(
+            r.x - r.dropRadius * 0.35,
+            r.dropY - r.dropRadius * 0.35,
+            r.dropRadius * 0.32,
+            r.dropRadius * 0.22,
+            -0.6,
+            0,
+            Math.PI * 2
+          );
+          shineCtx.fillStyle = "rgba(255, 255, 255, 0.95)";
+          shineCtx.fill();
+        }
+      }
     }
 
     function draw() {
-      t += 0.02;
+      animT += 1;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      for (const c of columns) {
-        if (c.state === "trickling") {
-          c.len += c.growRate;
-          if (c.len >= c.maxLen) {
-            c.state = "falling";
-            c.dropY = bandY(c) + c.len;
-            c.dropVy = 0.6;
-            // The icicle doesn't fully retract after releasing a drop --
-            // a shorter residual drip stays behind and keeps growing,
-            // same as a real trickle never fully drying up between
-            // drops. Crucially, this residual icicle keeps getting drawn
-            // below (drawSurface always uses current c.len regardless of
-            // state) -- a previous version only drew the icicle while
-            // "trickling," leaving a real gap in the band for the whole
-            // time a droplet was falling.
-            c.len = c.maxLen * 0.35 + Math.random() * (c.maxLen * 0.2);
-          }
-        }
+      ctx.fillStyle = LIQUID;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      for (let x = 0; x <= canvas.width; x += 10) {
+        ctx.lineTo(x, waveY(x));
+      }
+      ctx.lineTo(canvas.width, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      for (const r of runners) {
+        const startY = updateRunner(r);
+        drawRunner(r, startY);
       }
 
-      drawSurface();
-      for (const c of columns) drawShine(c);
-
-      for (const c of columns) {
-        if (c.state !== "falling") continue;
-        c.dropVy += 0.35; // gravity
-        c.dropY += c.dropVy;
-        const stretch = Math.min(1 + c.dropVy * 0.08, 3.2);
-
-        ctx.fillStyle = LIQUID;
-        ctx.beginPath();
-        ctx.ellipse(c.x, c.dropY, c.tipR * 0.7, c.tipR * 0.7 * stretch, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = SHINE;
-        ctx.beginPath();
-        ctx.ellipse(c.x - c.tipR * 0.25, c.dropY - stretch, c.tipR * 0.2, c.tipR * 0.3, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (c.dropY - c.tipR * stretch > canvas.height) {
-          c.state = "trickling";
-          c.maxLen = randomMaxLen();
-          c.growRate = 0.6 + Math.random() * 1.4;
-        }
-      }
+      drawShine();
     }
 
-    const interval = setInterval(draw, 30);
+    function loop() {
+      draw();
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
+
     return {
       stop() {
-        clearInterval(interval);
+        cancelAnimationFrame(rafId);
         window.removeEventListener("resize", resize);
-        canvas.remove();
+        window.removeEventListener("resize", resizeShine);
+        wrapper.remove();
+        shineCanvas.remove();
       },
     };
   }
 
-  const EFFECTS = { "code-rain": startCodeRain, "rain": startRainfall, "lava-lamp": startLavaLamp, "drip": startDrip };
+  const EFFECTS = {
+    "code-rain": startCodeRain, "code-rain-cyber": startCodeRain, "code-rain-crimson": startCodeRain,
+    "rain": startRainfall, "rain-violet": startRainfall, "rain-acid": startRainfall,
+    "lava-lamp": startLavaLamp, "lava-lamp-cosmic": startLavaLamp, "lava-lamp-toxic": startLavaLamp,
+    "drip": startDrip, "drip-honey": startDrip, "drip-cyan": startDrip,
+  };
   let running = null; // { theme, stop }
 
   function sync() {

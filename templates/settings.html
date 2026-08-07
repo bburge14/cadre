@@ -64,6 +64,56 @@
       radial-gradient(circle at 80% 20%, rgba(140,210,225,0.7), transparent 18%),
       linear-gradient(180deg, rgba(140,210,225,0.35) 0%, transparent 55%);
   }
+  .theme-swatch-code-rain-cyber {
+    background-color: #010a10;
+    background-image: repeating-linear-gradient(90deg, transparent 0, transparent 9px, rgba(150,220,255,0.55) 10px, transparent 11px, transparent 13px, rgba(14,165,233,0.3) 14px, transparent 15px);
+    background-size: 13px 16px;
+  }
+  .theme-swatch-code-rain-crimson {
+    background-color: #0a0102;
+    background-image: repeating-linear-gradient(90deg, transparent 0, transparent 9px, rgba(255,180,195,0.55) 10px, transparent 11px, transparent 13px, rgba(190,18,60,0.3) 14px, transparent 15px);
+    background-size: 13px 16px;
+  }
+  .theme-swatch-rain-violet {
+    background-color: #120b1f;
+    background-image: repeating-linear-gradient(100deg, transparent 0, transparent 7px, rgba(190,160,230,0.5) 8px, transparent 9px, transparent 12px);
+    background-size: 11px 22px;
+  }
+  .theme-swatch-rain-acid {
+    background-color: #0d1406;
+    background-image: repeating-linear-gradient(100deg, transparent 0, transparent 7px, rgba(170,220,120,0.5) 8px, transparent 9px, transparent 12px);
+    background-size: 11px 22px;
+  }
+  .theme-swatch-lava-lamp-cosmic {
+    background-color: #0a0a18;
+    background-image:
+      radial-gradient(circle at 30% 75%, rgba(167,139,250,0.8), transparent 45%),
+      radial-gradient(circle at 65% 40%, rgba(99,102,241,0.75), transparent 42%),
+      radial-gradient(circle at 45% 90%, rgba(139,92,246,0.7), transparent 40%);
+  }
+  .theme-swatch-lava-lamp-toxic {
+    background-color: #0a0f04;
+    background-image:
+      radial-gradient(circle at 30% 75%, rgba(163,230,53,0.8), transparent 45%),
+      radial-gradient(circle at 65% 40%, rgba(101,163,13,0.75), transparent 42%),
+      radial-gradient(circle at 45% 90%, rgba(190,242,100,0.7), transparent 40%);
+  }
+  .theme-swatch-drip-honey {
+    background-color: #1a1206;
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(251,191,36,0.7), transparent 20%),
+      radial-gradient(circle at 55% 10%, rgba(251,191,36,0.6), transparent 16%),
+      radial-gradient(circle at 80% 20%, rgba(251,191,36,0.7), transparent 18%),
+      linear-gradient(180deg, rgba(251,191,36,0.35) 0%, transparent 55%);
+  }
+  .theme-swatch-drip-cyan {
+    background-color: #04101a;
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(34,211,238,0.8), transparent 20%),
+      radial-gradient(circle at 55% 10%, rgba(34,211,238,0.7), transparent 16%),
+      radial-gradient(circle at 80% 20%, rgba(34,211,238,0.8), transparent 18%),
+      linear-gradient(180deg, rgba(34,211,238,0.4) 0%, transparent 55%);
+  }
   .theme-swatch-slate {
     background-color: #0a0e1a;
     background-image:
@@ -130,6 +180,15 @@
     background-color: #0a0614;
     background-image: radial-gradient(ellipse 90px 55px at 15% -10%, rgba(163,230,53,0.4), transparent 65%), radial-gradient(ellipse 80px 50px at 100% 100%, rgba(124,58,237,0.45), transparent 60%);
   }
+  .theme-family-card { position: relative; }
+  .theme-family-card .family-current { display: block; font-size: 0.7rem; color: var(--text-faint); margin-top: 0.1rem; }
+  .theme-family-card .family-chevron { position: absolute; top: 0.5rem; right: 0.5rem; width: 12px; height: 12px; color: var(--text-faint); transition: transform 0.12s ease; }
+  .theme-family-card.expanded .family-chevron { transform: rotate(180deg); }
+  .colorway-row { display: none; flex-wrap: wrap; gap: 0.5rem; grid-column: 1 / -1; margin: -0.2rem 0 0.4rem; padding: 0.7rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .colorway-row.open { display: flex; }
+  .colorway-swatch { width: 40px; height: 40px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.12s ease, transform 0.12s ease; }
+  .colorway-swatch:hover { transform: translateY(-1px); }
+  .colorway-swatch.selected { border-color: var(--accent); }
   .theme-section-header { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none; margin: 1.2rem 0 0.4rem; }
   .theme-section-header:first-of-type { margin-top: 0.8rem; }
   .theme-section-header:hover .theme-section-label { color: var(--text-dim); }
@@ -369,60 +428,33 @@
     <div class="theme-section-header" onclick="toggleThemeSection(this)">
       <svg class="theme-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       <span class="theme-section-label">Static</span>
-      <span class="theme-section-count">13</span>
+      <span class="theme-section-count">2</span>
     </div>
     <div class="theme-grid">
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'default' else '' }}" data-theme-value="default" onclick="selectDashboardTheme('default')">
-        <div class="theme-swatch theme-swatch-default"></div>
-        <span>Default</span>
+      {% set glow_values = ['default','slate','light','ocean','volcanic','amethyst','forest','neon-city','blood-moon','frost','desert','toxic'] %}
+      <div class="theme-card theme-family-card {{ 'selected' if values.dashboard_theme in glow_values else '' }} {{ 'expanded' if values.dashboard_theme in glow_values else '' }}" data-family="glow" onclick="toggleFamilyRow(this)">
+        <svg class="family-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="theme-swatch theme-swatch-{{ values.dashboard_theme if values.dashboard_theme in glow_values else 'default' }}" data-family-swatch></div>
+        <span>Glow</span>
+        <span class="family-current" data-family-current>{{ values.dashboard_theme|replace('-', ' ')|title if values.dashboard_theme in glow_values else 'Default' }}</span>
       </div>
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'circuit' else '' }}" data-theme-value="circuit" onclick="selectDashboardTheme('circuit')">
         <div class="theme-swatch theme-swatch-circuit"></div>
         <span>Circuit Board</span>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'slate' else '' }}" data-theme-value="slate" onclick="selectDashboardTheme('slate')">
-        <div class="theme-swatch theme-swatch-slate"></div>
-        <span>Slate</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'light' else '' }}" data-theme-value="light" onclick="selectDashboardTheme('light')">
-        <div class="theme-swatch theme-swatch-light"></div>
-        <span>Light</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'ocean' else '' }}" data-theme-value="ocean" onclick="selectDashboardTheme('ocean')">
-        <div class="theme-swatch theme-swatch-ocean"></div>
-        <span>Ocean Deep</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'volcanic' else '' }}" data-theme-value="volcanic" onclick="selectDashboardTheme('volcanic')">
-        <div class="theme-swatch theme-swatch-volcanic"></div>
-        <span>Volcanic</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'amethyst' else '' }}" data-theme-value="amethyst" onclick="selectDashboardTheme('amethyst')">
-        <div class="theme-swatch theme-swatch-amethyst"></div>
-        <span>Amethyst</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'forest' else '' }}" data-theme-value="forest" onclick="selectDashboardTheme('forest')">
-        <div class="theme-swatch theme-swatch-forest"></div>
-        <span>Forest</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'neon-city' else '' }}" data-theme-value="neon-city" onclick="selectDashboardTheme('neon-city')">
-        <div class="theme-swatch theme-swatch-neon-city"></div>
-        <span>Neon City</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'blood-moon' else '' }}" data-theme-value="blood-moon" onclick="selectDashboardTheme('blood-moon')">
-        <div class="theme-swatch theme-swatch-blood-moon"></div>
-        <span>Blood Moon</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'frost' else '' }}" data-theme-value="frost" onclick="selectDashboardTheme('frost')">
-        <div class="theme-swatch theme-swatch-frost"></div>
-        <span>Frost</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'desert' else '' }}" data-theme-value="desert" onclick="selectDashboardTheme('desert')">
-        <div class="theme-swatch theme-swatch-desert"></div>
-        <span>Desert</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'toxic' else '' }}" data-theme-value="toxic" onclick="selectDashboardTheme('toxic')">
-        <div class="theme-swatch theme-swatch-toxic"></div>
-        <span>Toxic</span>
+      <div class="colorway-row {{ 'open' if values.dashboard_theme in glow_values else '' }}" data-family-row="glow">
+        <div class="colorway-swatch theme-swatch-default {{ 'selected' if values.dashboard_theme == 'default' else '' }}" data-theme-value="default" title="Default" onclick="event.stopPropagation(); selectDashboardTheme('default')"></div>
+        <div class="colorway-swatch theme-swatch-slate {{ 'selected' if values.dashboard_theme == 'slate' else '' }}" data-theme-value="slate" title="Slate" onclick="event.stopPropagation(); selectDashboardTheme('slate')"></div>
+        <div class="colorway-swatch theme-swatch-light {{ 'selected' if values.dashboard_theme == 'light' else '' }}" data-theme-value="light" title="Light" onclick="event.stopPropagation(); selectDashboardTheme('light')"></div>
+        <div class="colorway-swatch theme-swatch-ocean {{ 'selected' if values.dashboard_theme == 'ocean' else '' }}" data-theme-value="ocean" title="Ocean Deep" onclick="event.stopPropagation(); selectDashboardTheme('ocean')"></div>
+        <div class="colorway-swatch theme-swatch-volcanic {{ 'selected' if values.dashboard_theme == 'volcanic' else '' }}" data-theme-value="volcanic" title="Volcanic" onclick="event.stopPropagation(); selectDashboardTheme('volcanic')"></div>
+        <div class="colorway-swatch theme-swatch-amethyst {{ 'selected' if values.dashboard_theme == 'amethyst' else '' }}" data-theme-value="amethyst" title="Amethyst" onclick="event.stopPropagation(); selectDashboardTheme('amethyst')"></div>
+        <div class="colorway-swatch theme-swatch-forest {{ 'selected' if values.dashboard_theme == 'forest' else '' }}" data-theme-value="forest" title="Forest" onclick="event.stopPropagation(); selectDashboardTheme('forest')"></div>
+        <div class="colorway-swatch theme-swatch-neon-city {{ 'selected' if values.dashboard_theme == 'neon-city' else '' }}" data-theme-value="neon-city" title="Neon City" onclick="event.stopPropagation(); selectDashboardTheme('neon-city')"></div>
+        <div class="colorway-swatch theme-swatch-blood-moon {{ 'selected' if values.dashboard_theme == 'blood-moon' else '' }}" data-theme-value="blood-moon" title="Blood Moon" onclick="event.stopPropagation(); selectDashboardTheme('blood-moon')"></div>
+        <div class="colorway-swatch theme-swatch-frost {{ 'selected' if values.dashboard_theme == 'frost' else '' }}" data-theme-value="frost" title="Frost" onclick="event.stopPropagation(); selectDashboardTheme('frost')"></div>
+        <div class="colorway-swatch theme-swatch-desert {{ 'selected' if values.dashboard_theme == 'desert' else '' }}" data-theme-value="desert" title="Desert" onclick="event.stopPropagation(); selectDashboardTheme('desert')"></div>
+        <div class="colorway-swatch theme-swatch-toxic {{ 'selected' if values.dashboard_theme == 'toxic' else '' }}" data-theme-value="toxic" title="Toxic" onclick="event.stopPropagation(); selectDashboardTheme('toxic')"></div>
       </div>
     </div>
     </div>
@@ -431,44 +463,77 @@
     <div class="theme-section-header" onclick="toggleThemeSection(this)">
       <svg class="theme-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       <span class="theme-section-label">Animated</span>
-      <span class="theme-section-count">9</span>
+      <span class="theme-section-count">6</span>
     </div>
     <div class="theme-grid">
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" onclick="selectDashboardTheme('galaxy')">
-        <div class="theme-swatch theme-swatch-galaxy"></div>
-        <span>Galaxy</span>
+      {% set drift_values = ['galaxy','ember','sakura','deep-space'] %}
+      <div class="theme-card theme-family-card {{ 'selected' if values.dashboard_theme in drift_values else '' }} {{ 'expanded' if values.dashboard_theme in drift_values else '' }}" data-family="particle-drift" onclick="toggleFamilyRow(this)">
+        <svg class="family-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="theme-swatch theme-swatch-{{ values.dashboard_theme if values.dashboard_theme in drift_values else 'galaxy' }}" data-family-swatch></div>
+        <span>Particle Drift</span>
+        <span class="family-current" data-family-current>{{ values.dashboard_theme|replace('-', ' ')|title if values.dashboard_theme in drift_values else 'Galaxy' }}</span>
       </div>
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'aurora' else '' }}" data-theme-value="aurora" onclick="selectDashboardTheme('aurora')">
         <div class="theme-swatch theme-swatch-aurora"></div>
         <span>Aurora</span>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'code-rain' else '' }}" data-theme-value="code-rain" onclick="selectDashboardTheme('code-rain')">
-        <div class="theme-swatch theme-swatch-code-rain"></div>
+      <div class="colorway-row {{ 'open' if values.dashboard_theme in drift_values else '' }}" data-family-row="particle-drift">
+        <div class="colorway-swatch theme-swatch-galaxy {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" title="Galaxy" onclick="event.stopPropagation(); selectDashboardTheme('galaxy')"></div>
+        <div class="colorway-swatch theme-swatch-ember {{ 'selected' if values.dashboard_theme == 'ember' else '' }}" data-theme-value="ember" title="Ember" onclick="event.stopPropagation(); selectDashboardTheme('ember')"></div>
+        <div class="colorway-swatch theme-swatch-sakura {{ 'selected' if values.dashboard_theme == 'sakura' else '' }}" data-theme-value="sakura" title="Sakura" onclick="event.stopPropagation(); selectDashboardTheme('sakura')"></div>
+        <div class="colorway-swatch theme-swatch-deep-space {{ 'selected' if values.dashboard_theme == 'deep-space' else '' }}" data-theme-value="deep-space" title="Deep Space" onclick="event.stopPropagation(); selectDashboardTheme('deep-space')"></div>
+      </div>
+
+      {% set code_rain_values = ['code-rain','code-rain-cyber','code-rain-crimson'] %}
+      <div class="theme-card theme-family-card {{ 'selected' if values.dashboard_theme in code_rain_values else '' }} {{ 'expanded' if values.dashboard_theme in code_rain_values else '' }}" data-family="code-rain" onclick="toggleFamilyRow(this)">
+        <svg class="family-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="theme-swatch theme-swatch-{{ values.dashboard_theme if values.dashboard_theme in code_rain_values else 'code-rain' }}" data-family-swatch></div>
         <span>Code Rain</span>
+        <span class="family-current" data-family-current>{{ (values.dashboard_theme|replace('code-rain-', '')|title) if values.dashboard_theme in code_rain_values and values.dashboard_theme != 'code-rain' else 'Matrix Green' }}</span>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'ember' else '' }}" data-theme-value="ember" onclick="selectDashboardTheme('ember')">
-        <div class="theme-swatch theme-swatch-ember"></div>
-        <span>Ember</span>
+      <div class="colorway-row {{ 'open' if values.dashboard_theme in code_rain_values else '' }}" data-family-row="code-rain">
+        <div class="colorway-swatch theme-swatch-code-rain {{ 'selected' if values.dashboard_theme == 'code-rain' else '' }}" data-theme-value="code-rain" title="Matrix Green" onclick="event.stopPropagation(); selectDashboardTheme('code-rain')"></div>
+        <div class="colorway-swatch theme-swatch-code-rain-cyber {{ 'selected' if values.dashboard_theme == 'code-rain-cyber' else '' }}" data-theme-value="code-rain-cyber" title="Cyber Blue" onclick="event.stopPropagation(); selectDashboardTheme('code-rain-cyber')"></div>
+        <div class="colorway-swatch theme-swatch-code-rain-crimson {{ 'selected' if values.dashboard_theme == 'code-rain-crimson' else '' }}" data-theme-value="code-rain-crimson" title="Crimson" onclick="event.stopPropagation(); selectDashboardTheme('code-rain-crimson')"></div>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'sakura' else '' }}" data-theme-value="sakura" onclick="selectDashboardTheme('sakura')">
-        <div class="theme-swatch theme-swatch-sakura"></div>
-        <span>Sakura</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'deep-space' else '' }}" data-theme-value="deep-space" onclick="selectDashboardTheme('deep-space')">
-        <div class="theme-swatch theme-swatch-deep-space"></div>
-        <span>Deep Space</span>
-      </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'rain' else '' }}" data-theme-value="rain" onclick="selectDashboardTheme('rain')">
-        <div class="theme-swatch theme-swatch-rain"></div>
+
+      {% set rain_values = ['rain','rain-violet','rain-acid'] %}
+      <div class="theme-card theme-family-card {{ 'selected' if values.dashboard_theme in rain_values else '' }} {{ 'expanded' if values.dashboard_theme in rain_values else '' }}" data-family="rain" onclick="toggleFamilyRow(this)">
+        <svg class="family-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="theme-swatch theme-swatch-{{ values.dashboard_theme if values.dashboard_theme in rain_values else 'rain' }}" data-family-swatch></div>
         <span>Rainfall</span>
+        <span class="family-current" data-family-current>{{ (values.dashboard_theme|replace('rain-', '')|title) if values.dashboard_theme in rain_values and values.dashboard_theme != 'rain' else 'Storm Blue' }}</span>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'lava-lamp' else '' }}" data-theme-value="lava-lamp" onclick="selectDashboardTheme('lava-lamp')">
-        <div class="theme-swatch theme-swatch-lava-lamp"></div>
+      <div class="colorway-row {{ 'open' if values.dashboard_theme in rain_values else '' }}" data-family-row="rain">
+        <div class="colorway-swatch theme-swatch-rain {{ 'selected' if values.dashboard_theme == 'rain' else '' }}" data-theme-value="rain" title="Storm Blue" onclick="event.stopPropagation(); selectDashboardTheme('rain')"></div>
+        <div class="colorway-swatch theme-swatch-rain-violet {{ 'selected' if values.dashboard_theme == 'rain-violet' else '' }}" data-theme-value="rain-violet" title="Violet Night" onclick="event.stopPropagation(); selectDashboardTheme('rain-violet')"></div>
+        <div class="colorway-swatch theme-swatch-rain-acid {{ 'selected' if values.dashboard_theme == 'rain-acid' else '' }}" data-theme-value="rain-acid" title="Acid Rain" onclick="event.stopPropagation(); selectDashboardTheme('rain-acid')"></div>
+      </div>
+
+      {% set lava_values = ['lava-lamp','lava-lamp-cosmic','lava-lamp-toxic'] %}
+      <div class="theme-card theme-family-card {{ 'selected' if values.dashboard_theme in lava_values else '' }} {{ 'expanded' if values.dashboard_theme in lava_values else '' }}" data-family="lava-lamp" onclick="toggleFamilyRow(this)">
+        <svg class="family-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="theme-swatch theme-swatch-{{ values.dashboard_theme if values.dashboard_theme in lava_values else 'lava-lamp' }}" data-family-swatch></div>
         <span>Lava Lamp</span>
+        <span class="family-current" data-family-current>{{ (values.dashboard_theme|replace('lava-lamp-', '')|title) if values.dashboard_theme in lava_values and values.dashboard_theme != 'lava-lamp' else 'Magma' }}</span>
       </div>
-      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'drip' else '' }}" data-theme-value="drip" onclick="selectDashboardTheme('drip')">
-        <div class="theme-swatch theme-swatch-drip"></div>
+      <div class="colorway-row {{ 'open' if values.dashboard_theme in lava_values else '' }}" data-family-row="lava-lamp">
+        <div class="colorway-swatch theme-swatch-lava-lamp {{ 'selected' if values.dashboard_theme == 'lava-lamp' else '' }}" data-theme-value="lava-lamp" title="Magma" onclick="event.stopPropagation(); selectDashboardTheme('lava-lamp')"></div>
+        <div class="colorway-swatch theme-swatch-lava-lamp-cosmic {{ 'selected' if values.dashboard_theme == 'lava-lamp-cosmic' else '' }}" data-theme-value="lava-lamp-cosmic" title="Cosmic" onclick="event.stopPropagation(); selectDashboardTheme('lava-lamp-cosmic')"></div>
+        <div class="colorway-swatch theme-swatch-lava-lamp-toxic {{ 'selected' if values.dashboard_theme == 'lava-lamp-toxic' else '' }}" data-theme-value="lava-lamp-toxic" title="Toxic" onclick="event.stopPropagation(); selectDashboardTheme('lava-lamp-toxic')"></div>
+      </div>
+
+      {% set drip_values = ['drip','drip-honey','drip-cyan'] %}
+      <div class="theme-card theme-family-card {{ 'selected' if values.dashboard_theme in drip_values else '' }} {{ 'expanded' if values.dashboard_theme in drip_values else '' }}" data-family="drip" onclick="toggleFamilyRow(this)">
+        <svg class="family-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <div class="theme-swatch theme-swatch-{{ values.dashboard_theme if values.dashboard_theme in drip_values else 'drip' }}" data-family-swatch></div>
         <span>Drip</span>
+        <span class="family-current" data-family-current>{{ (values.dashboard_theme|replace('drip-', '')|title) if values.dashboard_theme in drip_values and values.dashboard_theme != 'drip' else 'Mercury' }}</span>
+      </div>
+      <div class="colorway-row {{ 'open' if values.dashboard_theme in drip_values else '' }}" data-family-row="drip">
+        <div class="colorway-swatch theme-swatch-drip {{ 'selected' if values.dashboard_theme == 'drip' else '' }}" data-theme-value="drip" title="Mercury" onclick="event.stopPropagation(); selectDashboardTheme('drip')"></div>
+        <div class="colorway-swatch theme-swatch-drip-honey {{ 'selected' if values.dashboard_theme == 'drip-honey' else '' }}" data-theme-value="drip-honey" title="Honey" onclick="event.stopPropagation(); selectDashboardTheme('drip-honey')"></div>
+        <div class="colorway-swatch theme-swatch-drip-cyan {{ 'selected' if values.dashboard_theme == 'drip-cyan' else '' }}" data-theme-value="drip-cyan" title="Cyan" onclick="event.stopPropagation(); selectDashboardTheme('drip-cyan')"></div>
       </div>
     </div>
     </div>
@@ -562,11 +627,63 @@ function toggleThemeSection(headerEl) {
   });
 })();
 
+const THEME_FAMILIES = {
+  glow: [
+    ['default', 'Default'], ['slate', 'Slate'], ['light', 'Light'], ['ocean', 'Ocean Deep'],
+    ['volcanic', 'Volcanic'], ['amethyst', 'Amethyst'], ['forest', 'Forest'], ['neon-city', 'Neon City'],
+    ['blood-moon', 'Blood Moon'], ['frost', 'Frost'], ['desert', 'Desert'], ['toxic', 'Toxic'],
+  ],
+  'particle-drift': [
+    ['galaxy', 'Galaxy'], ['ember', 'Ember'], ['sakura', 'Sakura'], ['deep-space', 'Deep Space'],
+  ],
+  'code-rain': [
+    ['code-rain', 'Matrix Green'], ['code-rain-cyber', 'Cyber Blue'], ['code-rain-crimson', 'Crimson'],
+  ],
+  rain: [
+    ['rain', 'Storm Blue'], ['rain-violet', 'Violet Night'], ['rain-acid', 'Acid Rain'],
+  ],
+  'lava-lamp': [
+    ['lava-lamp', 'Magma'], ['lava-lamp-cosmic', 'Cosmic'], ['lava-lamp-toxic', 'Toxic'],
+  ],
+  drip: [
+    ['drip', 'Mercury'], ['drip-honey', 'Honey'], ['drip-cyan', 'Cyan'],
+  ],
+};
+
+// Family cards (e.g. "Glow") aren't real theme values themselves -- they
+// represent whichever of their colorways is currently active, expanding
+// on click to reveal the individual swatches instead of selecting
+// directly. Colorways per family with more themes to add without the
+// picker growing a new top-level card each time.
+function toggleFamilyRow(cardEl) {
+  const family = cardEl.dataset.family;
+  const row = document.querySelector(`.colorway-row[data-family-row="${family}"]`);
+  row.classList.toggle('open');
+  cardEl.classList.toggle('expanded', row.classList.contains('open'));
+}
+
+function syncFamilyCards(name) {
+  for (const [family, colorways] of Object.entries(THEME_FAMILIES)) {
+    const entry = colorways.find(([v]) => v === name);
+    if (!entry) continue;
+    const card = document.querySelector(`.theme-family-card[data-family="${family}"]`);
+    if (!card) continue;
+    const swatch = card.querySelector('[data-family-swatch]');
+    const currentLabel = card.querySelector('[data-family-current]');
+    swatch.className = 'theme-swatch theme-swatch-' + entry[0];
+    currentLabel.textContent = entry[1];
+  }
+}
+
 async function selectDashboardTheme(name) {
   document.getElementById('dashboard-theme-field').value = name;
   document.querySelectorAll('.theme-card').forEach(el => {
+    el.classList.toggle('selected', el.dataset.themeValue === name || (el.dataset.family in THEME_FAMILIES && THEME_FAMILIES[el.dataset.family].some(([v]) => v === name)));
+  });
+  document.querySelectorAll('.colorway-swatch').forEach(el => {
     el.classList.toggle('selected', el.dataset.themeValue === name);
   });
+  syncFamilyCards(name);
   // Live preview: applying data-theme immediately (before the save even
   // finishes) also flips theme-effects.js's Code Rain canvas on/off via
   // its MutationObserver, so the picker instantly reflects the choice.

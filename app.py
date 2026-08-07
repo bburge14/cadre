@@ -100,6 +100,10 @@ DASHBOARD_THEME_VALUES = {
     "default", "circuit", "slate", "light", "ocean", "volcanic", "amethyst",
     "forest", "neon-city", "blood-moon", "frost", "desert", "toxic",
     "galaxy", "aurora", "code-rain", "ember", "sakura", "deep-space", "rain", "lava-lamp", "drip",
+    "code-rain-cyber", "code-rain-crimson",
+    "rain-violet", "rain-acid",
+    "lava-lamp-cosmic", "lava-lamp-toxic",
+    "drip-honey", "drip-cyan",
 }
 
 
