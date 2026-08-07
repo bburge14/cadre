@@ -309,6 +309,16 @@ function switchTab(name) {
   switchTab(valid.includes(requested) ? requested : 'version');
 })();
 
+// The tab bar hides its scrollbar (chunky OS-native scrollbars didn't
+// fit the rest of the design) and scrolls horizontally -- without this,
+// a plain vertical mouse wheel over it wouldn't scroll it at all
+// (would need a Shift-held wheel gesture, which isn't discoverable).
+document.querySelector('.tabs').addEventListener('wheel', (e) => {
+  if (e.deltaY === 0) return;
+  e.currentTarget.scrollLeft += e.deltaY;
+  e.preventDefault();
+}, { passive: false });
+
 function showBanner(msg, isError) {
   const el = document.getElementById('js-flash');
   el.innerHTML = '<div class="flash ' + (isError ? 'error' : 'success') + '">' + msg + '</div>';

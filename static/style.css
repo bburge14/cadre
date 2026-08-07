@@ -583,7 +583,12 @@ details.help > .help-body p:last-child { margin-bottom: 0; }
    LAST row, so row 1 looked like a disconnected floating group. One
    non-wrapping row that scrolls horizontally on overflow keeps a single
    continuous underline under every tab, always. */
-.tabs { display: flex; gap: 0.3rem; border-bottom: 1px solid var(--border); margin-top: 1.5rem; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+.tabs {
+  display: flex; gap: 0.3rem; border-bottom: 1px solid var(--border); margin-top: 1.5rem;
+  flex-wrap: nowrap; overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
 .tab-btn { background: none; border: none; color: var(--text-dim); font-size: 0.88rem; font-weight: 500; padding: 0.6rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.12s ease; flex-shrink: 0; white-space: nowrap; }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
