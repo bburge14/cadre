@@ -185,129 +185,159 @@
     canvas.id = "drip-canvas";
     attachFixedLayer(canvas);
     const ctx = canvas.getContext("2d");
-    const LIQUID = "rgba(140, 210, 225, 0.55)";
-    const HIGHLIGHT = "rgba(255, 255, 255, 0.35)";
-    let runners, poolBumps, t;
+    const LIQUID = "rgba(120, 200, 220, 0.65)";
+    const SHINE = "rgba(220, 250, 255, 0.55)";
+    let columns, t;
 
-    // A pooled mass of liquid sits along the very top edge (poolBumps --
-    // overlapping bulges, not a flat band, so it reads as an uneven
-    // ledge of liquid rather than a ruled line). From that pool, each
-    // runner is a thin trickling strand that slowly lengthens; once it's
-    // stretched most of the way to its own (randomized) breaking point,
-    // a droplet bulb grows at its tip, then detaches and falls with the
-    // same gravity/stretch physics as before -- distinct from a plain
-    // falling drop in that there's now a visible strand of liquid
-    // connecting it back to the pool the whole time it's trickling.
-    function makeRunner(x) {
+    // The whole liquid mass -- band plus every icicle -- is built and
+    // filled as ONE continuous path per frame, not a wavy band plus
+    // separately-filled icicle shapes layered on top of it. Separate
+    // opaque fills only ever look seamless where they happen to overlap
+    // by exactly the right amount; anywhere they don't (which was most
+    // of the width, at the spacing this needs to not look sparse) shows
+    // as a visible notch or gap. One continuous outline can't have that
+    // problem by construction -- there's only ever one edge.
+    function makeColumn(x) {
       return {
         x,
-        state: "trickling",
+        bandY: 12 + Math.random() * 4,
+        bandPhase: Math.random() * Math.PI * 2,
+        shoulderHalfWidth: 16 + Math.random() * 10,
         len: Math.random() * 20,
-        maxLen: 50 + Math.random() * 130,
-        growRate: 0.15 + Math.random() * 0.35,
-        tipR: 0,
+        maxLen: 70 + Math.random() * 170,
+        growRate: 0.12 + Math.random() * 0.28,
+        tipR: 5 + Math.random() * 4,
+        state: "trickling",
         dropY: 0,
         dropVy: 0,
       };
     }
 
-    function poolBaseline(x) {
-      // How far the pool's own bulging edge sits below y=0 at this x --
-      // runners start from here, not from a flat y=0, so they visibly
-      // hang off the pool's uneven underside.
-      let h = 6;
-      for (const b of poolBumps) {
-        const d = Math.abs(x - b.x);
-        if (d < 60) h += b.r * 0.4 * Math.max(0, 1 - d / 60);
-      }
-      return h;
-    }
-
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      const spacing = 55;
-      const count = Math.max(8, Math.floor(canvas.width / spacing));
+      const spacing = 95;
+      const count = Math.max(6, Math.floor(canvas.width / spacing));
       const step = canvas.width / count;
-      runners = new Array(count).fill(0).map((_, i) => makeRunner((i + 0.5) * step + (Math.random() * 20 - 10)));
-      poolBumps = new Array(count + 4).fill(0).map((_, i) => ({
-        x: (i / (count + 3)) * canvas.width,
-        r: 10 + Math.random() * 14,
-        phase: Math.random() * Math.PI * 2,
-      }));
+      columns = new Array(count).fill(0).map((_, i) => makeColumn((i + 0.5) * step + (Math.random() * 24 - 12)));
     }
     resize();
     window.addEventListener("resize", resize);
     t = 0;
 
+    function bandY(c) {
+      return c.bandY + Math.sin(t + c.bandPhase) * 1.2;
+    }
+
+    function drawSurface() {
+      ctx.beginPath();
+      ctx.moveTo(-30, -30);
+      ctx.lineTo(-30, bandY(columns[0]));
+
+      for (let i = 0; i < columns.length; i++) {
+        const c = columns[i];
+        const topY = bandY(c);
+        const tipY = topY + c.len;
+        const neckY = topY + c.len * 0.55;
+        const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
+        const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
+        const sw = c.shoulderHalfWidth;
+
+        // Down the icicle's left side, around the bulb, back up the
+        // right side -- an icicle silhouette, not a thin stroked line
+        // with a separate circle glued to the end of it.
+        ctx.lineTo(c.x - sw, topY);
+        ctx.quadraticCurveTo(c.x - sw * 0.7, topY + c.len * 0.25, c.x - neckHalfWidth, neckY);
+        ctx.quadraticCurveTo(c.x - tipR * 1.1, neckY + (tipY - neckY) * 0.35, c.x - tipR, tipY - tipR * 0.3);
+        ctx.quadraticCurveTo(c.x - tipR, tipY + tipR * 0.55, c.x, tipY + tipR * 0.65);
+        ctx.quadraticCurveTo(c.x + tipR, tipY + tipR * 0.55, c.x + tipR, tipY - tipR * 0.3);
+        ctx.quadraticCurveTo(c.x + tipR * 1.1, neckY + (tipY - neckY) * 0.35, c.x + neckHalfWidth, neckY);
+        ctx.quadraticCurveTo(c.x + sw * 0.7, topY + c.len * 0.25, c.x + sw, topY);
+
+        // The shallow "valley" back up to band level before the next
+        // icicle -- both endpoints sit at nearly the same y (the band's
+        // own small wave), so this reads as a thin continuous strip
+        // connecting every icicle, not a gap.
+        const next = columns[i + 1];
+        if (next) {
+          const nextTopY = bandY(next);
+          const midX = (c.x + sw + (next.x - next.shoulderHalfWidth)) / 2;
+          const midY = (topY + nextTopY) / 2;
+          ctx.quadraticCurveTo(c.x + sw, topY, midX, midY);
+        } else {
+          ctx.lineTo(canvas.width + 30, topY);
+        }
+      }
+      ctx.lineTo(canvas.width + 30, -30);
+      ctx.closePath();
+      ctx.fillStyle = LIQUID;
+      ctx.fill();
+    }
+
+    function drawShine(c) {
+      const topY = bandY(c);
+      const tipY = topY + c.len;
+      const neckY = topY + c.len * 0.55;
+      const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
+      const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
+      // A thin brighter curve down one side of each icicle reads as a
+      // wet highlight -- purely a translucent stroke, so unlike the
+      // main fill it's harmless for several to overlap.
+      ctx.beginPath();
+      ctx.moveTo(c.x - c.shoulderHalfWidth * 0.45, topY + c.len * 0.08);
+      ctx.quadraticCurveTo(c.x - neckHalfWidth * 0.6, neckY, c.x - tipR * 0.35, tipY - tipR * 0.4);
+      ctx.strokeStyle = SHINE;
+      ctx.lineWidth = 1.4;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
     function draw() {
       t += 0.02;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // The pool: each bump gently pulses in place (a living, not static,
-      // mass of liquid), plus a thin connective strip so the bumps read
-      // as one pooled ledge instead of separate floating circles.
-      ctx.fillStyle = LIQUID;
-      for (const b of poolBumps) {
-        const r = b.r + Math.sin(t + b.phase) * 1.5;
-        ctx.beginPath();
-        ctx.ellipse(b.x, 0, r * 1.4, r, 0, 0, Math.PI * 2);
-        ctx.fill();
+      for (const c of columns) {
+        if (c.state === "trickling") {
+          c.len += c.growRate;
+          if (c.len >= c.maxLen) {
+            c.state = "falling";
+            c.dropY = bandY(c) + c.len;
+            c.dropVy = 0.6;
+            // The icicle doesn't fully retract after releasing a drop --
+            // a shorter residual drip stays behind and keeps growing,
+            // same as a real trickle never fully drying up between
+            // drops. Crucially, this residual icicle keeps getting drawn
+            // below (drawSurface always uses current c.len regardless of
+            // state) -- a previous version only drew the icicle while
+            // "trickling," leaving a real gap in the band for the whole
+            // time a droplet was falling.
+            c.len = c.maxLen * 0.35 + Math.random() * (c.maxLen * 0.2);
+          }
+        }
       }
-      ctx.fillRect(0, 0, canvas.width, 5);
 
-      for (const r of runners) {
-        const baseY = poolBaseline(r.x);
-        if (r.state === "trickling") {
-          r.len += r.growRate;
-          const tipY = baseY + r.len;
+      drawSurface();
+      for (const c of columns) drawShine(c);
 
-          ctx.strokeStyle = LIQUID;
-          ctx.lineWidth = 2.2;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(r.x, baseY);
-          ctx.lineTo(r.x, tipY);
-          ctx.stroke();
+      for (const c of columns) {
+        if (c.state !== "falling") continue;
+        c.dropVy += 0.35; // gravity
+        c.dropY += c.dropVy;
+        const stretch = Math.min(1 + c.dropVy * 0.08, 3.2);
 
-          if (r.len >= r.maxLen * 0.65) {
-            r.tipR += 0.05;
-            ctx.fillStyle = LIQUID;
-            ctx.beginPath();
-            ctx.ellipse(r.x, tipY, r.tipR * 0.8, r.tipR, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
+        ctx.fillStyle = LIQUID;
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.dropY, c.tipR * 0.7, c.tipR * 0.7 * stretch, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = SHINE;
+        ctx.beginPath();
+        ctx.ellipse(c.x - c.tipR * 0.25, c.dropY - stretch, c.tipR * 0.2, c.tipR * 0.3, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-          if (r.len >= r.maxLen) {
-            r.state = "falling";
-            r.dropY = tipY;
-            r.dropVy = 0.6;
-            r.tipR = 0;
-            // The runner doesn't fully retract after releasing a drop --
-            // a shorter residual strand stays behind and keeps growing
-            // from there, same as a real trickle never fully drying up
-            // between drops.
-            r.len = r.maxLen * 0.35 + Math.random() * (r.maxLen * 0.2);
-          }
-        } else {
-          r.dropVy += 0.35; // gravity
-          r.dropY += r.dropVy;
-          const stretch = Math.min(1 + r.dropVy * 0.08, 3.2);
-
-          ctx.fillStyle = LIQUID;
-          ctx.beginPath();
-          ctx.ellipse(r.x, r.dropY, 3, 3 * stretch, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = HIGHLIGHT;
-          ctx.beginPath();
-          ctx.ellipse(r.x - 1, r.dropY - stretch, 1, 1.3, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          if (r.dropY - 3 * stretch > canvas.height) {
-            r.state = "trickling";
-            r.maxLen = 50 + Math.random() * 130;
-            r.growRate = 0.15 + Math.random() * 0.35;
-          }
+        if (c.dropY - c.tipR * stretch > canvas.height) {
+          c.state = "trickling";
+          c.maxLen = 70 + Math.random() * 170;
+          c.growRate = 0.12 + Math.random() * 0.28;
         }
       }
     }
