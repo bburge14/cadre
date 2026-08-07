@@ -583,8 +583,10 @@ details.help > .help-body p:last-child { margin-bottom: 0; }
    LAST row, so row 1 looked like a disconnected floating group. One
    non-wrapping row that scrolls horizontally on overflow keeps a single
    continuous underline under every tab, always. */
+.tabs-wrap { position: relative; margin-top: 1.5rem; }
+.tabs-wrap .tabs { margin-top: 0; }
 .tabs {
-  display: flex; gap: 0.3rem; border-bottom: 1px solid var(--border); margin-top: 1.5rem;
+  display: flex; gap: 0.3rem; border-bottom: 1px solid var(--border);
   flex-wrap: nowrap; overflow-x: auto;
   scrollbar-width: none; -ms-overflow-style: none;
 }
@@ -592,6 +594,19 @@ details.help > .help-body p:last-child { margin-bottom: 0; }
 .tab-btn { background: none; border: none; color: var(--text-dim); font-size: 0.88rem; font-weight: 500; padding: 0.6rem 1rem; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.12s ease; flex-shrink: 0; white-space: nowrap; }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+/* Only shown by tabs.js once it confirms the row actually overflows in
+   that direction -- a static arrow that's always there regardless of
+   scroll position would be a lie half the time. */
+.tabs-arrow {
+  position: absolute; top: 0; bottom: 1px; width: 26px; display: flex; align-items: center;
+  border: none; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.15s ease;
+  z-index: 2; color: var(--text-dim);
+}
+.tabs-arrow.visible { opacity: 1; pointer-events: auto; }
+.tabs-arrow:hover { color: var(--text); }
+.tabs-arrow-left { left: 0; justify-content: flex-start; background: linear-gradient(90deg, var(--bg) 55%, transparent); }
+.tabs-arrow-right { right: 0; justify-content: flex-end; background: linear-gradient(270deg, var(--bg) 55%, transparent); }
+.tabs-arrow svg { width: 16px; height: 16px; }
 .tab-panel { display: none; padding-top: 1.1rem; }
 .tab-panel.active { display: block; }
 
