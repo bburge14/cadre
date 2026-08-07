@@ -1,6 +1,6 @@
 {% macro topbar(active='') %}
   <div class="topbar">
-    <h1 class="brand"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="30" height="30">Cadre</h1>
+    <h1 class="brand"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="40" height="40">Cadre</h1>
     <div class="topbar-nav">
       <a class="btn btn-icon {{ 'btn-primary' if active == 'index' else '' }}" href="{{ url_for('index') }}" title="Dashboard" aria-label="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></a>
       <a class="btn btn-icon {{ 'btn-primary' if active == 'terminal' else '' }}" href="{{ url_for('terminal_hub') }}" title="Terminal" aria-label="Terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l4 3-4 3M12 15h4"/></svg></a>
