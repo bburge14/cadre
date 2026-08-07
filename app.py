@@ -1377,6 +1377,8 @@ def settings_form():
         cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
         current_username=auth.get_username(),
         has_security_question=auth.has_security_question(),
+        current_host=config.HOST,
+        tailscale=network_info.tailscale_status(),
     )
 
 

@@ -58,6 +58,9 @@
   }
   .theme-section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); margin: 1.2rem 0 0.4rem; }
   .theme-section-label:first-of-type { margin-top: 0.8rem; }
+  .net-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; }
+  .net-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.9rem; }
+  .net-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
 </style>
 </head>
 <body>
@@ -79,6 +82,7 @@
     <button type="button" class="tab-btn" data-tab="providers" onclick="switchTab('providers')">AI providers</button>
     <button type="button" class="tab-btn" data-tab="sessions" onclick="switchTab('sessions')">Sessions</button>
     <button type="button" class="tab-btn" data-tab="appearance" onclick="switchTab('appearance')">Appearance</button>
+    <button type="button" class="tab-btn" data-tab="network" onclick="switchTab('network')">Network</button>
   </div>
 
   <div class="tab-panel" id="tab-panel-account">
@@ -120,6 +124,49 @@
   <button class="btn btn-primary" type="button" id="apply-update-btn" onclick="applyUpdate()" style="display:none;">Update now</button>
   <div id="update-status" class="hint" style="margin-top:0.5rem;"></div>
   <pre id="update-log" class="hint" style="display:none; margin-top:0.5rem; background:var(--surface-2); border:1px solid var(--border); padding:0.6rem 0.8rem; border-radius:6px; max-height:240px; overflow-y:auto; white-space:pre-wrap; font-size:0.76rem;"></pre>
+  </div>
+
+  <div class="tab-panel" id="tab-panel-network">
+  <h2 style="margin-top:1.1rem;">Reaching it from other devices</h2>
+  <p class="hint">By default this only listens on this machine. Nothing on this tab is
+    saved from here — <code>CADRE_HOST</code> lives in <code>.env</code> and needs a
+    restart to take effect, same as when this was first covered in
+    <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
+
+  {% if current_host == '0.0.0.0' %}
+  <p class="status">&#10003; Already listening on <code>0.0.0.0</code> — reachable from
+    other devices on your network already.</p>
+  {% else %}
+  <p class="hint">Still listening on <code>127.0.0.1</code> only (this machine). Set
+    <code>CADRE_HOST=0.0.0.0</code> in <code>.env</code> and restart to open it up to
+    your network or Tailscale.</p>
+  {% endif %}
+
+  <div class="net-grid">
+    <div class="net-card">
+      <h3>Tailscale <span class="badge badge-info">recommended</span></h3>
+      {% if tailscale.ip %}
+      <p class="status">&#10003; detected and running — reachable at
+        <code>http://{{ tailscale.ip }}:7420</code> once <code>CADRE_HOST=0.0.0.0</code> is set.</p>
+      {% elif tailscale.installed %}
+      <p class="hint">Installed but not logged in yet — run <code>tailscale up</code> in a
+        terminal on this machine, then reload this page.</p>
+      {% else %}
+      <p class="hint">A private network between your own devices — no port-forwarding or
+        public exposure needed. Not detected on this machine.</p>
+      <p class="hint"><a href="https://tailscale.com/download" target="_blank">tailscale.com/download</a></p>
+      {% endif %}
+    </div>
+    <div class="net-card">
+      <h3>Port forwarding</h3>
+      <p class="hint" style="color:var(--danger-text);">Puts this on the open internet — don't
+        do this without a reverse proxy in front handling TLS first. This is a plain-HTTP dev
+        server underneath; login/CSRF protection doesn't substitute for that.</p>
+    </div>
+  </div>
+  <p class="hint" style="margin-top:0.8rem;">Full walkthrough for all three options: "Reaching
+    it from another device" in
+    <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>.</p>
   </div>
 
   <form method="post" action="{{ url_for('save_settings') }}" id="settings-form">
@@ -292,7 +339,7 @@ function switchTab(name) {
 }
 (function () {
   const requested = location.hash.replace('#', '');
-  const valid = ['version', 'account', 'githosts', 'providers', 'sessions', 'appearance'];
+  const valid = ['version', 'account', 'githosts', 'providers', 'sessions', 'appearance', 'network'];
   switchTab(valid.includes(requested) ? requested : 'version');
 })();
 
