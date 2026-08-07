@@ -155,17 +155,38 @@ function createTerminalConnection(sessionId, opts) {
    the terminal's own box can resize: a CSS drag handle (see
    #terminal-container's `resize: vertical` in session_detail.html), a
    sidebar toggling, any layout shift that isn't the window itself.
-   ResizeObserver catches all of those the same way. */
+   ResizeObserver catches all of those the same way.
+
+   Fitting to the container's exact size is capped at MAX_TERM_COLS/
+   MAX_TERM_ROWS -- on a high-res or ultrawide display, a terminal panel
+   that fills the whole page can mean several hundred columns, which is
+   readable but absurd, and not every CLI's own UI (box-drawing, table
+   layouts) handles an arbitrarily wide terminal gracefully. Returns an
+   object with the same `.fit()` shape FitAddon itself has, so call
+   sites don't need to know the cap exists -- calling term.resize()
+   directly (not through the addon) still fires the same onResize event
+   fit() would have, so the capped size still reaches the real pty. */
+const MAX_TERM_COLS = 200;
+const MAX_TERM_ROWS = 60;
+
 function setupTerminalFit(term) {
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
+
+  function fit() {
+    fitAddon.fit();
+    const cols = Math.min(term.cols, MAX_TERM_COLS);
+    const rows = Math.min(term.rows, MAX_TERM_ROWS);
+    if (cols !== term.cols || rows !== term.rows) term.resize(cols, rows);
+  }
+
   // Fitting immediately after the container becomes visible measures it
   // before the browser has actually laid it out (it was display:none a
   // moment ago in the same tick), so it can fit to a 0-size box -- text
   // written after that lands in a terminal with no visible rows until
   // something (a resize, a reload triggering a fresh layout pass) forces
   // a re-fit. Two rAFs reliably land after that layout pass.
-  requestAnimationFrame(() => requestAnimationFrame(() => fitAddon.fit()));
+  requestAnimationFrame(() => requestAnimationFrame(fit));
 
   // term.element's own parent is the div passed to term.open() -- its
   // size is driven by outer CSS/flex layout, not by xterm itself, so
@@ -173,11 +194,11 @@ function setupTerminalFit(term) {
   let resizeTimer = null;
   const observer = new ResizeObserver(() => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => fitAddon.fit(), 150);
+    resizeTimer = setTimeout(fit, 150);
   });
   observer.observe(term.element.parentElement || term.element);
 
-  return fitAddon;
+  return { fit };
 }
 
 /* On-screen key row for mobile -- a phone's soft keyboard has no Ctrl/

@@ -132,6 +132,7 @@ setInterval(poll, 3000);
 
 let terminalOpen = false;
 let term = null;
+let fitAddon = null;
 let connection = null;
 
 function toggleTerminal() {
@@ -156,6 +157,14 @@ function toggleTerminal() {
   if (firstOpen) {
     term = new Terminal({ convertEol: true, fontSize: 13, theme: resolveXtermTheme("{{ terminal_theme }}") });
     term.open(document.getElementById("terminal"));
+    // Without this, the terminal never resizes to fill #terminal-container
+    // at all -- it just sits at whatever size it happened to render at
+    // first, which also meant the drag handle on the container resized
+    // an empty box around the terminal without the terminal itself
+    // changing size.
+    fitAddon = setupTerminalFit(term);
+  } else if (fitAddon) {
+    fitAddon.fit();
   }
 
   const statusEl = document.getElementById("term-status");
@@ -163,7 +172,10 @@ function toggleTerminal() {
     tokenUrl: "{{ url_for('session_terminal_token', session_id=session.id) }}",
     csrfToken: "{{ csrf_token() }}",
     term: term,
-    onStatus: (text) => { statusEl.textContent = text; },
+    onStatus: (text) => {
+      statusEl.textContent = text;
+      if (text === "connected" && fitAddon) fitAddon.fit();
+    },
   });
   if (firstOpen) {
     // Wrapped so the key row always sends through whatever `connection`
