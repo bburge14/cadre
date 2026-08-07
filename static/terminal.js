@@ -302,15 +302,9 @@ function createTerminalConnection(sessionId, opts) {
    sidebar toggling, any layout shift that isn't the window itself.
    ResizeObserver catches all of those the same way.
 
-   Fitting to the container's exact size is capped at MAX_TERM_COLS/
-   MAX_TERM_ROWS -- on a high-res or ultrawide display, a terminal panel
-   that fills the whole page can mean several hundred columns, which is
-   readable but absurd, and not every CLI's own UI (box-drawing, table
-   layouts) handles an arbitrarily wide terminal gracefully. Returns an
-   object with a `.fit()` method so call sites don't need to know the
-   cap exists -- calling term.resize() directly still fires the same
-   onResize event a fit would have, so the capped size still reaches
-   the real pty.
+   Fits to the container's exact size, uncapped -- returns an object
+   with a `.fit()` method so call sites have a stable shape to call
+   regardless of what fitting actually involves underneath.
 
    Deliberately NOT using the vendored FitAddon here -- its fit() call
    throws every single time in this build ("Cannot read properties of
@@ -345,15 +339,11 @@ function computeFitSize(term) {
   };
 }
 
-const MAX_TERM_COLS = 200;
-const MAX_TERM_ROWS = 60;
-
 function setupTerminalFit(term) {
   function fit() {
     const size = computeFitSize(term);
     if (!size) return false;
-    const cols = Math.min(size.cols, MAX_TERM_COLS);
-    const rows = Math.min(size.rows, MAX_TERM_ROWS);
+    const { cols, rows } = size;
     if (cols === term.cols && rows === term.rows) return true;
     // FitAddon's own (broken) fit() clears the render surface immediately
     // before resizing -- matching that one behavior exactly, just
