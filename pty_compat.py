@@ -25,15 +25,18 @@ if IS_WINDOWS:
             # Same reasoning as the POSIX branch below: a pty defaults to
             # a tiny window size until something sets it, and some CLIs'
             # one-time startup banners render at whatever size was active
-            # the moment they launched, never redrawing later. Giving it
-            # a generous size upfront means that first render already
-            # looks reasonable -- the real browser-driven resize still
+            # the moment they launched, never redrawing later -- there's
+            # no way to know the real browser's size yet at this point
+            # (session creation is a plain form POST, independent of any
+            # terminal WebSocket connection), so this is a best-effort
+            # guess biased toward a typical wide desktop window rather
+            # than the OS default. The real browser-driven resize still
             # corrects everything else once it connects.
             try:
-                self._proc = winpty.PtyProcess.spawn(args, cwd=cwd, env=env, dimensions=(40, 120))
+                self._proc = winpty.PtyProcess.spawn(args, cwd=cwd, env=env, dimensions=(50, 180))
             except TypeError:
                 self._proc = winpty.PtyProcess.spawn(args, cwd=cwd, env=env)
-                self.resize(40, 120)
+                self.resize(50, 180)
 
         def read(self, size: int = 4096) -> bytes:
             try:
@@ -90,11 +93,15 @@ else:
             # already-printed output doesn't retroactively rewrap. Giving
             # it a generous size before the child ever starts means that
             # first render already looks reasonable on a typical desktop
-            # window, instead of assuming an 80-column default -- the
-            # real browser-driven resize still corrects everything else
-            # once it connects, same as before.
+            # window, instead of assuming an 80-column default -- there's
+            # no way to know the real browser's actual size yet at this
+            # point (session creation is a plain form POST, independent
+            # of any terminal WebSocket connection), so this is a
+            # best-effort guess biased toward a typical wide desktop
+            # window. The real browser-driven resize still corrects
+            # everything else once it connects, same as before.
             try:
-                fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 120, 0, 0))
+                fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 50, 180, 0, 0))
             except OSError:
                 pass
             env = {**os.environ, **extra_env} if extra_env else None
