@@ -69,11 +69,22 @@ html {
 
 /* Galaxy: nebula glow lives on <html> (static -- big soft blurs don't
    need to move to read as atmospheric). Stars are a single repeating
-   tile on a body::before pseudo-element, kept to one layer deliberately
-   so its background-position animation only ever has one value to
-   track -- several independent radial-gradient star layers would each
-   need their own position value kept in sync in the same @keyframes,
-   which is a trap for a subtle desync bug down the line. */
+   tile on <html>'s own ::before -- not body's, even though body is the
+   more obvious place to hang a full-page decorative layer. body has
+   `animation: fade-in ... both` (below), and per spec ANY non-"none"
+   computed transform -- including an animation settled on translateY(0),
+   confirmed via getComputedStyle returning matrix(1,0,0,1,0,0), not the
+   keyword none -- makes an element a containing block for its own
+   position:fixed descendants. A body::before star layer would size
+   itself to body's own centered 960px column instead of the real
+   viewport, same root cause Code Rain's canvas already had to route
+   around by living outside body entirely. <html> carries no transform
+   anywhere, so its own ::before stays viewport-sized regardless of what
+   body's entrance animation is doing. Kept to one repeating layer
+   deliberately so its background-position animation only ever has one
+   value to track -- several independent radial-gradient star layers
+   would each need their own position value kept in sync in the same
+   @keyframes, which is a trap for a subtle desync bug down the line. */
 html[data-theme="galaxy"] {
   --accent: #a78bfa;
   --accent-hover: #c4b5fd;
@@ -89,7 +100,7 @@ html[data-theme="galaxy"] {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-html[data-theme="galaxy"] body::before {
+html[data-theme="galaxy"]::before {
   content: "";
   position: fixed;
   inset: -50px;
@@ -216,7 +227,7 @@ html[data-theme="ember"] {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-html[data-theme="ember"] body::before {
+html[data-theme="ember"]::before {
   content: "";
   position: fixed;
   inset: -50px;
@@ -316,7 +327,7 @@ html[data-theme="sakura"] {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-html[data-theme="sakura"] body::before {
+html[data-theme="sakura"]::before {
   content: "";
   position: fixed;
   inset: -50px;
@@ -475,7 +486,7 @@ html[data-theme="deep-space"] {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-html[data-theme="deep-space"] body::before {
+html[data-theme="deep-space"]::before {
   content: "";
   position: fixed;
   inset: -50px;
