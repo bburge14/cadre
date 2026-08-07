@@ -24,6 +24,37 @@ load_dotenv(BASE_DIR / ".env")
 
 import os
 
+
+def _augment_path_for_user_clis() -> None:
+    """Running as a systemd --user service means this process's PATH is
+    whatever minimal default systemd hands it -- NOT the interactive
+    shell's PATH, since systemd services never source .bashrc/.profile.
+    A CLI installed via nvm (npm install -g @google/gemini-cli, etc.)
+    lands in ~/.nvm/versions/node/<version>/bin, a directory only ever
+    added to PATH by nvm's own shell-startup hook -- so this process
+    genuinely can't see it even though it's really installed, and every
+    shutil.which()/subprocess spawn for that provider fails as a result.
+    Prepends every installed nvm node version's bin dir (newest-installed
+    first, so a same-named binary in a newer version wins on collision)
+    rather than hardcoding one version, so this keeps working across
+    `nvm install` upgrades without needing another manual fix later."""
+    nvm_node_dir = Path.home() / ".nvm" / "versions" / "node"
+    if not nvm_node_dir.is_dir():
+        return
+    versions = sorted(
+        (p for p in nvm_node_dir.iterdir() if p.is_dir()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    existing = os.environ.get("PATH", "")
+    existing_parts = existing.split(os.pathsep) if existing else []
+    new_dirs = [str(v / "bin") for v in versions if str(v / "bin") not in existing_parts]
+    if new_dirs:
+        os.environ["PATH"] = os.pathsep.join(new_dirs + existing_parts)
+
+
+_augment_path_for_user_clis()
+
 INSTANCE_DIR = BASE_DIR / "instance"
 INSTANCE_DIR.mkdir(exist_ok=True)
 
