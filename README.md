@@ -15,7 +15,15 @@ enabled + lingering, so it's always up — no manual start needed. See
   `COMMAND_CENTER_HOST=0.0.0.0` in `.env` (see `SETUP.md`)
 - **Auth**: real account (username + hashed password), created via a
   one-time `/setup` wizard on first run, session-cookie login, CSRF
-  protection on every state-changing request
+  protection on every state-changing request. A security question (set
+  during `/setup`, required — there's no email tied to this account to
+  send a reset link through) is the recovery path via `/forgot-password`
+  on the login page, rate-limited with the same exponential backoff as
+  login itself; changeable anytime from Settings > Account, which also
+  requires the current password for any change. A terminal-based script
+  (`reset-admin.sh`/`.ps1`/`.bat`) is still there as a hard fallback if
+  the security answer is forgotten too — see "Locked out?" in
+  `SETUP.md`.
 - **Session registry**: `instance/sessions.json` — id (a real Claude Code
   session UUID), label, working directory
 - **Process model**: each session runs under a real pty (not headless —
@@ -71,7 +79,37 @@ enabled + lingering, so it's always up — no manual start needed. See
   xterm.js terminal over a token-authed WebSocket into that session's pty,
   not just a read-only output feed — the only way to interact with
   Gemini/Codex/Kimi sessions today, since none of them has an official
-  remote-control equivalent yet.
+  remote-control equivalent yet. A dedicated `/terminal` hub page holds a
+  session sidebar (grouped by whichever Agent Stack controls each
+  session's directory, matched by workdir) alongside whichever one's
+  active; `/sessions/<id>/terminal` is the same terminal as its own
+  bookmarkable, chrome-free page. Resizing the browser resizes the real
+  pty too (`TIOCSWINSZ`), not just the on-screen character grid, so a
+  full-screen program like Claude Code itself actually uses the extra
+  room — capped and debounced so a burst of resize events during page
+  load can't turn into overlapping, garbled redraws.
+- **Terminal color themes**: 17 options (dark/light/auto plus named
+  palettes — Dracula, Solarized Dark/Light, Nord, Monokai, Gruvbox Dark,
+  Tokyo Night, One Dark, Catppuccin Mocha, Synthwave, Matrix, Ayu Dark,
+  GitHub Dark, Cyberpunk), picked right on the terminal page itself, not
+  buried in Settings — it's about the CLI inside a session, not a
+  dashboard-wide preference. Applied to new sessions and retroactively to
+  every existing one when changed (`terminal_theme.py`); also
+  best-effort-mapped onto each CLI's own native theme system for anyone
+  using that provider's Remote Control outside this app, where a real
+  match exists in that CLI's own catalog.
+- **Dashboard appearance**: separate from the terminal theme above —
+  Settings > Appearance picks this dashboard's own look. 3 static themes
+  (Default, Circuit Board, Slate) and 4 animated ones (Galaxy, Aurora,
+  Code Rain, Ember), each overriding the whole app's accent-color
+  variables too, not just the background, so buttons/links/badges shift
+  with it everywhere.
+- **Hand off to fresh session**: retires a long/bloated session by
+  creating a brand-new one in the same directory and stopping the old
+  one, writing a `CLAUDE.md` continuity nudge first
+  (`presets.ensure_continuity_nudge`) so the new session checks a
+  `PROJECT_STATUS.md`-style file instead of needing the full prior
+  conversation reloaded to pick up where it left off.
 - **Skills**: one shared list (`/skills`, `~/.claude/skills/`, unlike
   agents there's no per-stack scoping) usable by every agent in every
   stack, managed via `skills_store.py`. A skill is a different mechanism

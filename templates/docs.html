@@ -22,6 +22,7 @@
 
   <div class="toc">
     <a href="#sessions">Sessions</a>
+    <a href="#terminal">Terminal &amp; themes</a>
     <a href="#stacks">Agent stacks</a>
     <a href="#global-agents">"Global (default)" stack</a>
     <a href="#skills">Skills</a>
@@ -29,6 +30,8 @@
     <a href="#other-provider-stacks">Agent Stacks on other providers</a>
     <a href="#delegation">Delegating an agent's work to another provider</a>
     <a href="#git-hosts">Connecting GitHub / GitLab</a>
+    <a href="#appearance">Dashboard appearance</a>
+    <a href="#account">Account &amp; recovery</a>
     <a href="#updating">Keeping Cadre updated</a>
   </div>
 
@@ -54,6 +57,42 @@
     If a session hits a usage/rate limit, its row gets an orange "limit
     hit" tag and its detail page shows the actual message — it clears
     itself the next time you restart that session.
+  </p>
+  <p>
+    "Hand off to fresh session" (on a session's own page) retires a long
+    conversation by creating a brand-new session in the same directory and
+    stopping the old one — it also writes a short note into that
+    directory's <code>CLAUDE.md</code> telling the fresh session to check
+    for a <code>PROJECT_STATUS.md</code>-style file first, so it doesn't
+    have to re-derive context another session already captured.
+  </p>
+
+  <h2 id="terminal">Terminal &amp; themes</h2>
+  <p>
+    Beyond the inline terminal on a session's own page, <code>/terminal</code>
+    (the "Terminal" link in the nav) is a dedicated hub: a session sidebar
+    grouped by whichever Agent Stack controls each session's directory,
+    with whichever one you pick shown full-size next to it. Each session
+    also has its own bookmarkable, chrome-free page at
+    <code>/sessions/&lt;id&gt;/terminal</code> — handy for adding to a
+    phone's home screen.
+  </p>
+  <p>
+    Resizing the browser resizes the <em>real</em> pty, not just what's
+    drawn on screen — a full-screen program like Claude Code itself
+    actually gets told its terminal changed size and uses the extra room,
+    the same way a native terminal window would.
+  </p>
+  <p>
+    The theme dropdown right on the terminal page (not in Settings — it's
+    about the CLI inside a session, not the dashboard) has 17 color
+    options: Dark/Light/Auto plus named palettes (Dracula, Solarized,
+    Nord, Monokai, Gruvbox, Tokyo Night, One Dark, Catppuccin Mocha,
+    Synthwave, Matrix, Ayu Dark, GitHub Dark, Cyberpunk). Changing it
+    applies to every session immediately, including ones already
+    running — though a session that's already open needs its own
+    Start/Stop/Restart to actually pick up the new config, the same way
+    any program needs to reload its config to notice a change.
   </p>
 
   <h2 id="stacks">Agent stacks</h2>
@@ -280,6 +319,38 @@
     callback URL Settings shows you, paste the Client ID/Secret in, save.
     "+ New session" then shows a "Connect your account" link on the
     GitHub/GitLab tab.
+  </p>
+
+  <h2 id="appearance">Dashboard appearance</h2>
+  <p>
+    Separate from the terminal theme above — Settings &gt; Appearance
+    picks this dashboard's own look, not the CLI inside a session. 3
+    static themes (Default, Circuit Board, Slate) and 4 animated ones
+    (Galaxy, Aurora, Code Rain, Ember), each with its own accent color
+    too, so buttons/links/badges shift along with the background instead
+    of staying the same blue regardless of theme. Picking one saves
+    immediately, no separate "Save" click needed.
+  </p>
+
+  <h2 id="account">Account &amp; recovery</h2>
+  <p>
+    This app has exactly one admin account, created during the one-time
+    <code>/setup</code> wizard. Since there's no email tied to it to send
+    a reset link through, a security question (required at setup) is the
+    recovery path instead — "Forgot your password?" on the login page
+    asks the question, and a correct answer lets you set a new password.
+    Both login and recovery attempts are rate-limited with the same
+    backoff, so repeated wrong guesses just get slower, not locked out
+    forever.
+  </p>
+  <p>
+    Settings &gt; Account changes username, password, or the security
+    question/answer — any change there requires your current password
+    first, same as any real account settings page. If you forget the
+    security answer too, a terminal-based script
+    (<code>reset-admin.sh</code> / <code>.ps1</code> / <code>.bat</code>,
+    in the repo) is the hard fallback — see "Locked out?" in
+    <a href="https://github.com/bburge14/cadre/blob/master/SETUP.md" target="_blank">SETUP.md</a>.
   </p>
 
   <h2 id="updating">Keeping Cadre updated</h2>
