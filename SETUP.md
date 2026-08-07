@@ -504,12 +504,35 @@ internet. **Do not do this without a reverse proxy (Caddy, nginx, etc.) in
 front of it terminating real TLS first.** This is a plain-HTTP dev server
 underneath; the login/CSRF protection built into the app is not a
 substitute for encrypting the connection itself, and an unencrypted
-session cookie on the open internet can be intercepted. If you still want
-this, put a reverse proxy in front handling HTTPS (Caddy's automatic
-Let's-Encrypt mode is the least setup), point it at `127.0.0.1:7420` (leave
-`CADRE_HOST` at its default in that case — only the proxy needs to be
-reachable from outside), and forward the router port to the *proxy*, not
-directly to this app.
+session cookie on the open internet can be intercepted. Leave
+`CADRE_HOST` at its default (`127.0.0.1`) for this option — only the
+proxy needs to be reachable from outside, not this app directly.
+
+You'll need a domain name (or subdomain) pointed at your home's public IP
+— a dynamic DNS provider (DuckDNS, No-IP, etc.) if that IP isn't static —
+since automatic HTTPS needs a real hostname to issue a certificate for.
+[Caddy](https://caddyserver.com/docs/install) is the least setup of the
+common options:
+
+1. Install it (per-OS instructions at the link above).
+2. Create a `Caddyfile` next to wherever you run it from:
+   ```
+   your-domain.example.com {
+       reverse_proxy 127.0.0.1:7420
+   }
+   ```
+3. Run it: `caddy run` (or install it as a service — see Caddy's own
+   docs). It requests and renews the certificate automatically the first
+   time it starts.
+4. On your router, forward ports `80` and `443` to this machine (Caddy
+   needs port 80 briefly for the certificate challenge, then serves
+   everything over 443) — **not** port 7420.
+
+From there, `https://your-domain.example.com` reaches Cadre through
+Caddy, TLS included. This is genuinely more setup than the Tailscale
+option above (a domain, DNS, router configuration, a second process to
+keep running) — worth it only if you specifically need Cadre reachable by
+something that can't run Tailscale itself.
 
 ## Per-machine settings to double check
 

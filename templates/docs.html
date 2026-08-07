@@ -394,11 +394,36 @@
     not recommended without a reverse proxy (Caddy, nginx, etc.) in front
     of it terminating real TLS first — this is a plain-HTTP dev server
     underneath, and the login/CSRF protection built into the app is not a
-    substitute for encrypting the connection itself. If you still want
-    this: put a reverse proxy in front handling HTTPS, point it at
-    <code>127.0.0.1:7420</code> (leave <code>CADRE_HOST</code> at its
-    default in that case), and forward the router port to the proxy, not
-    directly to this app.
+    substitute for encrypting the connection itself. Leave
+    <code>CADRE_HOST</code> at its default (<code>127.0.0.1</code>) for
+    this option — only the proxy needs to be reachable from outside, not
+    this app directly.
+  </p>
+  <p>
+    You'll need a domain name (or subdomain) pointed at your home's public
+    IP — a dynamic DNS provider (e.g. DuckDNS, No-IP) if that IP isn't
+    static — since automatic HTTPS needs a real hostname to issue a
+    certificate for, not a bare IP address.
+    <a href="https://caddyserver.com/docs/install" target="_blank">Caddy</a>
+    is the least setup of the common options — it gets you real HTTPS with
+    no manual certificate handling:
+  </p>
+  <ol style="font-size:0.88rem; color:var(--text-dim);">
+    <li>Install it: <a href="https://caddyserver.com/docs/install" target="_blank">caddyserver.com/docs/install</a> has per-OS instructions.</li>
+    <li>Create a <code>Caddyfile</code> next to wherever you run it from:
+      <pre class="code-block">your-domain.example.com {
+    reverse_proxy 127.0.0.1:7420
+}</pre>
+    </li>
+    <li>Run it: <code>caddy run</code> (or install it as a service — see Caddy's own docs for that). It requests and renews the certificate automatically the first time it starts.</li>
+    <li>On your router, forward ports <code>80</code> and <code>443</code> to this machine (Caddy needs port 80 briefly to complete the certificate challenge, then serves everything over 443) — <strong>not</strong> port 7420.</li>
+  </ol>
+  <p>
+    From there, <code>https://your-domain.example.com</code> reaches
+    Cadre through Caddy, TLS included. This is genuinely more setup than
+    Tailscale above (a domain, DNS, router configuration, a second
+    process to keep running) — worth it only if you specifically need
+    Cadre reachable by something that can't run Tailscale itself.
   </p>
 
   <h2 id="updating">Keeping Cadre updated</h2>
