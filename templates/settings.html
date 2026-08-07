@@ -115,8 +115,14 @@
     background-color: #0a0614;
     background-image: radial-gradient(ellipse 90px 55px at 15% -10%, rgba(163,230,53,0.4), transparent 65%), radial-gradient(ellipse 80px 50px at 100% 100%, rgba(124,58,237,0.45), transparent 60%);
   }
-  .theme-section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); margin: 1.2rem 0 0.4rem; }
-  .theme-section-label:first-of-type { margin-top: 0.8rem; }
+  .theme-section-header { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none; margin: 1.2rem 0 0.4rem; }
+  .theme-section-header:first-of-type { margin-top: 0.8rem; }
+  .theme-section-header:hover .theme-section-label { color: var(--text-dim); }
+  .theme-section-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); transition: color 0.12s ease; }
+  .theme-section-chevron { width: 12px; height: 12px; flex-shrink: 0; color: var(--text-faint); transition: transform 0.12s ease; }
+  .theme-section-count { font-size: 0.68rem; font-weight: 500; color: var(--text-faint); background: var(--surface-2); border-radius: 999px; padding: 0.05rem 0.45rem; }
+  .theme-section.collapsed .theme-section-chevron { transform: rotate(-90deg); }
+  .theme-section.collapsed .theme-grid { display: none; }
   .net-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; }
   .net-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.9rem; }
   .net-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
@@ -343,7 +349,12 @@
     <p class="hint">Just this dashboard's own look — separate from the terminal theme, which lives on the terminal page itself since it's about the CLI inside each session, not this dashboard.</p>
     <input type="hidden" name="dashboard_theme" id="dashboard-theme-field" value="{{ values.dashboard_theme }}">
 
-    <p class="theme-section-label">Static</p>
+    <div class="theme-section" data-section="static">
+    <div class="theme-section-header" onclick="toggleThemeSection(this)">
+      <svg class="theme-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="theme-section-label">Static</span>
+      <span class="theme-section-count">13</span>
+    </div>
     <div class="theme-grid">
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'default' else '' }}" data-theme-value="default" onclick="selectDashboardTheme('default')">
         <div class="theme-swatch theme-swatch-default"></div>
@@ -398,8 +409,14 @@
         <span>Toxic</span>
       </div>
     </div>
+    </div>
 
-    <p class="theme-section-label">Animated</p>
+    <div class="theme-section" data-section="animated">
+    <div class="theme-section-header" onclick="toggleThemeSection(this)">
+      <svg class="theme-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="theme-section-label">Animated</span>
+      <span class="theme-section-count">7</span>
+    </div>
     <div class="theme-grid">
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'galaxy' else '' }}" data-theme-value="galaxy" onclick="selectDashboardTheme('galaxy')">
         <div class="theme-swatch theme-swatch-galaxy"></div>
@@ -429,6 +446,7 @@
         <div class="theme-swatch theme-swatch-rain"></div>
         <span>Rainfall</span>
       </div>
+    </div>
     </div>
     </div>
 
@@ -497,6 +515,28 @@ document.getElementById('account-form').addEventListener('submit', async (e) => 
     form.reset();
   }
 });
+
+const COLLAPSED_THEME_SECTIONS_KEY = "cadre_collapsed_theme_sections";
+
+function toggleThemeSection(headerEl) {
+  const section = headerEl.closest('.theme-section');
+  const name = section.dataset.section;
+  const collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSED_THEME_SECTIONS_KEY) || "[]"));
+  if (collapsed.has(name)) {
+    collapsed.delete(name);
+    section.classList.remove('collapsed');
+  } else {
+    collapsed.add(name);
+    section.classList.add('collapsed');
+  }
+  localStorage.setItem(COLLAPSED_THEME_SECTIONS_KEY, JSON.stringify([...collapsed]));
+}
+(function restoreCollapsedThemeSections() {
+  const collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSED_THEME_SECTIONS_KEY) || "[]"));
+  document.querySelectorAll('.theme-section').forEach(section => {
+    if (collapsed.has(section.dataset.section)) section.classList.add('collapsed');
+  });
+})();
 
 async function selectDashboardTheme(name) {
   document.getElementById('dashboard-theme-field').value = name;

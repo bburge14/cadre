@@ -64,24 +64,8 @@
     <p class="hint">No skills exist yet — <a href="{{ url_for('skills_page') }}">create one</a>, then come back here to attach it to this agent.</p>
     {% endif %}
 
-    <label>Claude model <span class="hint">(used when Claude Code itself runs this agent as a subagent, via its Task tool)</span></label>
-    <select name="model">
-      {% set current = agent.frontmatter.get('model', 'inherit') if agent else 'inherit' %}
-      {% for value, label in claude_models %}
-        <option value="{{ value }}" {{ 'selected' if value == current else '' }}>{{ label }}</option>
-      {% endfor %}
-    </select>
-
-    <label>Gemini model <span class="hint">(used when a session's own provider is Gemini, running this agent as one of Gemini CLI's own native subagents -- unrelated to "primary AI" below, which is about delegation from inside a Claude-run agent instead)</span></label>
-    <select name="gemini_model">
-      {% set current_gemini_model = agent.frontmatter.get('gemini_model', '') if agent else '' %}
-      {% for value, label in gemini_models %}
-        <option value="{{ value }}" {{ 'selected' if value == current_gemini_model else '' }}>{{ label }}</option>
-      {% endfor %}
-    </select>
-
     <label>primary AI for this agent's actual work <span class="hint">(Claude always runs the agent container itself — picking another provider here makes its instructions delegate the real work to that provider via Bash and use its output as the answer)</span></label>
-    <select name="primary_provider" id="primary-provider-select" onchange="updatePrimaryProviderNote()">
+    <select name="primary_provider" id="primary-provider-select" onchange="updatePrimaryProviderNote(); updateModelFieldVisibility();">
       {% set current_provider = agent.frontmatter.get('primary_provider', 'claude') if agent else 'claude' %}
       <option value="claude" {{ 'selected' if current_provider == 'claude' else '' }}>Claude (native, default)</option>
       {% for provider in cli_providers %}
@@ -89,6 +73,26 @@
       {% endfor %}
     </select>
     <p class="hint" id="primary-provider-note" style="margin-top:0.4rem;"></p>
+
+    <div id="model-field-claude">
+      <label>Claude model</label>
+      <select name="model">
+        {% set current = agent.frontmatter.get('model', 'inherit') if agent else 'inherit' %}
+        {% for value, label in claude_models %}
+          <option value="{{ value }}" {{ 'selected' if value == current else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="model-field-gemini" style="display:none;">
+      <label>Gemini model</label>
+      <select name="gemini_model">
+        {% set current_gemini_model = agent.frontmatter.get('gemini_model', '') if agent else '' %}
+        {% for value, label in gemini_models %}
+          <option value="{{ value }}" {{ 'selected' if value == current_gemini_model else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
     <label>effort</label>
     <select name="effort">
@@ -144,6 +148,18 @@ function updatePrimaryProviderNote() {
     'or install it first: <code>' + p.installHint + '</code> (<a href="' + p.installDocsUrl + '" target="_blank">docs</a>).';
 }
 updatePrimaryProviderNote();
+
+// Only one provider's model catalog is ever relevant at a time -- the
+// one actually running this agent's real work -- so show just that
+// field instead of every provider's dropdown regardless of selection.
+// Codex/Kimi have no catalog wired up yet (see providers.py), so
+// neither model field applies when either is picked.
+function updateModelFieldVisibility() {
+  const id = document.getElementById('primary-provider-select').value;
+  document.getElementById('model-field-claude').style.display = id === 'claude' ? 'block' : 'none';
+  document.getElementById('model-field-gemini').style.display = id === 'gemini' ? 'block' : 'none';
+}
+updateModelFieldVisibility();
 </script>
 </body>
 </html>
