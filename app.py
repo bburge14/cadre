@@ -71,9 +71,21 @@ def inject_dashboard_theme():
     return {"dashboard_theme": settings.get("dashboard_theme")}
 
 
+# (value, label) -- value must match a key in static/terminal.js's
+# XTERM_THEMES and, for "auto", the special-cased branch in
+# resolveXtermTheme(). Kept here (not just inline in the two templates
+# that build a <select> from it) so both stay in sync automatically.
+TERMINAL_THEME_OPTIONS = [
+    ("auto", "Auto"), ("dark", "Dark"), ("light", "Light"),
+    ("dracula", "Dracula"), ("solarized-dark", "Solarized Dark"), ("solarized-light", "Solarized Light"),
+    ("nord", "Nord"), ("monokai", "Monokai"), ("gruvbox-dark", "Gruvbox Dark"),
+    ("tokyo-night", "Tokyo Night"), ("one-dark", "One Dark"),
+]
+
+
 @app.context_processor
 def inject_terminal_theme():
-    return {"terminal_theme": settings.get("terminal_theme")}
+    return {"terminal_theme": settings.get("terminal_theme"), "terminal_theme_options": TERMINAL_THEME_OPTIONS}
 
 
 def _static_asset_version() -> str:
@@ -1573,7 +1585,7 @@ def save_terminal_theme():
     # about the CLI running inside a session, which is right where you're
     # looking at it, not a dashboard-wide preference buried in a form.
     choice = request.form.get("terminal_theme", "")
-    if choice not in ("auto", "dark", "light"):
+    if choice not in dict(TERMINAL_THEME_OPTIONS):
         return {"ok": False, "error": "invalid theme"}, 400
     settings.update(terminal_theme=choice)
     applied = _apply_terminal_theme_to_all_sessions(choice)
@@ -1781,6 +1793,23 @@ def session_detail(session_id):
     )
 
 
+def _sessions_grouped_by_stack() -> list[dict]:
+    """Each session's only link to a stack is its workdir -- there's no
+    stack_id field on a session record, so this matches the same way
+    session_detail() already does (exact workdir string match). Anything
+    that doesn't match a real stack's own directory falls under the
+    synthetic Global stack, same fallback semantics as everywhere else
+    a session's stack is resolved."""
+    stacks = _stacks_with_agent_counts()
+    sessions = _sessions_with_status()
+    groups = [{"stack": stack, "sessions": []} for stack in stacks]
+    global_group = next(g for g in groups if g["stack"].get("is_global"))
+    for session in sessions:
+        matched = next((g for g in groups if g["stack"].get("workdir") == session["workdir"]), None)
+        (matched or global_group)["sessions"].append(session)
+    return groups
+
+
 @app.get("/terminal")
 @require_auth
 def terminal_hub():
@@ -1788,8 +1817,9 @@ def terminal_hub():
     active, distinct from the single-session focused view at
     /sessions/<id>/terminal. Which session is "active" is resolved
     client-side (query param, else localStorage's last-used session),
-    so this route just needs to hand over the session list."""
-    return render_template("terminal_hub.html", sessions=_sessions_with_status())
+    so this route just needs to hand over the session list, grouped by
+    whichever Agent Stack (if any) controls each one's directory."""
+    return render_template("terminal_hub.html", stack_groups=_sessions_grouped_by_stack())
 
 
 @app.get("/sessions/<session_id>/terminal")

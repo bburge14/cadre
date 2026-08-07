@@ -1,5 +1,6 @@
-"""Applies your chosen terminal theme (dark/light/auto) to a new
-session's provider automatically -- all four CLIs support pre-launch,
+"""Applies your chosen terminal theme (dark/light/auto, plus several
+named palettes -- see _THEME_NAMES) to a new session's provider
+automatically -- all four CLIs support pre-launch,
 non-interactive theme configuration via their own config files, so this
 is pure file-writing at session-creation time, no daemon/argv changes
 and no keystrokes to simulate. Every writer here is additive-only: an
@@ -18,24 +19,74 @@ import json
 import re
 from pathlib import Path
 
-# Per provider: this app's own "dark"/"light"/"auto" mapped to that CLI's
-# own literal config value. None means "don't write anything" -- for
-# "auto" specifically, that's often the *correct* way to ask a provider
-# for auto-detection (see codex below), not a gap.
+# Per provider: this app's own theme name mapped to that CLI's own
+# literal config value. None means "don't write anything" -- for "auto"
+# specifically, that's often the *correct* way to ask a provider for
+# auto-detection (see codex below), not a gap. Everything past dark/
+# light/auto is a *named* palette Cadre's own xterm.js view fully
+# renders itself (see XTERM_THEMES in static/terminal.js) -- the native
+# mapping below is a best-effort match onto each CLI's own catalog for
+# anyone using that CLI's native Remote Control outside this dashboard,
+# not something this app depends on for its own rendering. Where a
+# provider has no equivalent built-in theme, None leaves its config
+# alone rather than forcing something that doesn't actually match.
 _THEME_NAMES: dict[str, dict[str, str | None]] = {
-    # docs.claude.com/en/docs/claude-code/terminal-config -- literal preset names.
-    "claude": {"dark": "dark", "light": "light", "auto": "auto"},
-    # google-gemini/gemini-cli packages/cli/src/ui/themes/theme-manager.ts --
-    # built-in themes use branded names, not generic "dark"/"light" strings;
-    # no "auto" value exists at all (open feature request, gemini-cli#18507).
-    "gemini": {"dark": "Default", "light": "Default Light", "auto": None},
-    # openai/codex codex-rs/tui/src/render/highlight.rs (BUILTIN_THEME_NAMES) --
-    # no plain "dark"/"light"/"auto" strings exist. Omitting tui.theme entirely
-    # triggers Codex's own terminal-background auto-detection (its literal
-    # meaning of "auto"), so auto=None here is correct, not unimplemented --
-    # catppuccin-mocha/latte are what that auto-detection would pick anyway.
-    "codex": {"dark": "catppuccin-mocha", "light": "catppuccin-latte", "auto": None},
-    "kimi": {"dark": "dark", "light": "light", "auto": "auto"},
+    # docs.claude.com/en/docs/claude-code/terminal-config + the installed
+    # CLI's own string table (v2.1.223) -- 6 base presets plus "auto", no
+    # named/branded themes beyond dark/light and their daltonized/ansi
+    # variants, so every named palette below just picks whichever of
+    # those 6 is the closer dark/light match.
+    "claude": {
+        "dark": "dark", "light": "light", "auto": "auto",
+        "dracula": "dark", "solarized-dark": "dark", "solarized-light": "light",
+        "nord": "dark", "monokai": "dark", "gruvbox-dark": "dark",
+        "tokyo-night": "dark", "one-dark": "dark",
+    },
+    # google-gemini/gemini-cli packages/cli/src/ui/themes/theme-manager.ts
+    # (verified against the installed @google/gemini-cli package) -- built-in
+    # themes use branded names, not generic "dark"/"light" strings; no "auto"
+    # value exists at all (open feature request, gemini-cli#18507). Several
+    # named palettes below have an exact match in Gemini's own 19-theme
+    # catalog; the rest (Nord/Monokai/Gruvbox -- not in that catalog) fall
+    # back to None rather than forcing an unrelated theme.
+    "gemini": {
+        "dark": "Default", "light": "Default Light", "auto": None,
+        "dracula": "Dracula", "solarized-dark": "Solarized Dark", "solarized-light": "Solarized Light",
+        "nord": None, "monokai": None, "gruvbox-dark": None,
+        "tokyo-night": "Tokyo Night", "one-dark": "Atom One",
+    },
+    # openai/codex codex-rs/tui/src/render/highlight.rs, verified against
+    # the exact source tag matching the installed @openai/codex build --
+    # parse_theme_name()'s match arms are the real catalog (31 themes, far
+    # more than just the two auto-detection picks below). Omitting tui.theme
+    # entirely triggers Codex's own terminal-background auto-detection (its
+    # literal meaning of "auto"), so auto=None is correct, not unimplemented
+    # -- catppuccin-mocha/latte are what that auto-detection would pick
+    # anyway. one-dark has no exact match; one-half-dark is the closest
+    # relative in Codex's own catalog.
+    "codex": {
+        "dark": "catppuccin-mocha", "light": "catppuccin-latte", "auto": None,
+        "dracula": "dracula", "solarized-dark": "solarized-dark", "solarized-light": "solarized-light",
+        "nord": "nord", "monokai": "monokai-extended", "gruvbox-dark": "gruvbox-dark",
+        "tokyo-night": None, "one-dark": "one-half-dark",
+    },
+    # `kimi` is two unrelated MoonshotAI projects that collide on the same
+    # command name depending on pip vs npm install (MoonshotAI/kimi-cli,
+    # Python, vs MoonshotAI/kimi-code, TypeScript) -- apply_theme() writes
+    # both targets since there's no way to know which one a given install
+    # actually is. Their theme support genuinely differs: kimi-code supports
+    # dark/light/auto plus arbitrary custom theme files (none of the named
+    # palettes below have a bundled match, so they fall back to dark/light);
+    # kimi-cli (src/kimi_cli/config.py) only accepts literally "dark" or
+    # "light" -- no "auto" at all -- so this table intentionally has no
+    # "auto" entry for kimi and apply_theme() maps it per-target instead of
+    # sharing one value the way the other three providers can.
+    "kimi": {
+        "dark": "dark", "light": "light",
+        "dracula": "dark", "solarized-dark": "dark", "solarized-light": "light",
+        "nord": "dark", "monokai": "dark", "gruvbox-dark": "dark",
+        "tokyo-night": "dark", "one-dark": "dark",
+    },
 }
 
 
@@ -86,11 +137,28 @@ def _ensure_toml_theme(path: Path, theme_name: str, table: str | None) -> None:
 
 def apply_theme(workdir: str, provider_id: str, theme: str) -> None:
     """Called once, at session-creation time, for the directory a new
-    session is about to start in. theme is 'dark', 'light', or 'auto'."""
+    session is about to start in. theme is one of the names in
+    _THEME_NAMES (dark/light/auto plus the named palettes)."""
+    root = Path(workdir)
+
+    if provider_id == "kimi":
+        # kimi-code (tui.toml) supports "auto" and defaults to it; kimi-cli
+        # (config.toml) has no "auto" concept at all (Literal["dark","light"]
+        # in its own Pydantic model) -- writing "auto" there would be a
+        # value its own config loader rejects. Resolved per-target instead
+        # of through the shared _THEME_NAMES lookup below, which has no
+        # single value that's correct for both.
+        code_value = "auto" if theme == "auto" else _THEME_NAMES["kimi"].get(theme)
+        cli_value = "dark" if theme == "auto" else _THEME_NAMES["kimi"].get(theme)
+        if code_value:
+            _ensure_toml_theme(Path.home() / ".kimi-code" / "tui.toml", code_value, table=None)
+        if cli_value:
+            _ensure_toml_theme(Path.home() / ".kimi" / "config.toml", cli_value, table=None)
+        return
+
     mapped = _THEME_NAMES.get(provider_id, {}).get(theme)
     if not mapped:
         return
-    root = Path(workdir)
 
     if provider_id == "claude":
         _merge_json_key(root / ".claude" / "settings.json", ["theme"], mapped)
@@ -98,11 +166,3 @@ def apply_theme(workdir: str, provider_id: str, theme: str) -> None:
         _merge_json_key(root / ".gemini" / "settings.json", ["ui", "theme"], mapped)
     elif provider_id == "codex":
         _ensure_toml_theme(root / ".codex" / "config.toml", mapped, table="tui")
-    elif provider_id == "kimi":
-        # Path uncertainty in upstream docs (two candidate defaults, two
-        # possibly-different binaries named `kimi`) -- write both rather
-        # than guess which one this install actually reads. Also global/
-        # user-scoped, not project-scoped like the other three, since
-        # project-level TUI config for Kimi isn't confirmed to exist.
-        _ensure_toml_theme(Path.home() / ".kimi-code" / "tui.toml", mapped, table=None)
-        _ensure_toml_theme(Path.home() / ".kimi" / "config.toml", mapped, table=None)

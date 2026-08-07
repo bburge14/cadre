@@ -29,6 +29,20 @@
     padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
   }
   .term-sidebar-header span { font-size: 0.88rem; font-weight: 600; }
+  .term-stack-header {
+    display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+    padding: 0.55rem 0.8rem; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);
+    border-bottom: 1px solid var(--border-soft); user-select: none;
+  }
+  .term-stack-header:hover { color: var(--text); background: var(--surface-2); }
+  .term-stack-header .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .term-stack-chevron { flex-shrink: 0; width: 14px; height: 14px; transition: transform 0.12s ease; }
+  .term-stack-count {
+    flex-shrink: 0; font-size: 0.72rem; font-weight: 500; color: var(--text-faint);
+    background: var(--surface-2); border-radius: 999px; padding: 0.05rem 0.45rem;
+  }
+  .term-stack-group.collapsed .term-stack-chevron { transform: rotate(-90deg); }
+  .term-stack-group.collapsed .term-stack-sessions { display: none; }
   .term-session-row {
     display: flex; align-items: center; gap: 0.5rem;
     padding: 0.65rem 0.8rem; cursor: pointer; font-size: 0.84rem;
@@ -74,13 +88,24 @@
       <span>Sessions</span>
     </div>
     <div id="session-list">
-      {% for s in sessions %}
-      <div class="term-session-row" data-session-id="{{ s.id }}" data-label="{{ s.label }}" onclick="selectSession('{{ s.id }}')">
-        <span class="status-dot {{ 'status-on' if s.status.running else 'status-off' }}" id="dot-{{ s.id }}"></span>
-        <span class="label">{{ s.label }}</span>
+      {% for group in stack_groups %}
+      <div class="term-stack-group" data-stack-name="{{ group.stack.name }}">
+        <div class="term-stack-header" onclick="toggleStackGroup(this)">
+          <svg class="term-stack-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <span class="label">{{ group.stack.name }}</span>
+          <span class="term-stack-count">{{ group.sessions|length }}</span>
+        </div>
+        <div class="term-stack-sessions">
+          {% for s in group.sessions %}
+          <div class="term-session-row" data-session-id="{{ s.id }}" data-label="{{ s.label }}" onclick="selectSession('{{ s.id }}')">
+            <span class="status-dot {{ 'status-on' if s.status.running else 'status-off' }}" id="dot-{{ s.id }}"></span>
+            <span class="label">{{ s.label }}</span>
+          </div>
+          {% else %}
+          <p class="hint" style="padding:0.5rem 0.8rem;">No sessions yet.</p>
+          {% endfor %}
+        </div>
       </div>
-      {% else %}
-      <p class="hint" style="padding:0.8rem;">No sessions yet.</p>
       {% endfor %}
     </div>
   </div>
@@ -95,8 +120,8 @@
       </div>
       <span class="term-status" id="term-status"></span>
       <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0;">
-        {% for opt in ['auto', 'dark', 'light'] %}
-        <option value="{{ opt }}" {{ 'selected' if opt == terminal_theme else '' }}>{{ opt | capitalize }}</option>
+        {% for value, label in terminal_theme_options %}
+        <option value="{{ value }}" {{ 'selected' if value == terminal_theme else '' }}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
@@ -113,7 +138,30 @@
 <script src="{{ url_for('static', filename='terminal.js') }}?v={{ asset_version }}"></script>
 <script>
 const LAST_SESSION_KEY = "cadre_last_terminal_session";
+const COLLAPSED_STACKS_KEY = "cadre_collapsed_terminal_stacks";
 const CSRF_TOKEN = "{{ csrf_token() }}";
+
+function toggleStackGroup(headerEl) {
+  const group = headerEl.closest(".term-stack-group");
+  const name = group.dataset.stackName;
+  group.classList.toggle("collapsed");
+
+  const collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSED_STACKS_KEY) || "[]"));
+  if (group.classList.contains("collapsed")) collapsed.add(name);
+  else collapsed.delete(name);
+  localStorage.setItem(COLLAPSED_STACKS_KEY, JSON.stringify([...collapsed]));
+}
+
+// Restore each stack group's collapsed/expanded state from last visit --
+// defaults to expanded (nothing hidden) the first time, same as the
+// theme dropdowns default to whatever's actually saved rather than a
+// blank slate.
+(function () {
+  const collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSED_STACKS_KEY) || "[]"));
+  document.querySelectorAll(".term-stack-group").forEach((group) => {
+    if (collapsed.has(group.dataset.stackName)) group.classList.add("collapsed");
+  });
+})();
 let term = null;
 let fitAddon = null;
 let connection = null;

@@ -54,8 +54,8 @@
     </div>
     <span class="term-status" id="term-status">connecting…</span>
     <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0;">
-      {% for opt in ['auto', 'dark', 'light'] %}
-      <option value="{{ opt }}" {{ 'selected' if opt == terminal_theme else '' }}>{{ opt | capitalize }}</option>
+      {% for value, label in terminal_theme_options %}
+      <option value="{{ value }}" {{ 'selected' if value == terminal_theme else '' }}>{{ label }}</option>
       {% endfor %}
     </select>
   </div>
