@@ -190,13 +190,14 @@ function setupTerminalFit(term) {
     if (cols !== term.cols || rows !== term.rows) term.resize(cols, rows);
   }
 
-  // Fitting immediately after the container becomes visible measures it
-  // before the browser has actually laid it out (it was display:none a
-  // moment ago in the same tick), so it can fit to a 0-size box -- text
-  // written after that lands in a terminal with no visible rows until
-  // something (a resize, a reload triggering a fresh layout pass) forces
-  // a re-fit. Two rAFs reliably land after that layout pass.
-  requestAnimationFrame(() => requestAnimationFrame(fit));
+  // FitAddon.fit() silently does nothing -- not even an error -- if
+  // xterm hasn't measured its character cell size yet (fresh terminal,
+  // font metrics not ready) or if the container's computed size reads
+  // as 0 (still mid-layout). There's no event for "now it's actually
+  // ready," so a single well-timed attempt isn't reliable: retry across
+  // a spread of delays instead of gambling on one. Cheap and safe to
+  // over-call -- fit() is a no-op once the size already matches.
+  [0, 50, 150, 300, 600, 1000].forEach((delay) => setTimeout(fit, delay));
 
   // term.element's own parent is the div passed to term.open() -- its
   // size is driven by outer CSS/flex layout, not by xterm itself, so
