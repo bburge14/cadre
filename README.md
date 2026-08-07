@@ -13,10 +13,35 @@ enabled + lingering, so it's always up — no manual start needed. See
 
 ## What does this do?
 
-Cadre is a web dashboard for running and managing multiple AI coding CLI
-agents (Claude, Gemini, Codex, Kimi) across multiple projects at once,
-each optionally backed by its own named team of subagents, all reachable
-from a browser instead of a pile of terminal windows.
+Cadre is a command center for running AI coding agents across all of your
+projects at once, from a browser, instead of a pile of terminal windows
+you have to remember to check on.
+
+- **Run sessions, not just one at a time.** Spin up a session per
+  project — pick a directory and a provider (Claude, Gemini, Codex, or
+  Kimi) — and it keeps running as a real background process, checkable
+  from any device on your network, and it survives you closing the tab
+  or even redeploying the dashboard itself.
+- **Give each project a team, not just a chat.** An Agent Stack is a
+  named group of subagents (a coder, a reviewer, a deployer — whatever
+  roles you define) scoped to one project's directory, built on Claude
+  Code's own native subagent mechanism. Different projects can have
+  totally different teams, all managed from the same place.
+- **Write instructions once, reuse them everywhere.** A shared Skills
+  library lets any agent in any stack pull in the same reusable
+  checklist, house style, or workflow instead of it being copy-pasted
+  into a dozen different agent prompts.
+- **Actually drive the CLI, not just watch it.** Every session gets a
+  real interactive terminal in the browser (not a read-only log), which
+  is currently the only way to remote-control Gemini/Codex/Kimi sessions
+  at all, since none of them ship an official remote-control feature of
+  their own the way Claude Code does.
+- **Handle the busywork around all of that**, too: a one-time setup
+  wizard for picking your default provider, account login with
+  security-question recovery, a directory browser for path fields
+  instead of typing them by hand, trust-prompt auto-confirmation, usage-
+  limit detection, in-app self-updating, and a set of dashboard/terminal
+  color themes to make staring at it all day less miserable.
 
 - **URL**: `http://127.0.0.1:7420` by default; widen to your network via
   `COMMAND_CENTER_HOST=0.0.0.0` in `.env` (see `SETUP.md`)
