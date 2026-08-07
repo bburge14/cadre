@@ -838,6 +838,8 @@ def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_a
         selected_skills=selected_skills,
         cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
         provider_usable={p.id: providers.usable(p.id) for p in providers.list_providers()},
+        claude_models=providers.get("claude").models,
+        gemini_models=providers.get("gemini").models,
         back_url=back_url,
         back_label=back_label,
         save_action=save_action,
@@ -853,7 +855,7 @@ def _save_agent_from_form(agents_dir):
     frontmatter = {"name": name, "description": request.form.get("description", "").strip()}
     base_tools = [t.strip() for t in request.form.get("tools", "").split(",") if t.strip()]
     can_spawn = request.form.getlist("can_spawn")
-    for key in ["model", "effort", "color"]:
+    for key in ["model", "gemini_model", "effort", "color"]:
         value = request.form.get(key, "").strip()
         if value:
             frontmatter[key] = value

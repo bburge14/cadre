@@ -31,6 +31,25 @@ class Provider:
     orchestration_verified: bool  # has that actually been confirmed against a real running install, not just schema docs
     install_hint: str  # exact command to install this CLI, confirmed against its official docs/npm page
     install_docs_url: str
+    # (value, label) pairs for this provider's own native model catalog --
+    # empty means "no catalog wired up yet, agents stay on that CLI's own
+    # default." Deliberately NOT a cross-vendor mapping: Claude's list
+    # lives in the agent's existing `model` frontmatter key (unchanged,
+    # pre-existing field); every other provider gets its own dedicated
+    # `<provider_id>_model` key instead (see agent_formats.py), since
+    # model names aren't equivalent across vendors by string -- writing
+    # Claude's "opus" into a Gemini or Codex config would be meaningless
+    # to that CLI. Sourced 2026-08 (see providers.py's own research
+    # notes below each list); Codex/Kimi intentionally left empty for
+    # now -- Codex's docs conflict with themselves on accepted
+    # model_reasoning_effort values and GitHub issues #14671/#15250
+    # report the schema isn't reliably honored at runtime yet; Kimi
+    # Code's native format has no free-text model field at all, only a
+    # system-wide `model_preference: primary|secondary` toggle in
+    # config.toml -- not something this per-agent dropdown pattern can
+    # honestly represent without misleading the user into thinking it's
+    # per-agent when it's actually global.
+    models: tuple[tuple[str, str], ...] = ()
 
     def new_session_args(self, session_id: str, label: str) -> list[str]:
         if self.id == "claude":
@@ -74,6 +93,13 @@ PROVIDERS: dict[str, Provider] = {
         remote_control=True, supports_orchestration=True, orchestration_verified=True,
         install_hint="npm install -g @anthropic-ai/claude-code",
         install_docs_url="https://docs.claude.com/en/docs/claude-code/setup",
+        models=(
+            ("inherit", "Inherit (session default)"),
+            ("haiku", "Haiku — fastest/cheapest"),
+            ("sonnet", "Sonnet — balanced"),
+            ("opus", "Opus — most capable"),
+            ("fable", "Fable"),
+        ),
     ),
     "gemini": Provider(
         id="gemini", label="Gemini", binary="gemini",
@@ -81,6 +107,26 @@ PROVIDERS: dict[str, Provider] = {
         remote_control=False, supports_orchestration=True, orchestration_verified=False,
         install_hint="npm install -g @google/gemini-cli",
         install_docs_url="https://geminicli.com/docs/get-started/installation/",
+        # Sourced 2026-08 from geminicli.com/docs/core/subagents/ (confirms
+        # the subagent frontmatter's own `model:` key, full model ID
+        # string, omitted = inherit) and geminicli.com/docs/cli/model/ +
+        # ai.google.dev/gemini-api/docs/pricing (model list + tiering).
+        # Flagged, unresolved conflict: the model-picker docs page lists
+        # the Pro-tier Gemini 3 model as "gemini-3-pro-preview"; Google's
+        # own pricing page instead lists "gemini-3.1-pro-preview" with no
+        # "gemini-3-pro-preview" entry at all. Went with the model-picker
+        # page's string here since it's the more directly relevant source
+        # (what the CLI's own /model command actually lists), but this
+        # needs a live check against an installed `gemini` binary before
+        # anyone should trust it blindly.
+        models=(
+            ("", "Inherit (session default)"),
+            ("gemini-2.5-flash-lite", "Gemini 2.5 Flash-Lite — cheapest"),
+            ("gemini-2.5-flash", "Gemini 2.5 Flash — fast"),
+            ("gemini-3-flash-preview", "Gemini 3 Flash — fast"),
+            ("gemini-2.5-pro", "Gemini 2.5 Pro — capable"),
+            ("gemini-3-pro-preview", "Gemini 3 Pro — most capable (unverified ID, see comment above)"),
+        ),
     ),
     "codex": Provider(
         id="codex", label="Codex", binary="codex",

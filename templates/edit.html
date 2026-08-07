@@ -64,11 +64,19 @@
     <p class="hint">No skills exist yet — <a href="{{ url_for('skills_page') }}">create one</a>, then come back here to attach it to this agent.</p>
     {% endif %}
 
-    <label>model</label>
+    <label>Claude model <span class="hint">(used when Claude Code itself runs this agent as a subagent, via its Task tool)</span></label>
     <select name="model">
       {% set current = agent.frontmatter.get('model', 'inherit') if agent else 'inherit' %}
-      {% for opt in ['inherit', 'sonnet', 'opus', 'haiku', 'fable'] %}
-        <option value="{{ opt }}" {{ 'selected' if opt == current else '' }}>{{ opt }}</option>
+      {% for value, label in claude_models %}
+        <option value="{{ value }}" {{ 'selected' if value == current else '' }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Gemini model <span class="hint">(used when a session's own provider is Gemini, running this agent as one of Gemini CLI's own native subagents -- unrelated to "primary AI" below, which is about delegation from inside a Claude-run agent instead)</span></label>
+    <select name="gemini_model">
+      {% set current_gemini_model = agent.frontmatter.get('gemini_model', '') if agent else '' %}
+      {% for value, label in gemini_models %}
+        <option value="{{ value }}" {{ 'selected' if value == current_gemini_model else '' }}>{{ label }}</option>
       {% endfor %}
     </select>
 

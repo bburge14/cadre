@@ -16,9 +16,21 @@ this app's own author -- treat all three as best-effort until you've
 actually tested one.
 
 Deliberately NOT translated, and why:
-- model / effort: cross-vendor model names aren't equivalent by string;
-  omitted so each CLI uses its own default rather than being handed a
-  meaningless value.
+- model / effort: cross-vendor model names aren't equivalent by string --
+  Claude's own `model` frontmatter key (sonnet/opus/haiku/fable) stays
+  Claude-only, never copied into another provider's config, since e.g.
+  "opus" means nothing to Gemini. Gemini is the one exception: it gets
+  its OWN dedicated `gemini_model` key in the source Claude-format
+  frontmatter (a real Gemini model ID, e.g. "gemini-2.5-pro", chosen from
+  providers.py's own catalog -- see edit.html's "Gemini model" field),
+  translated into Gemini's native `model:` key below when set. Codex and
+  Kimi still get nothing: Codex's own docs disagree with themselves on
+  accepted `model_reasoning_effort` values and open GitHub issues
+  (#14671, #15250) report subagent model config isn't reliably honored
+  at runtime yet; Kimi Code's native format has no free-text model field
+  at all, only a system-wide `model_preference: primary|secondary`
+  toggle in config.toml, not something a per-agent dropdown could
+  honestly represent.
 - Skills: each CLI's own skills mechanism (if it has one) uses a
   different file format from Claude's. Skill descriptions are folded
   into the instructions text instead (agents_store.build_skills_block()
@@ -105,6 +117,13 @@ def _write_gemini_agent(agents_dir: Path, agent: agents_store.AgentFile) -> None
         "name": agent.name,
         "description": agent.frontmatter.get("description", ""),
     }
+    # The one exception to "model isn't translated" above -- gemini_model
+    # is already a real Gemini model ID (not a Claude one), sourced from
+    # providers.py's own Gemini catalog, so it's safe to pass straight
+    # through as Gemini's own documented `model:` key.
+    gemini_model = agent.frontmatter.get("gemini_model", "").strip()
+    if gemini_model:
+        frontmatter["model"] = gemini_model
     yaml_text = yaml.safe_dump(frontmatter, sort_keys=False, default_flow_style=False)
     content = f"---\n{yaml_text}---\n\n{agent.body.strip()}\n"
 
