@@ -20,7 +20,13 @@
      scrollbar on the whole app shell, regardless of what overflows
      inside it. */
   html, body { height: 100%; overflow-x: hidden; }
-  body { max-width: none; padding: 0; display: flex; flex-direction: column; }
+  /* The shared body{} scrim/rounded-card treatment (style.css) is meant
+     for a centered content column with page background showing at its
+     margins -- this page is deliberately edge-to-edge, so undo the
+     parts that would look broken full-bleed (rounded corners cut into
+     the viewport, a floating shadow) while keeping the scrim itself,
+     since a real xterm background already sits opaquely on top of it. */
+  body { max-width: none; padding: 0; display: flex; flex-direction: column; border-radius: 0; box-shadow: none; }
   /* Grid, not flex + absolute positioning -- the previous approach
      (absolutely centering the title against the header) had no idea how
      wide the left-side controls actually were, so at plenty of ordinary

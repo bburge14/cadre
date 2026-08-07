@@ -252,6 +252,13 @@
     // read right are untouched.
     const shineCanvas = document.createElement("canvas");
     attachFixedLayer(shineCanvas);
+    // Blurred rather than crisp -- sharp-edged strokes read as a flat
+    // vector-art decal glued on top of the liquid ("cartoonish," per
+    // direct feedback), not an actual reflection. A real specular
+    // highlight on a wet/glossy surface is soft-edged; this is what
+    // turns a drawn stroke into something that looks like light
+    // actually catching the liquid instead of a sticker outline.
+    shineCanvas.style.filter = "blur(3px)";
     const shineCtx = shineCanvas.getContext("2d");
 
     function resizeShine() {
@@ -371,12 +378,10 @@
       for (let x = 0; x <= shineCanvas.width; x += 10) {
         shineCtx.lineTo(x, waveY(x) - 3);
       }
-      shineCtx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+      shineCtx.strokeStyle = "rgba(255, 255, 255, 0.4)";
       shineCtx.lineWidth = 2.5;
       shineCtx.lineCap = "round";
-      shineCtx.globalAlpha = 0.7;
       shineCtx.stroke();
-      shineCtx.globalAlpha = 1;
 
       for (const r of runners) {
         const startY = waveY(r.x);
@@ -384,37 +389,44 @@
 
         if (r.state === "stretching" && r.currentLength > 6) {
           const activeWidth = r.width * (1 - (r.currentLength / r.maxLength) * 0.45);
+          // A short glint near the neck, not a stripe down the whole
+          // strand -- running the highlight/shadow the full length is
+          // what read as a flat vector-art decal instead of an actual
+          // reflection: real specular highlights on a liquid surface
+          // are small and localized, not a uniform racing stripe.
+          const glintLen = Math.min(r.currentLength, r.currentLength * 0.35 + 14);
+          const glintY = startY + glintLen;
+          const midY = startY + glintLen * 0.55;
 
-          // A soft dark shading streak down the runner's right third --
-          // a highlight alone doesn't read against an already-white
-          // base fill (white-on-white is invisible), so this shadow is
-          // what actually gives the strand a round, glassy cross-section
-          // rather than a flat cutout. Mirrors the highlight's curve.
-          const sx = r.x + r.width * 0.24;
+          // A soft dark shading blob near the neck's right side -- a
+          // highlight alone doesn't read against an already-colored
+          // base fill, so this shadow is what gives the strand a round,
+          // glassy cross-section instead of a flat cutout.
+          const sx = r.x + r.width * 0.22;
           shineCtx.beginPath();
           shineCtx.moveTo(sx, startY + 4);
-          shineCtx.quadraticCurveTo(r.x + activeWidth * 0.35, startY + (tipY - startY) * 0.55, r.x + activeWidth * 0.18, tipY - activeWidth * 0.25);
-          const shadowGrad = shineCtx.createLinearGradient(sx, startY, sx, tipY);
-          shadowGrad.addColorStop(0, "rgba(40, 60, 70, 0.28)");
-          shadowGrad.addColorStop(1, "rgba(40, 60, 70, 0.05)");
+          shineCtx.quadraticCurveTo(r.x + activeWidth * 0.3, midY, r.x + activeWidth * 0.16, glintY);
+          const shadowGrad = shineCtx.createLinearGradient(sx, startY, sx, glintY);
+          shadowGrad.addColorStop(0, "rgba(20, 30, 20, 0.16)");
+          shadowGrad.addColorStop(1, "rgba(20, 30, 20, 0)");
           shineCtx.strokeStyle = shadowGrad;
-          shineCtx.lineWidth = Math.max(1.4, r.width * 0.18);
+          shineCtx.lineWidth = Math.max(1.4, r.width * 0.16);
           shineCtx.lineCap = "round";
           shineCtx.stroke();
 
-          // A thin bright streak down the runner's left third -- the
+          // A short bright glint near the neck's left side -- the
           // curved-glass-rod highlight a cylindrical strand of liquid
-          // actually shows, following the same taper the base shape
-          // uses so it stays glued to the strand's surface as it thins.
-          const hx = r.x - r.width * 0.22;
+          // actually shows right where it catches the light, fading out
+          // well before the tip rather than running the full length.
+          const hx = r.x - r.width * 0.2;
           shineCtx.beginPath();
           shineCtx.moveTo(hx, startY + 4);
-          shineCtx.quadraticCurveTo(r.x - activeWidth * 0.3, startY + (tipY - startY) * 0.55, r.x - activeWidth * 0.15, tipY - activeWidth * 0.3);
-          const grad = shineCtx.createLinearGradient(hx, startY, hx, tipY);
-          grad.addColorStop(0, "rgba(255, 255, 255, 0.9)");
-          grad.addColorStop(1, "rgba(255, 255, 255, 0.25)");
+          shineCtx.quadraticCurveTo(r.x - activeWidth * 0.28, midY, r.x - activeWidth * 0.14, glintY);
+          const grad = shineCtx.createLinearGradient(hx, startY, hx, glintY);
+          grad.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+          grad.addColorStop(1, "rgba(255, 255, 255, 0)");
           shineCtx.strokeStyle = grad;
-          shineCtx.lineWidth = Math.max(1.2, r.width * 0.14);
+          shineCtx.lineWidth = Math.max(1.1, r.width * 0.12);
           shineCtx.lineCap = "round";
           shineCtx.stroke();
         }
@@ -434,7 +446,7 @@
             0,
             Math.PI * 2
           );
-          shineCtx.fillStyle = "rgba(40, 60, 70, 0.22)";
+          shineCtx.fillStyle = "rgba(20, 30, 20, 0.14)";
           shineCtx.fill();
 
           // Classic glossy-sphere highlight: a small bright ellipse
@@ -449,7 +461,7 @@
             0,
             Math.PI * 2
           );
-          shineCtx.fillStyle = "rgba(255, 255, 255, 0.95)";
+          shineCtx.fillStyle = "rgba(255, 255, 255, 0.55)";
           shineCtx.fill();
         }
       }
