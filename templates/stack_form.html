@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>{{ 'Edit' if stack else 'New' }} stack — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <style>
   .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem; }
   .preset-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem; cursor: pointer; transition: border-color 0.12s ease, background 0.12s ease; }

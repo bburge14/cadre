@@ -54,6 +54,29 @@ def inject_dashboard_theme():
     return {"dashboard_theme": settings.get("dashboard_theme")}
 
 
+def _static_asset_version() -> str:
+    """A browser caches style.css aggressively by default, with nothing
+    telling it a CSS-only change (no template/route change) means the
+    URL's content is now stale -- this is exactly what made the Galaxy
+    theme "only work on Settings" (that page happened to get a fresh
+    fetch from the form POST/redirect; other already-open tabs kept
+    serving the old cached CSS). Appending this as a query string on
+    style.css's URL means any CSS change gets a new URL automatically,
+    busting the cache without needing a manual hard-refresh."""
+    try:
+        return str(int((config.BUNDLE_DIR / "static" / "style.css").stat().st_mtime))
+    except OSError:
+        return "0"
+
+
+_STATIC_ASSET_VERSION = _static_asset_version()
+
+
+@app.context_processor
+def inject_asset_version():
+    return {"asset_version": _STATIC_ASSET_VERSION}
+
+
 @app.before_request
 def enforce_csrf():
     # setup/login/forgot_password are all pre-authentication -- their
@@ -1513,7 +1536,7 @@ def save_settings():
     if terminal_theme_choice in ("auto", "dark", "light"):
         fields["terminal_theme"] = terminal_theme_choice
     dashboard_theme_choice = request.form.get("dashboard_theme", "")
-    if dashboard_theme_choice in ("default", "galaxy"):
+    if dashboard_theme_choice in ("default", "galaxy", "circuit", "aurora", "code-rain"):
         fields["dashboard_theme"] = dashboard_theme_choice
     # Secret fields: the form never shows the existing value, so a blank
     # submission means "leave it as-is," not "clear it" -- only overwrite

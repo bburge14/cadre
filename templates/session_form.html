@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>{{ 'Edit' if session else 'New' }} session — Cadre</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <style>
   body { max-width: 620px; }
   .source-tabs { display: flex; gap: 0.5rem; margin-top: 1rem; }
