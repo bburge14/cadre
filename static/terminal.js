@@ -172,31 +172,62 @@ function createTerminalConnection(sessionId, opts) {
    that fills the whole page can mean several hundred columns, which is
    readable but absurd, and not every CLI's own UI (box-drawing, table
    layouts) handles an arbitrarily wide terminal gracefully. Returns an
-   object with the same `.fit()` shape FitAddon itself has, so call
-   sites don't need to know the cap exists -- calling term.resize()
-   directly (not through the addon) still fires the same onResize event
-   fit() would have, so the capped size still reaches the real pty. */
+   object with a `.fit()` method so call sites don't need to know the
+   cap exists -- calling term.resize() directly still fires the same
+   onResize event a fit would have, so the capped size still reaches
+   the real pty.
+
+   Deliberately NOT using the vendored FitAddon here -- its fit() call
+   throws every single time in this build ("Cannot read properties of
+   undefined (reading 'scrollBarWidth')"): the vendored xterm.js core
+   and xterm-addon-fit.js are a mismatched pair (different file dates,
+   and 'scrollBarWidth' doesn't exist anywhere in this xterm.js core at
+   all), so the addon crashes trying to read a property its own paired
+   core never expected to be missing. Rather than chase down a matching
+   vendor pair, computeFitSize() below reimplements the same handful of
+   lines FitAddon's own proposeDimensions() does (xterm-addon-fit.js is
+   ~30 lines total) using xterm's internal APIs directly, just without
+   the one broken property access. */
+function computeFitSize(term) {
+  if (!term.element || !term.element.parentElement) return null;
+  const dims = term._core?._renderService?.dimensions;
+  if (!dims || dims.css.cell.width === 0 || dims.css.cell.height === 0) return null;
+
+  const parentStyle = window.getComputedStyle(term.element.parentElement);
+  const parentHeight = parseInt(parentStyle.getPropertyValue("height")) || 0;
+  const parentWidth = Math.max(0, parseInt(parentStyle.getPropertyValue("width")) || 0);
+  const elementStyle = window.getComputedStyle(term.element);
+  const availableHeight = parentHeight
+    - (parseInt(elementStyle.getPropertyValue("padding-top")) || 0)
+    - (parseInt(elementStyle.getPropertyValue("padding-bottom")) || 0);
+  const availableWidth = parentWidth
+    - (parseInt(elementStyle.getPropertyValue("padding-right")) || 0)
+    - (parseInt(elementStyle.getPropertyValue("padding-left")) || 0);
+
+  return {
+    cols: Math.max(2, Math.floor(availableWidth / dims.css.cell.width)),
+    rows: Math.max(1, Math.floor(availableHeight / dims.css.cell.height)),
+  };
+}
+
 const MAX_TERM_COLS = 200;
 const MAX_TERM_ROWS = 60;
 
 function setupTerminalFit(term) {
-  const fitAddon = new FitAddon.FitAddon();
-  term.loadAddon(fitAddon);
-
   function fit() {
-    fitAddon.fit();
-    const cols = Math.min(term.cols, MAX_TERM_COLS);
-    const rows = Math.min(term.rows, MAX_TERM_ROWS);
+    const size = computeFitSize(term);
+    if (!size) return;
+    const cols = Math.min(size.cols, MAX_TERM_COLS);
+    const rows = Math.min(size.rows, MAX_TERM_ROWS);
     if (cols !== term.cols || rows !== term.rows) term.resize(cols, rows);
   }
 
-  // FitAddon.fit() silently does nothing -- not even an error -- if
-  // xterm hasn't measured its character cell size yet (fresh terminal,
-  // font metrics not ready) or if the container's computed size reads
-  // as 0 (still mid-layout). There's no event for "now it's actually
-  // ready," so a single well-timed attempt isn't reliable: retry across
-  // a spread of delays instead of gambling on one. Cheap and safe to
-  // over-call -- fit() is a no-op once the size already matches.
+  // Character-cell measurement or the container's own layout may not
+  // be ready on the very first call (fresh terminal, or right after a
+  // display:none -> visible flip) -- there's no event for "now it's
+  // ready," so retry across a spread of delays instead of gambling on
+  // one. Cheap to over-call -- fit() is a no-op once the size already
+  // matches what's there.
   [0, 50, 150, 300, 600, 1000].forEach((delay) => setTimeout(fit, delay));
 
   // term.element's own parent is the div passed to term.open() -- its
