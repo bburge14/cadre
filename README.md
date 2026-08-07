@@ -11,6 +11,13 @@ Runs well as a systemd `--user` service (`cadre-app.service`),
 enabled + lingering, so it's always up — no manual start needed. See
 `SETUP.md` for the unit file.
 
+## What does this do?
+
+Cadre is a web dashboard for running and managing multiple AI coding CLI
+agents (Claude, Gemini, Codex, Kimi) across multiple projects at once,
+each optionally backed by its own named team of subagents, all reachable
+from a browser instead of a pile of terminal windows.
+
 - **URL**: `http://127.0.0.1:7420` by default; widen to your network via
   `COMMAND_CENTER_HOST=0.0.0.0` in `.env` (see `SETUP.md`)
 - **Auth**: real account (username + hashed password), created via a
