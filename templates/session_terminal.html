@@ -30,11 +30,21 @@
      the leftover space next to the controls -- that only centers within
      whatever's left after the left-side group, which drifts off the
      page's actual center depending on how wide that group is. This
-     centers on the real midpoint of the header every time. */
+     centers on the real midpoint of the header every time -- but on a
+     narrow window the left-side controls group can extend past that
+     midpoint itself, and absolute positioning has no awareness of
+     siblings to avoid, so it'll happily render right on top of them.
+     Falls back to normal flow (no true centering, but never
+     overlapping) below a width where that's a real risk. */
   .term-header .label {
     font-size: 0.9rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     position: absolute; left: 50%; transform: translateX(-50%);
     max-width: 40%; pointer-events: none;
+  }
+  @media (max-width: 760px) {
+    .term-header .label {
+      position: static; transform: none; flex: 1; max-width: none; text-align: right;
+    }
   }
   .term-header .term-status { font-size: 0.76rem; color: var(--text-faint); flex-shrink: 0; }
   /* min-width:0 + overflow:hidden on both -- without them, a flex
