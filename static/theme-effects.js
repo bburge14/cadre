@@ -232,12 +232,26 @@
     const canvas = document.createElement("canvas");
     wrapper.appendChild(canvas);
     const ctx = canvas.getContext("2d");
+    // Three tones per colorway, not one flat fill -- a single solid
+    // color is exactly what read as a flat cutout/sticker rather than
+    // an actual liquid with depth. LIQUID becomes a real canvas
+    // gradient (built in resize(), where canvas dimensions are known)
+    // running light-to-dark, so the body of the liquid itself carries
+    // tonal variation the way a real viscous fluid catching light does.
     const DRIP_PALETTES = {
-      drip: "#556b2f",
-      "drip-venom": "#4b2e5e",
-      "drip-blood": "#6b1414",
+      drip: { light: "#9ab866", base: "#6f8f3d", dark: "#3c5220" },
+      "drip-venom": { light: "#7a539c", base: "#4b2e5e", dark: "#26152f" },
+      "drip-blood": { light: "#7a1f1f", base: "#4a0d0d", dark: "#210505" },
     };
-    const LIQUID = DRIP_PALETTES[document.documentElement.dataset.theme] || DRIP_PALETTES.drip;
+    const dripPalette = DRIP_PALETTES[document.documentElement.dataset.theme] || DRIP_PALETTES.drip;
+    let LIQUID;
+    function buildLiquidGradient() {
+      const g = ctx.createLinearGradient(0, 0, 0, Math.max(canvas.height * 0.6, 200));
+      g.addColorStop(0, dripPalette.light);
+      g.addColorStop(0.55, dripPalette.base);
+      g.addColorStop(1, dripPalette.dark);
+      LIQUID = g;
+    }
     const RUNNER_COUNT = 8;
     let runners, animT, rafId;
 
@@ -286,6 +300,7 @@
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      buildLiquidGradient();
       const spacing = canvas.width / RUNNER_COUNT;
       runners = new Array(RUNNER_COUNT).fill(0).map((_, i) => {
         const x = i * spacing + Math.random() * (spacing - 30) + 15;

@@ -354,14 +354,16 @@ html[data-theme="lava-lamp-toxic"] {
    itself picks this color up directly (DRIP_PALETTES), not just the
    page accent. */
 html[data-theme="drip"] {
-  --accent: #84a83f;
-  --accent-hover: #9dc158;
-  --accent-2: #556b2f;
-  --accent-gradient: linear-gradient(135deg, #84a83f, #556b2f);
+  --accent: #93b854;
+  --accent-hover: #aace6c;
+  --accent-2: #5f7a34;
+  --accent-gradient: linear-gradient(135deg, #93b854, #5f7a34);
   --accent-soft-bg: #1a2410;
   --accent-soft-text: #c8e6a0;
   background-color: #0d1408;
-  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(132, 168, 63, 0.08), transparent 60%);
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(147, 184, 84, 0.14), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(95, 122, 52, 0.12), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
@@ -378,19 +380,23 @@ html[data-theme="drip-venom"] {
   --accent-soft-bg: #241530;
   --accent-soft-text: #dcc4ea;
   background-color: #160a1e;
-  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(139, 95, 168, 0.1), transparent 60%);
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(139, 95, 168, 0.16), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(75, 46, 94, 0.14), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
 html[data-theme="drip-blood"] {
-  --accent: #b34545;
-  --accent-hover: #c96363;
-  --accent-2: #6b1414;
-  --accent-gradient: linear-gradient(135deg, #b34545, #6b1414);
+  --accent: #9c3a3a;
+  --accent-hover: #b85555;
+  --accent-2: #4a0d0d;
+  --accent-gradient: linear-gradient(135deg, #9c3a3a, #4a0d0d);
   --accent-soft-bg: #2a0d0d;
   --accent-soft-text: #f0b8b8;
   background-color: #150606;
-  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(179, 69, 69, 0.1), transparent 60%);
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(156, 58, 58, 0.14), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(74, 13, 13, 0.16), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
