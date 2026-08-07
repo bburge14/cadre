@@ -204,8 +204,6 @@
       return 30 + Math.pow(Math.random(), 1.6) * 280;
     }
 
-    const TRAIL_DURATION = 1.1;
-
     function makeColumn(x) {
       const maxLen = randomMaxLen();
       return {
@@ -228,13 +226,6 @@
         // a few seconds, not an imperceptible creep.
         growRate: 0.6 + Math.random() * 1.4,
         tipR: 5 + Math.random() * 4,
-        // ~28% of columns are "big blob" runs -- a noticeably larger
-        // bulb both while gathering and once it falls, with a trailing
-        // thread connecting back to the release point that thins and
-        // fades over TRAIL_DURATION before finally "snapping" -- the
-        // stretchy string a real thick drip leaves behind when a bigger
-        // mass pulls free, distinct from a small drop just plopping off.
-        isBig: Math.random() < 0.28,
         // A slow side-to-side sway, more pronounced toward the tip than
         // at the band -- the detail that reads as flowing/viscous liquid
         // rather than a rigid, frozen icicle hanging perfectly straight.
@@ -242,12 +233,8 @@
         wobbleSpeed: 0.5 + Math.random() * 0.6,
         wobbleAmp: 1.5 + Math.random() * 2.5,
         state: "trickling",
-        dropX: 0,
         dropY: 0,
         dropVy: 0,
-        releaseX: 0,
-        releaseY: 0,
-        trailT: 0,
       };
     }
 
@@ -267,61 +254,6 @@
       return c.bandY + Math.sin(t + c.bandPhase) * 1.2;
     }
 
-    // Threads a smooth curve through a series of points via the
-    // standard "control point = real point, curve vertex = midpoint to
-    // the next one" trick -- the current path position must already be
-    // AT pts[0] before calling. Used per-column below so a strand's
-    // width tapers continuously across N sample points instead of
-    // collapsing to one fixed narrow width via a single long curve
-    // (which is what made long strands look like two thin parallel
-    // lines: the "neck" width was a flat constant no matter how far
-    // down it had to stretch).
-    function curveThroughPoints(pts) {
-      for (let i = 1; i < pts.length - 1; i++) {
-        const midX = (pts[i].x + pts[i + 1].x) / 2;
-        const midY = (pts[i].y + pts[i + 1].y) / 2;
-        ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-      }
-      const last = pts[pts.length - 1];
-      const secondLast = pts[pts.length - 2];
-      ctx.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
-    }
-
-    // Samples N points down each side of a strand. Width narrows from
-    // the shoulder down to a resting width over a SHORT, roughly fixed
-    // pixel distance near the band, then holds at that resting width
-    // for however much length remains before the bulb -- a real drip's
-    // shape is a brief neck followed by a long, roughly uniform body,
-    // not a taper that keeps narrowing toward zero the entire way down.
-    // (An earlier version scaled the taper to the strand's full length,
-    // which for anything long collapsed into a sharp near-zero-width
-    // point well before the bulb -- a wide cone with a disconnected-
-    // looking circle stuck on the end, not a runner.) Sway grows with
-    // fraction-of-length so it's anchored at the band and freest at
-    // the tip.
-    function columnGeometry(c, topY) {
-      const bigMul = c.isBig ? 1.9 : 1;
-      const tipR = c.tipR * bigMul * Math.min(1, c.len / (c.maxLen * 0.4));
-      const wobbleBase = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
-      const bulbLen = Math.min(c.len * 0.3, tipR * 1.2);
-      const taperLen = Math.max(0, c.len - bulbLen);
-      const restHalfWidth = Math.max(2.5, c.shoulderHalfWidth * 0.4);
-      const neckDist = Math.min(taperLen, 26); // fixed distance, not proportional to taperLen
-
-      const N = 5;
-      const left = [], right = [];
-      for (let i = 0; i <= N; i++) {
-        const frac = i / N;
-        const y = topY + frac * taperLen;
-        const progress = neckDist > 0 ? Math.min(1, (frac * taperLen) / neckDist) : 1;
-        const hw = c.shoulderHalfWidth + (restHalfWidth - c.shoulderHalfWidth) * progress;
-        const wob = wobbleBase * frac;
-        left.push({ x: c.x + wob - hw, y });
-        right.push({ x: c.x + wob + hw, y });
-      }
-      return { left, right, tipR, tipX: c.x + wobbleBase, tipY: topY + c.len, wobbleBase };
-    }
-
     function drawSurface() {
       ctx.beginPath();
       ctx.moveTo(-30, -30);
@@ -330,20 +262,28 @@
       for (let i = 0; i < columns.length; i++) {
         const c = columns[i];
         const topY = bandY(c);
+        const tipY = topY + c.len;
+        const neckY = topY + c.len * 0.55;
+        const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
+        const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
         const sw = c.shoulderHalfWidth;
-        const { left, right, tipR, tipX, tipY } = columnGeometry(c, topY);
+        // Sway grows with distance from the band -- anchored (0) right
+        // at the shoulder, most pronounced at the tip -- so it reads as
+        // a flexible flowing strand, not a rigid rod pivoting stiffly.
+        const wobble = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
+        const neckX = c.x + wobble * 0.45;
+        const tipX = c.x + wobble;
 
-        // Down the left taper, around the bulb, back up the right taper
-        // -- one continuous outline, not a fixed-width neck segment.
-        ctx.lineTo(left[0].x, left[0].y);
-        curveThroughPoints(left);
-        const preBulbLeft = left[left.length - 1];
-        ctx.quadraticCurveTo(tipX - tipR * 1.1, preBulbLeft.y + (tipY - preBulbLeft.y) * 0.5, tipX - tipR, tipY - tipR * 0.3);
+        // Down the icicle's left side, around the bulb, back up the
+        // right side -- an icicle silhouette, not a thin stroked line
+        // with a separate circle glued to the end of it.
+        ctx.lineTo(c.x - sw, topY);
+        ctx.quadraticCurveTo(c.x - sw * 0.7, topY + c.len * 0.25, neckX - neckHalfWidth, neckY);
+        ctx.quadraticCurveTo(tipX - tipR * 1.1, neckY + (tipY - neckY) * 0.35, tipX - tipR, tipY - tipR * 0.3);
         ctx.quadraticCurveTo(tipX - tipR, tipY + tipR * 0.55, tipX, tipY + tipR * 0.65);
         ctx.quadraticCurveTo(tipX + tipR, tipY + tipR * 0.55, tipX + tipR, tipY - tipR * 0.3);
-        const preBulbRight = right[right.length - 1];
-        ctx.quadraticCurveTo(tipX + tipR * 1.1, preBulbRight.y + (tipY - preBulbRight.y) * 0.5, preBulbRight.x, preBulbRight.y);
-        curveThroughPoints([...right].reverse());
+        ctx.quadraticCurveTo(tipX + tipR * 1.1, neckY + (tipY - neckY) * 0.35, neckX + neckHalfWidth, neckY);
+        ctx.quadraticCurveTo(c.x + sw * 0.7, topY + c.len * 0.25, c.x + sw, topY);
 
         // The shallow "valley" back up to band level before the next
         // icicle -- both endpoints sit at nearly the same y (the band's
@@ -367,14 +307,21 @@
 
     function drawShine(c) {
       const topY = bandY(c);
-      const { left, tipR, tipX, tipY } = columnGeometry(c, topY);
-      const mid = left[Math.floor(left.length / 2)];
-      // A thin brighter curve down one side of each strand reads as a
+      const tipY = topY + c.len;
+      const neckY = topY + c.len * 0.55;
+      const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
+      const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
+      const wobble = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
+      const neckX = c.x + wobble * 0.45;
+      const tipX = c.x + wobble;
+      // A thin brighter curve down one side of each icicle reads as a
       // wet highlight -- purely a translucent stroke, so unlike the
-      // main fill it's harmless for several to overlap.
+      // main fill it's harmless for several to overlap. Follows the same
+      // wobble as the fill so it stays glued to the strand's left edge
+      // instead of drifting off it as the strand sways.
       ctx.beginPath();
-      ctx.moveTo(c.x - c.shoulderHalfWidth * 0.45, topY + c.len * 0.06);
-      ctx.quadraticCurveTo(mid.x + 1.5, mid.y, tipX - tipR * 0.35, tipY - tipR * 0.4);
+      ctx.moveTo(c.x - c.shoulderHalfWidth * 0.45, topY + c.len * 0.08);
+      ctx.quadraticCurveTo(neckX - neckHalfWidth * 0.6, neckY, tipX - tipR * 0.35, tipY - tipR * 0.4);
       ctx.strokeStyle = SHINE;
       ctx.lineWidth = 1.4;
       ctx.lineCap = "round";
@@ -389,21 +336,15 @@
         if (c.state === "trickling") {
           c.len += c.growRate;
           if (c.len >= c.maxLen) {
-            const topY = bandY(c);
-            const wobbleBase = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
             c.state = "falling";
-            c.dropX = c.x + wobbleBase;
-            c.dropY = topY + c.len;
+            c.dropY = bandY(c) + c.len;
             c.dropVy = 0.6;
-            c.releaseX = c.dropX;
-            c.releaseY = topY;
-            c.trailT = 0;
-            // The strand doesn't fully retract after releasing a drop --
+            // The icicle doesn't fully retract after releasing a drop --
             // a shorter residual drip stays behind and keeps growing,
             // same as a real trickle never fully drying up between
-            // drops. Crucially, this residual strand keeps getting drawn
+            // drops. Crucially, this residual icicle keeps getting drawn
             // below (drawSurface always uses current c.len regardless of
-            // state) -- a previous version only drew it while
+            // state) -- a previous version only drew the icicle while
             // "trickling," leaving a real gap in the band for the whole
             // time a droplet was falling.
             c.len = c.maxLen * 0.35 + Math.random() * (c.maxLen * 0.2);
@@ -419,37 +360,20 @@
         c.dropVy += 0.35; // gravity
         c.dropY += c.dropVy;
         const stretch = Math.min(1 + c.dropVy * 0.08, 3.2);
-        const bigMul = c.isBig ? 1.8 : 1;
-        const r = c.tipR * 0.7 * bigMul;
-
-        if (c.isBig && c.trailT < TRAIL_DURATION) {
-          c.trailT += 0.03;
-          const fade = c.trailT / TRAIL_DURATION;
-          const midX = (c.releaseX + c.dropX) / 2;
-          const midY = (c.releaseY + c.dropY) / 2;
-          ctx.strokeStyle = `rgba(120, 200, 220, ${(0.5 * (1 - fade)).toFixed(3)})`;
-          ctx.lineWidth = Math.max(0.4, 2.2 * (1 - fade));
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(c.releaseX, c.releaseY);
-          ctx.quadraticCurveTo(midX, midY, c.dropX, c.dropY - r * stretch);
-          ctx.stroke();
-        }
 
         ctx.fillStyle = LIQUID;
         ctx.beginPath();
-        ctx.ellipse(c.dropX, c.dropY, r, r * stretch, 0, 0, Math.PI * 2);
+        ctx.ellipse(c.x, c.dropY, c.tipR * 0.7, c.tipR * 0.7 * stretch, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = SHINE;
         ctx.beginPath();
-        ctx.ellipse(c.dropX - r * 0.3, c.dropY - stretch, r * 0.25, r * 0.35, 0, 0, Math.PI * 2);
+        ctx.ellipse(c.x - c.tipR * 0.25, c.dropY - stretch, c.tipR * 0.2, c.tipR * 0.3, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        if (c.dropY - r * stretch > canvas.height) {
+        if (c.dropY - c.tipR * stretch > canvas.height) {
           c.state = "trickling";
           c.maxLen = randomMaxLen();
           c.growRate = 0.6 + Math.random() * 1.4;
-          c.isBig = Math.random() < 0.28;
         }
       }
     }
