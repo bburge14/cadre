@@ -50,7 +50,12 @@ def inject_csrf_token():
 
 @app.before_request
 def enforce_csrf():
-    if request.method == "POST" and request.endpoint not in ("setup", "login"):
+    # setup/login/forgot_password are all pre-authentication -- their
+    # real protection is verify_login()/reset_password_via_security()'s
+    # own rate limiting, not a session-bound CSRF token (which a CSRF
+    # attack against a logged-out visitor wouldn't gain anything from
+    # bypassing anyway, since there's no authenticated session to abuse).
+    if request.method == "POST" and request.endpoint not in ("setup", "login", "forgot_password"):
         auth.check_csrf()
 
 
@@ -78,6 +83,8 @@ def setup():
     username = request.form.get("username", "").strip()
     password = request.form.get("password", "")
     confirm = request.form.get("confirm", "")
+    security_question = request.form.get("security_question", "").strip()
+    security_answer = request.form.get("security_answer", "").strip()
     if not username or not password:
         flash("Username and password are both required.", "error")
         return redirect(url_for("setup_form"))
@@ -87,7 +94,10 @@ def setup():
     if len(password) < 8:
         flash("Password should be at least 8 characters.", "error")
         return redirect(url_for("setup_form"))
-    auth.create_admin(username, password)
+    if not security_question or not security_answer:
+        flash("A security question and answer are both required -- it's the only way back in if you forget your password and don't have terminal access to this machine.", "error")
+        return redirect(url_for("setup_form"))
+    auth.create_admin(username, password, security_question, security_answer)
     auth.log_in_session(username)
     flash("Admin account created.", "success")
     return redirect(url_for("wizard_form"))
@@ -109,6 +119,48 @@ def login():
         return redirect(url_for("index"))
     flash("Invalid username or password.", "error")
     return redirect(url_for("login_form"))
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if not auth.admin_exists():
+        return redirect(url_for("setup_form"))
+
+    username = ""
+    question = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+
+        if "answer" in request.form:
+            # Step 2: answer + new password submitted together.
+            answer = request.form.get("answer", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+            question = auth.get_security_question(username)  # re-derive to redisplay step 2 on error
+
+            if not new_password or new_password != confirm_password:
+                flash("New password and confirmation didn't match.", "error")
+            elif len(new_password) < 8:
+                flash("New password should be at least 8 characters.", "error")
+            else:
+                ok, error = auth.reset_password_via_security(username, answer, new_password)
+                if ok:
+                    flash("Password reset -- log in with your new password.", "success")
+                    return redirect(url_for("login_form"))
+                flash(error, "error")
+        else:
+            # Step 1: just the username, deciding whether to reveal the question.
+            question = auth.get_security_question(username)
+            if not question:
+                flash(
+                    "No recovery question is set for that account (or it "
+                    "doesn't exist). If you have terminal access to this "
+                    "machine, run the reset-admin script for your OS instead.",
+                    "error",
+                )
+
+    return render_template("forgot_password.html", username=username, question=question)
 
 
 # ---- Setup wizard: pick an AI, connect it, set it as the default/orchestrator ----
@@ -1251,6 +1303,8 @@ def settings_form():
         default_provider=settings.get("default_provider"),
         orchestration_candidates=providers.orchestration_candidates(),
         cli_providers=[p for p in providers.list_providers() if p.id != "claude"],
+        current_username=auth.get_username(),
+        has_security_question=auth.has_security_question(),
     )
 
 
@@ -1463,6 +1517,49 @@ def save_settings():
     settings.update(**fields)
     flash("Settings saved.", "success")
     return redirect(url_for("settings_form"))
+
+
+@app.post("/settings/account")
+@require_auth
+def save_account():
+    current_password = request.form.get("current_password", "")
+    new_username = request.form.get("new_username", "").strip()
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    new_security_question = request.form.get("new_security_question", "").strip()
+    new_security_answer = request.form.get("new_security_answer", "").strip()
+
+    if not current_password:
+        flash("Current password is required to change any account settings.", "error")
+        return redirect(url_for("settings_form", _anchor="account"))
+    if new_password and new_password != confirm_password:
+        flash("New password and confirmation didn't match.", "error")
+        return redirect(url_for("settings_form", _anchor="account"))
+    if new_password and len(new_password) < 8:
+        flash("New password should be at least 8 characters.", "error")
+        return redirect(url_for("settings_form", _anchor="account"))
+    if bool(new_security_question) != bool(new_security_answer):
+        flash("Set both a new security question and an answer, not just one.", "error")
+        return redirect(url_for("settings_form", _anchor="account"))
+    if not any((new_username, new_password, new_security_question)):
+        flash("Nothing to change.", "error")
+        return redirect(url_for("settings_form", _anchor="account"))
+
+    ok, error = auth.change_credentials(
+        current_password,
+        new_username=new_username or None,
+        new_password=new_password or None,
+        new_security_question=new_security_question or None,
+        new_security_answer=new_security_answer or None,
+    )
+    if not ok:
+        flash(error, "error")
+        return redirect(url_for("settings_form", _anchor="account"))
+
+    if new_username:
+        session["user"] = new_username
+    flash("Account updated.", "success")
+    return redirect(url_for("settings_form", _anchor="account"))
 
 
 # ---- Git host OAuth ----

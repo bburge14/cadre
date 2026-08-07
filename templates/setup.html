@@ -25,6 +25,16 @@
     <input name="password" type="password" required minlength="8">
     <label>confirm password</label>
     <input name="confirm" type="password" required minlength="8">
+    <label>security question <span class="hint">(shown if you ever use "forgot password" -- pick something only you'd know, not something guessable from your profiles/socials)</span></label>
+    <input name="security_question" required placeholder="e.g. What was the name of your first pet?">
+    <label>security answer</label>
+    <input name="security_answer" required>
+    <p class="hint">
+      This is the only recovery path if you forget your password and
+      don't have terminal access to this machine to run the reset
+      script. There's no email tied to this account to send a reset
+      link through -- pick something you'll actually remember.
+    </p>
     <button class="btn btn-primary" type="submit">Create account</button>
   </form>
 </body>

@@ -26,12 +26,7 @@
   </form>
 
   <p class="hint" style="margin-top:1.2rem; text-align:center;">
-    Forgot your password?
-    <details class="help" style="margin-left:0.2rem;"><summary></summary><div class="help-body" style="max-width:none; text-align:left;">
-      <p>Can't be recovered — it's hashed one-way and never stored in plaintext, anywhere. It can only be reset from a terminal with access to this machine (not from this page — that's deliberate, so a reset can't be triggered by anyone who can merely reach this login screen):</p>
-      <p><code>./linux/reset-admin.sh</code><br>(or <code>macos/reset-admin.sh</code> / <code>windows\reset-admin.bat</code>)</p>
-      <p>Deletes only the admin account — sessions, agent stacks, skills, and settings are untouched. Reload this page afterward and you'll land on account setup instead of here.</p>
-    </div></details>
+    <a href="{{ url_for('forgot_password') }}">Forgot your password?</a>
   </p>
 </body>
 </html>
