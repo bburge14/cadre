@@ -44,6 +44,23 @@ app.config.update(
 )
 
 
+@app.after_request
+def _disable_html_caching(response):
+    # Static assets (style.css, terminal.js, etc.) are cache-busted with
+    # a ?v={{ asset_version }} query string, but that only works if the
+    # HTML page embedding those URLs is itself fresh -- a cached HTML
+    # response keeps citing whatever version string was current when it
+    # was cached, forever, which defeats the whole mechanism. Browsers
+    # apply their own default caching heuristics to any response with no
+    # explicit Cache-Control header, which can be surprisingly long-lived
+    # for a plain page with no other caching signal. Force every HTML
+    # response to always revalidate so a page reload can never silently
+    # serve stale markup pointing at a stale asset version.
+    if response.content_type and response.content_type.startswith("text/html"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.context_processor
 def inject_csrf_token():
     return {"csrf_token": auth.csrf_token}
