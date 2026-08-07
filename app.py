@@ -80,6 +80,8 @@ TERMINAL_THEME_OPTIONS = [
     ("dracula", "Dracula"), ("solarized-dark", "Solarized Dark"), ("solarized-light", "Solarized Light"),
     ("nord", "Nord"), ("monokai", "Monokai"), ("gruvbox-dark", "Gruvbox Dark"),
     ("tokyo-night", "Tokyo Night"), ("one-dark", "One Dark"),
+    ("catppuccin-mocha", "Catppuccin Mocha"), ("synthwave", "Synthwave"), ("matrix", "Matrix"),
+    ("ayu-dark", "Ayu Dark"), ("github-dark", "GitHub Dark"), ("cyberpunk", "Cyberpunk"),
 ]
 
 

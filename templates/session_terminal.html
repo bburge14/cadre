@@ -35,7 +35,11 @@
      actual panel (e.g. a fit that ran before layout fully settled),
      the flex child would just grow to fit it instead of clipping,
      dragging the whole page into horizontal scroll. */
-  #terminal-wrap { flex: 1; min-height: 0; min-width: 0; overflow: hidden; background: #000; padding: 0.4rem; display: flex; flex-direction: column; }
+  /* Capped and centered rather than stretching edge-to-edge on a wide
+     screen -- the character grid itself is already capped (terminal.js'
+     MAX_TERM_COLS), so a full-width panel just left a lot of empty
+     background past wherever the text actually stopped wrapping. */
+  #terminal-wrap { flex: 1; min-height: 0; min-width: 0; max-width: 1300px; margin: 0 auto; width: 100%; overflow: hidden; background: #000; padding: 0.4rem; display: flex; flex-direction: column; }
   #terminal { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
   #term-not-running {
     flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -53,7 +57,7 @@
       <button class="btn btn-icon btn-primary" title="Restart" aria-label="Restart" onclick="sessionAction('restart')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></button>
     </div>
     <span class="term-status" id="term-status">connecting…</span>
-    <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0;">
+    <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0; width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
       {% for value, label in terminal_theme_options %}
       <option value="{{ value }}" {{ 'selected' if value == terminal_theme else '' }}>{{ label }}</option>
       {% endfor %}

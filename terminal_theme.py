@@ -41,6 +41,8 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "dracula": "dark", "solarized-dark": "dark", "solarized-light": "light",
         "nord": "dark", "monokai": "dark", "gruvbox-dark": "dark",
         "tokyo-night": "dark", "one-dark": "dark",
+        "catppuccin-mocha": "dark", "synthwave": "dark", "matrix": "dark",
+        "ayu-dark": "dark", "github-dark": "dark", "cyberpunk": "dark",
     },
     # google-gemini/gemini-cli packages/cli/src/ui/themes/theme-manager.ts
     # (verified against the installed @google/gemini-cli package) -- built-in
@@ -54,6 +56,8 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "dracula": "Dracula", "solarized-dark": "Solarized Dark", "solarized-light": "Solarized Light",
         "nord": None, "monokai": None, "gruvbox-dark": None,
         "tokyo-night": "Tokyo Night", "one-dark": "Atom One",
+        "catppuccin-mocha": None, "synthwave": None, "matrix": None,
+        "ayu-dark": "Ayu", "github-dark": "GitHub", "cyberpunk": None,
     },
     # openai/codex codex-rs/tui/src/render/highlight.rs, verified against
     # the exact source tag matching the installed @openai/codex build --
@@ -69,6 +73,8 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "dracula": "dracula", "solarized-dark": "solarized-dark", "solarized-light": "solarized-light",
         "nord": "nord", "monokai": "monokai-extended", "gruvbox-dark": "gruvbox-dark",
         "tokyo-night": None, "one-dark": "one-half-dark",
+        "catppuccin-mocha": "catppuccin-mocha", "synthwave": None, "matrix": None,
+        "ayu-dark": None, "github-dark": "github", "cyberpunk": "dark-neon",
     },
     # `kimi` is two unrelated MoonshotAI projects that collide on the same
     # command name depending on pip vs npm install (MoonshotAI/kimi-cli,
@@ -86,6 +92,8 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "dracula": "dark", "solarized-dark": "dark", "solarized-light": "light",
         "nord": "dark", "monokai": "dark", "gruvbox-dark": "dark",
         "tokyo-night": "dark", "one-dark": "dark",
+        "catppuccin-mocha": "dark", "synthwave": "dark", "matrix": "dark",
+        "ayu-dark": "dark", "github-dark": "dark", "cyberpunk": "dark",
     },
 }
 
