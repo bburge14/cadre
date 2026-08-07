@@ -83,6 +83,8 @@ TERMINAL_THEME_OPTIONS = [
     ("tokyo-night", "Tokyo Night"), ("one-dark", "One Dark"),
     ("catppuccin-mocha", "Catppuccin Mocha"), ("synthwave", "Synthwave"), ("matrix", "Matrix"),
     ("ayu-dark", "Ayu Dark"), ("github-dark", "GitHub Dark"), ("cyberpunk", "Cyberpunk"),
+    ("rose-quartz", "Rose Quartz"), ("deep-forest", "Deep Forest"), ("abyssal", "Abyssal"),
+    ("sunset-blvd", "Sunset Blvd"), ("arctic-frost", "Arctic Frost"), ("blood-moon-term", "Blood Moon"),
 ]
 
 
@@ -100,10 +102,11 @@ DASHBOARD_THEME_VALUES = {
     "default", "circuit", "slate", "light", "ocean", "volcanic", "amethyst",
     "forest", "neon-city", "blood-moon", "frost", "desert", "toxic",
     "galaxy", "aurora", "code-rain", "ember", "sakura", "deep-space", "rain", "lava-lamp", "drip",
-    "code-rain-cyber", "code-rain-crimson",
-    "rain-violet", "rain-acid",
+    "code-rain-cyber", "code-rain-crimson", "code-rain-gold", "code-rain-violet", "code-rain-ice",
+    "rain-violet", "rain-acid", "rain-crimson", "rain-neon", "rain-ash",
     "lava-lamp-cosmic", "lava-lamp-toxic",
-    "drip-venom", "drip-blood",
+    "drip-venom", "drip-blood", "drip-tar", "drip-acid", "drip-mercury",
+    "circuit-amber", "circuit-blue", "circuit-crimson",
 }
 
 

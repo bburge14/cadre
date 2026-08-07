@@ -43,6 +43,8 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "tokyo-night": "dark", "one-dark": "dark",
         "catppuccin-mocha": "dark", "synthwave": "dark", "matrix": "dark",
         "ayu-dark": "dark", "github-dark": "dark", "cyberpunk": "dark",
+        "rose-quartz": "dark", "deep-forest": "dark", "abyssal": "dark",
+        "sunset-blvd": "dark", "arctic-frost": "dark", "blood-moon-term": "dark",
     },
     # google-gemini/gemini-cli packages/cli/src/ui/themes/theme-manager.ts
     # (verified against the installed @google/gemini-cli package) -- built-in
@@ -58,6 +60,11 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "tokyo-night": "Tokyo Night", "one-dark": "Atom One",
         "catppuccin-mocha": None, "synthwave": None, "matrix": None,
         "ayu-dark": "Ayu", "github-dark": "GitHub", "cyberpunk": None,
+        # These six are Cadre's own original palettes (see terminal.js),
+        # not reproductions of a named catalog entry -- no verified match
+        # to force, same as Nord/Monokai/Gruvbox above.
+        "rose-quartz": None, "deep-forest": None, "abyssal": None,
+        "sunset-blvd": None, "arctic-frost": None, "blood-moon-term": None,
     },
     # openai/codex codex-rs/tui/src/render/highlight.rs, verified against
     # the exact source tag matching the installed @openai/codex build --
@@ -75,6 +82,10 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "tokyo-night": None, "one-dark": "one-half-dark",
         "catppuccin-mocha": "catppuccin-mocha", "synthwave": None, "matrix": None,
         "ayu-dark": None, "github-dark": "github", "cyberpunk": "dark-neon",
+        # Same reasoning as gemini's None entries above -- these six are
+        # Cadre's own original palettes, no real catalog match to claim.
+        "rose-quartz": None, "deep-forest": None, "abyssal": None,
+        "sunset-blvd": None, "arctic-frost": None, "blood-moon-term": None,
     },
     # `kimi` is two unrelated MoonshotAI projects that collide on the same
     # command name depending on pip vs npm install (MoonshotAI/kimi-cli,
@@ -94,6 +105,8 @@ _THEME_NAMES: dict[str, dict[str, str | None]] = {
         "tokyo-night": "dark", "one-dark": "dark",
         "catppuccin-mocha": "dark", "synthwave": "dark", "matrix": "dark",
         "ayu-dark": "dark", "github-dark": "dark", "cyberpunk": "dark",
+        "rose-quartz": "dark", "deep-forest": "dark", "abyssal": "dark",
+        "sunset-blvd": "dark", "arctic-frost": "dark", "blood-moon-term": "dark",
     },
 }
 

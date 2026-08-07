@@ -159,6 +159,57 @@ html[data-theme="circuit"] {
   background-attachment: fixed;
 }
 
+/* Circuit Board colorways -- same PCB trace/via/chip pattern as the
+   green default above, just a recolored trace SVG per variant. */
+html[data-theme="circuit-amber"] {
+  --accent: #eab308;
+  --accent-hover: #fbbf24;
+  --accent-2: #a16207;
+  --accent-gradient: linear-gradient(135deg, #eab308, #a16207);
+  --accent-soft-bg: #2c2005;
+  --accent-soft-text: #fde68a;
+  background-color: #0c0900;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='200'%20height='200'%3E%3Cg%20fill='none'%20stroke='%23fbbf24'%20stroke-width='1.4'%20opacity='0.22'%3E%3Cpath%20d='M0%2050H40V20H90'/%3E%3Cpath%20d='M200%2050H160V80H120'/%3E%3Cpath%20d='M0%20140H60V170H100'/%3E%3Cpath%20d='M200%20150H150V110H100'/%3E%3Cpath%20d='M100%200V40'/%3E%3Cpath%20d='M100%20200V160'/%3E%3Cpath%20d='M30%2090H70V130'/%3E%3Cpath%20d='M170%2090H130V60'/%3E%3Cpath%20d='M20%20170H35'/%3E%3Cpath%20d='M165%2030H180'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23fbbf24'%20stroke-width='1.6'%20opacity='0.3'%3E%3Crect%20x='80'%20y='85'%20width='40'%20height='30'%20rx='2'/%3E%3Cpath%20d='M80%2092H70'/%3E%3Cpath%20d='M80%20100H70'/%3E%3Cpath%20d='M80%20108H70'/%3E%3Cpath%20d='M120%2092H130'/%3E%3Cpath%20d='M120%20100H130'/%3E%3Cpath%20d='M120%20108H130'/%3E%3C/g%3E%3Cg%20fill='%23fbbf24'%20opacity='0.35'%3E%3Ccircle%20cx='84'%20cy='89'%20r='1.4'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23fbbf24'%20opacity='0.28'%3E%3Ccircle%20cx='40'%20cy='20'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='2.6'%20stroke-width='1.2'/%3E%3C/g%3E%3Cg%20fill='%23fbbf24'%20opacity='0.4'%3E%3Ccircle%20cx='40'%20cy='20'%20r='1'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='1'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='1'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='1'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='1'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='1'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23fbbf24'%20stroke-width='1.4'%20opacity='0.22'%3E%3Crect%20x='16'%20y='167'%20width='6'%20height='6'/%3E%3Crect%20x='33'%20y='167'%20width='6'%20height='6'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(234, 179, 8, 0.10), transparent 60%),
+    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(234, 179, 8, 0.10), transparent 60%);
+  background-size: 200px 200px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="circuit-blue"] {
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-2: #1d4ed8;
+  --accent-gradient: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  --accent-soft-bg: #0a1a30;
+  --accent-soft-text: #bfdbfe;
+  background-color: #05070f;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='200'%20height='200'%3E%3Cg%20fill='none'%20stroke='%2360a5fa'%20stroke-width='1.4'%20opacity='0.22'%3E%3Cpath%20d='M0%2050H40V20H90'/%3E%3Cpath%20d='M200%2050H160V80H120'/%3E%3Cpath%20d='M0%20140H60V170H100'/%3E%3Cpath%20d='M200%20150H150V110H100'/%3E%3Cpath%20d='M100%200V40'/%3E%3Cpath%20d='M100%20200V160'/%3E%3Cpath%20d='M30%2090H70V130'/%3E%3Cpath%20d='M170%2090H130V60'/%3E%3Cpath%20d='M20%20170H35'/%3E%3Cpath%20d='M165%2030H180'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%2360a5fa'%20stroke-width='1.6'%20opacity='0.3'%3E%3Crect%20x='80'%20y='85'%20width='40'%20height='30'%20rx='2'/%3E%3Cpath%20d='M80%2092H70'/%3E%3Cpath%20d='M80%20100H70'/%3E%3Cpath%20d='M80%20108H70'/%3E%3Cpath%20d='M120%2092H130'/%3E%3Cpath%20d='M120%20100H130'/%3E%3Cpath%20d='M120%20108H130'/%3E%3C/g%3E%3Cg%20fill='%2360a5fa'%20opacity='0.35'%3E%3Ccircle%20cx='84'%20cy='89'%20r='1.4'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%2360a5fa'%20opacity='0.28'%3E%3Ccircle%20cx='40'%20cy='20'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='2.6'%20stroke-width='1.2'/%3E%3C/g%3E%3Cg%20fill='%2360a5fa'%20opacity='0.4'%3E%3Ccircle%20cx='40'%20cy='20'%20r='1'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='1'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='1'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='1'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='1'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='1'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%2360a5fa'%20stroke-width='1.4'%20opacity='0.22'%3E%3Crect%20x='16'%20y='167'%20width='6'%20height='6'/%3E%3Crect%20x='33'%20y='167'%20width='6'%20height='6'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(59, 130, 246, 0.10), transparent 60%),
+    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(59, 130, 246, 0.10), transparent 60%);
+  background-size: 200px 200px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="circuit-crimson"] {
+  --accent: #ef4444;
+  --accent-hover: #f87171;
+  --accent-2: #b91c1c;
+  --accent-gradient: linear-gradient(135deg, #ef4444, #b91c1c);
+  --accent-soft-bg: #2c0a0a;
+  --accent-soft-text: #fecaca;
+  background-color: #0d0303;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='200'%20height='200'%3E%3Cg%20fill='none'%20stroke='%23f87171'%20stroke-width='1.4'%20opacity='0.22'%3E%3Cpath%20d='M0%2050H40V20H90'/%3E%3Cpath%20d='M200%2050H160V80H120'/%3E%3Cpath%20d='M0%20140H60V170H100'/%3E%3Cpath%20d='M200%20150H150V110H100'/%3E%3Cpath%20d='M100%200V40'/%3E%3Cpath%20d='M100%20200V160'/%3E%3Cpath%20d='M30%2090H70V130'/%3E%3Cpath%20d='M170%2090H130V60'/%3E%3Cpath%20d='M20%20170H35'/%3E%3Cpath%20d='M165%2030H180'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23f87171'%20stroke-width='1.6'%20opacity='0.3'%3E%3Crect%20x='80'%20y='85'%20width='40'%20height='30'%20rx='2'/%3E%3Cpath%20d='M80%2092H70'/%3E%3Cpath%20d='M80%20100H70'/%3E%3Cpath%20d='M80%20108H70'/%3E%3Cpath%20d='M120%2092H130'/%3E%3Cpath%20d='M120%20100H130'/%3E%3Cpath%20d='M120%20108H130'/%3E%3C/g%3E%3Cg%20fill='%23f87171'%20opacity='0.35'%3E%3Ccircle%20cx='84'%20cy='89'%20r='1.4'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23f87171'%20opacity='0.28'%3E%3Ccircle%20cx='40'%20cy='20'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='2.6'%20stroke-width='1.2'/%3E%3C/g%3E%3Cg%20fill='%23f87171'%20opacity='0.4'%3E%3Ccircle%20cx='40'%20cy='20'%20r='1'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='1'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='1'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='1'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='1'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='1'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23f87171'%20stroke-width='1.4'%20opacity='0.22'%3E%3Crect%20x='16'%20y='167'%20width='6'%20height='6'/%3E%3Crect%20x='33'%20y='167'%20width='6'%20height='6'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(ellipse 900px 500px at 15% 0%, rgba(239, 68, 68, 0.10), transparent 60%),
+    radial-gradient(ellipse 800px 550px at 100% 100%, rgba(239, 68, 68, 0.10), transparent 60%);
+  background-size: 200px 200px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
+
 /* Slate: no motion, no texture -- just a cool, muted indigo/sky glow
    for anyone who wants a change of color without any of the busier
    themes' movement or pattern. */
@@ -241,6 +292,33 @@ html[data-theme="code-rain-crimson"] {
   --accent-soft-text: #fca5b5;
   background-color: #0a0102;
 }
+html[data-theme="code-rain-gold"] {
+  --accent: #eab308;
+  --accent-hover: #fbbf24;
+  --accent-2: #a16207;
+  --accent-gradient: linear-gradient(135deg, #eab308, #a16207);
+  --accent-soft-bg: #2c2005;
+  --accent-soft-text: #fde68a;
+  background-color: #0c0900;
+}
+html[data-theme="code-rain-violet"] {
+  --accent: #a855f7;
+  --accent-hover: #c084fc;
+  --accent-2: #7e22ce;
+  --accent-gradient: linear-gradient(135deg, #a855f7, #7e22ce);
+  --accent-soft-bg: #240a30;
+  --accent-soft-text: #e9d5ff;
+  background-color: #08010a;
+}
+html[data-theme="code-rain-ice"] {
+  --accent: #67e8f9;
+  --accent-hover: #a5f3fc;
+  --accent-2: #0891b2;
+  --accent-gradient: linear-gradient(135deg, #67e8f9, #0891b2);
+  --accent-soft-bg: #062328;
+  --accent-soft-text: #cffafe;
+  background-color: #000a0c;
+}
 
 /* Rain: same deal as Code Rain just above -- a plain dark backdrop here,
    static/theme-effects.js draws the actual falling rain-streak canvas
@@ -284,6 +362,42 @@ html[data-theme="rain-acid"] {
   --accent-soft-text: #d9f99d;
   background-color: #0d1406;
   background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(132, 204, 22, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="rain-crimson"] {
+  --accent: #e6828c;
+  --accent-hover: #f0a5ac;
+  --accent-2: #a3323d;
+  --accent-gradient: linear-gradient(135deg, #e6828c, #a3323d);
+  --accent-soft-bg: #2c1013;
+  --accent-soft-text: #f5c2c7;
+  background-color: #150809;
+  background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(230, 130, 140, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="rain-neon"] {
+  --accent: #22e5ff;
+  --accent-hover: #67f2ff;
+  --accent-2: #0891a8;
+  --accent-gradient: linear-gradient(135deg, #22e5ff, #0891a8);
+  --accent-soft-bg: #052a30;
+  --accent-soft-text: #a5f3fc;
+  background-color: #010e12;
+  background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(34, 229, 255, 0.1), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="rain-ash"] {
+  --accent: #a8a8a0;
+  --accent-hover: #c4c4bc;
+  --accent-2: #6b6b64;
+  --accent-gradient: linear-gradient(135deg, #a8a8a0, #6b6b64);
+  --accent-soft-bg: #232320;
+  --accent-soft-text: #dcdcd4;
+  background-color: #0e0e0c;
+  background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(168, 168, 160, 0.08), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
@@ -397,6 +511,48 @@ html[data-theme="drip-blood"] {
   background-image:
     radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(156, 58, 58, 0.14), transparent 60%),
     radial-gradient(ellipse 900px 550px at 100% 100%, rgba(74, 13, 13, 0.16), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="drip-tar"] {
+  --accent: #8a8a8a;
+  --accent-hover: #a8a8a8;
+  --accent-2: #3a3a3a;
+  --accent-gradient: linear-gradient(135deg, #8a8a8a, #3a3a3a);
+  --accent-soft-bg: #1e1e1e;
+  --accent-soft-text: #c4c4c4;
+  background-color: #090909;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(138, 138, 138, 0.1), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(58, 58, 58, 0.12), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="drip-acid"] {
+  --accent: #b8e619;
+  --accent-hover: #ccf23e;
+  --accent-2: #6b8a0a;
+  --accent-gradient: linear-gradient(135deg, #b8e619, #6b8a0a);
+  --accent-soft-bg: #1c2405;
+  --accent-soft-text: #e0f7a0;
+  background-color: #0d1403;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(184, 230, 25, 0.14), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(107, 138, 10, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+html[data-theme="drip-mercury"] {
+  --accent: #9aa4b8;
+  --accent-hover: #b8c2d4;
+  --accent-2: #454a58;
+  --accent-gradient: linear-gradient(135deg, #9aa4b8, #454a58);
+  --accent-soft-bg: #1c1e24;
+  --accent-soft-text: #d4d8e0;
+  background-color: #0d0e12;
+  background-image:
+    radial-gradient(ellipse 1100px 600px at 15% -10%, rgba(154, 164, 184, 0.12), transparent 60%),
+    radial-gradient(ellipse 900px 550px at 100% 100%, rgba(69, 74, 88, 0.14), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }

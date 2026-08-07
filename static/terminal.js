@@ -148,6 +148,58 @@ const XTERM_THEMES = {
     brightYellow: "#fff6a3", brightBlue: "#5ccfff", brightMagenta: "#ff5cb3",
     brightCyan: "#7cfff9", brightWhite: "#ffffff",
   },
+  // Six original palettes (not reproductions of a specific named
+  // community theme -- terminal_theme.py's native-CLI mapping table
+  // reflects that by leaving these unmapped/dark-fallback rather than
+  // claiming an exact catalog match it can't verify).
+  "rose-quartz": {
+    background: "#1e1620", foreground: "#f0d9e8", cursor: "#ff8fc7",
+    black: "#2b1f2d", red: "#e05780", green: "#7ec9a3", yellow: "#f0c987",
+    blue: "#9d8cff", magenta: "#ff8fc7", cyan: "#7ac1d6", white: "#f0d9e8",
+    brightBlack: "#5a4a5c", brightRed: "#ff7a9c", brightGreen: "#9de0bd",
+    brightYellow: "#ffdca3", brightBlue: "#b9adff", brightMagenta: "#ffb0dc",
+    brightCyan: "#9fdbee", brightWhite: "#ffffff",
+  },
+  "deep-forest": {
+    background: "#131a13", foreground: "#cddfc9", cursor: "#8fd694",
+    black: "#1e281e", red: "#d9736b", green: "#7fbf6a", yellow: "#d4b96a",
+    blue: "#6a9fbf", magenta: "#a482c2", cyan: "#6ac2a3", white: "#cddfc9",
+    brightBlack: "#4a5a48", brightRed: "#f28f87", brightGreen: "#9de08a",
+    brightYellow: "#ecd48a", brightBlue: "#8bc0e0", brightMagenta: "#c2a0e0",
+    brightCyan: "#8ae0c2", brightWhite: "#eaf5e6",
+  },
+  abyssal: {
+    background: "#071019", foreground: "#c5e3f0", cursor: "#4dd8e8",
+    black: "#0d1c28", red: "#e0637a", green: "#4dd8a8", yellow: "#e8c15a",
+    blue: "#4d9de8", magenta: "#a866d9", cyan: "#4dd8e8", white: "#c5e3f0",
+    brightBlack: "#35505f", brightRed: "#ff8296", brightGreen: "#6df0c2",
+    brightYellow: "#ffd97a", brightBlue: "#6fb8ff", brightMagenta: "#c085ee",
+    brightCyan: "#6ff0ff", brightWhite: "#eaf7fc",
+  },
+  "sunset-blvd": {
+    background: "#1a1023", foreground: "#f5ddc4", cursor: "#ff9d5c",
+    black: "#2b1a33", red: "#ff6b6b", green: "#6bcf9e", yellow: "#ffb15c",
+    blue: "#7c83ff", magenta: "#d96bff", cyan: "#5cd9d9", white: "#f5ddc4",
+    brightBlack: "#5c4266", brightRed: "#ff8f8f", brightGreen: "#8fe0b8",
+    brightYellow: "#ffc98f", brightBlue: "#a0a5ff", brightMagenta: "#e79bff",
+    brightCyan: "#85e6e6", brightWhite: "#fff0e0",
+  },
+  "arctic-frost": {
+    background: "#0c1620", foreground: "#dceaf2", cursor: "#7fd4f0",
+    black: "#16232e", red: "#e2707a", green: "#7fd4a8", yellow: "#e8d07a",
+    blue: "#7fb8e8", magenta: "#b07fe8", cyan: "#7fd4f0", white: "#dceaf2",
+    brightBlack: "#45596a", brightRed: "#ff9aa2", brightGreen: "#a0f0c8",
+    brightYellow: "#ffe8a0", brightBlue: "#a0d4ff", brightMagenta: "#d0a8ff",
+    brightCyan: "#a0eeff", brightWhite: "#ffffff",
+  },
+  "blood-moon-term": {
+    background: "#120505", foreground: "#ecc9c9", cursor: "#e0384a",
+    black: "#1e0a0a", red: "#e0384a", green: "#7a9e6a", yellow: "#d9a15c",
+    blue: "#6a7ea0", magenta: "#a0577a", cyan: "#6a9e9e", white: "#ecc9c9",
+    brightBlack: "#5a3232", brightRed: "#ff5c6e", brightGreen: "#9dc48a",
+    brightYellow: "#ffc180", brightBlue: "#8ea6cc", brightMagenta: "#cc7ba0",
+    brightCyan: "#8ecccc", brightWhite: "#ffe8e8",
+  },
 };
 
 function resolveXtermTheme(choice) {

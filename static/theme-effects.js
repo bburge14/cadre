@@ -32,6 +32,9 @@
     "code-rain": { bright: "180, 255, 210", fade: "1, 4, 1" },
     "code-rain-cyber": { bright: "180, 230, 255", fade: "1, 10, 16" },
     "code-rain-crimson": { bright: "255, 180, 195", fade: "10, 1, 2" },
+    "code-rain-gold": { bright: "255, 220, 140", fade: "10, 6, 0" },
+    "code-rain-violet": { bright: "220, 180, 255", fade: "6, 0, 10" },
+    "code-rain-ice": { bright: "210, 245, 255", fade: "0, 6, 8" },
   };
 
   function startCodeRain() {
@@ -91,6 +94,9 @@
     rain: "160, 200, 230",
     "rain-violet": "190, 160, 230",
     "rain-acid": "170, 220, 120",
+    "rain-crimson": "230, 130, 140",
+    "rain-neon": "120, 240, 255",
+    "rain-ash": "210, 210, 200",
   };
 
   function startRainfall() {
@@ -242,6 +248,9 @@
       drip: { light: "#9ab866", base: "#6f8f3d", dark: "#3c5220" },
       "drip-venom": { light: "#7a539c", base: "#4b2e5e", dark: "#26152f" },
       "drip-blood": { light: "#7a1f1f", base: "#4a0d0d", dark: "#210505" },
+      "drip-tar": { light: "#3f3f3f", base: "#181818", dark: "#040404" },
+      "drip-acid": { light: "#e8ff5c", base: "#b8e619", dark: "#5c7a0a" },
+      "drip-mercury": { light: "#e4e6ec", base: "#9aa4b8", dark: "#454a58" },
     };
     const dripPalette = DRIP_PALETTES[document.documentElement.dataset.theme] || DRIP_PALETTES.drip;
     let LIQUID;
@@ -252,7 +261,6 @@
       g.addColorStop(1, dripPalette.dark);
       LIQUID = g;
     }
-    const RUNNER_COUNT = 8;
     let runners, animT, rafId;
 
     // A second, unfiltered canvas layered on top of the goo-filtered one
@@ -282,14 +290,28 @@
     resizeShine();
     window.addEventListener("resize", resizeShine);
 
+    // Wider ranges than before, plus two things a fixed-count evenly-
+    // jittered spawn never gave: a per-runner wave offset (so runners
+    // don't all hang off the exact same shared wave curve, just phase-
+    // shifted by x) and a chance to spawn already mid-snap/mid-droplet
+    // instead of every runner starting from the same "just began
+    // stretching" state -- that shared starting phase was what made a
+    // freshly-loaded page read as more uniform/synchronized than real
+    // independent drips would.
     function makeRunner(x) {
+      const spawnSnapping = Math.random() < 0.18;
+      const maxLength = 100 + Math.random() * 320;
+      const currentLength = spawnSnapping
+        ? maxLength * (0.5 + Math.random() * 0.5)
+        : Math.random() * 70;
       return {
         x,
-        width: 15 + Math.random() * 15,
-        maxLength: 140 + Math.random() * 240,
-        speed: 0.6 + Math.random() * 1.0,
-        currentLength: Math.random() * 40,
-        state: "stretching", // "stretching" | "snapping"
+        width: 12 + Math.random() * 20,
+        maxLength,
+        speed: 0.4 + Math.random() * 1.4,
+        currentLength,
+        state: spawnSnapping ? "snapping" : "stretching",
+        waveOffset: (Math.random() - 0.5) * 18,
         dropletActive: false,
         dropY: 0,
         dropSpeed: 0,
@@ -301,8 +323,9 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       buildLiquidGradient();
-      const spacing = canvas.width / RUNNER_COUNT;
-      runners = new Array(RUNNER_COUNT).fill(0).map((_, i) => {
+      const runnerCount = 6 + Math.floor(Math.random() * 5);
+      const spacing = canvas.width / runnerCount;
+      runners = new Array(runnerCount).fill(0).map((_, i) => {
         const x = i * spacing + Math.random() * (spacing - 30) + 15;
         return makeRunner(x);
       });
@@ -320,7 +343,7 @@
     }
 
     function updateRunner(r) {
-      const startY = waveY(r.x);
+      const startY = waveY(r.x) + r.waveOffset;
       if (r.state === "stretching") {
         r.currentLength += r.speed;
         if (r.currentLength >= r.maxLength) {
@@ -399,7 +422,7 @@
       shineCtx.stroke();
 
       for (const r of runners) {
-        const startY = waveY(r.x);
+        const startY = waveY(r.x) + r.waveOffset;
         const tipY = startY + r.currentLength;
 
         if (r.state === "stretching" && r.currentLength > 6) {
@@ -523,9 +546,12 @@
 
   const EFFECTS = {
     "code-rain": startCodeRain, "code-rain-cyber": startCodeRain, "code-rain-crimson": startCodeRain,
+    "code-rain-gold": startCodeRain, "code-rain-violet": startCodeRain, "code-rain-ice": startCodeRain,
     "rain": startRainfall, "rain-violet": startRainfall, "rain-acid": startRainfall,
+    "rain-crimson": startRainfall, "rain-neon": startRainfall, "rain-ash": startRainfall,
     "lava-lamp": startLavaLamp, "lava-lamp-cosmic": startLavaLamp, "lava-lamp-toxic": startLavaLamp,
     "drip": startDrip, "drip-venom": startDrip, "drip-blood": startDrip,
+    "drip-tar": startDrip, "drip-acid": startDrip, "drip-mercury": startDrip,
   };
   let running = null; // { theme, stop }
 
