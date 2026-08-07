@@ -12,7 +12,15 @@
     canvas.style.inset = "0";
     canvas.style.zIndex = "-1";
     canvas.style.pointerEvents = "none";
-    document.body.prepend(canvas);
+    // Appended as a sibling of <body> (not a descendant) deliberately --
+    // body has its own load-in animation (a transform, even though it
+    // settles at translateY(0) and stays there via fill-mode "both"),
+    // and any ancestor with a non-none transform becomes the containing
+    // block for position:fixed descendants. Nested inside body, this
+    // canvas would size itself to body's own centered max-width column
+    // instead of the real viewport, leaving the sides of the screen
+    // blank. As a sibling of body it's unaffected by body's CSS.
+    document.documentElement.appendChild(canvas);
 
     const ctx = canvas.getContext("2d");
     const chars = "01アイウエオカキクケコサシスセソタチツテト";

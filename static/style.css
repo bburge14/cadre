@@ -171,6 +171,23 @@ html[data-theme="code-rain"] {
   background-color: #010401;
 }
 
+/* Circuit Board and Code Rain are busy/animated enough directly behind
+   text (traces, falling glyphs) to hurt legibility of plain body copy
+   that isn't already sitting on a .card's own opaque surface -- unlike
+   Galaxy/Aurora's much softer static glows, which never got this
+   complaint. Give body itself a near-opaque backdrop for just these two
+   themes so all page text stays readable; the pattern still shows in
+   the margins outside body's own centered column, and faintly through
+   the backdrop's own transparency. */
+html[data-theme="circuit"] body,
+html[data-theme="code-rain"] body {
+  background: rgba(3, 10, 6, 0.86);
+  backdrop-filter: blur(3px);
+  border-radius: var(--radius);
+  padding-top: 1.5rem;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.45);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: transparent;
