@@ -233,9 +233,9 @@
     wrapper.appendChild(canvas);
     const ctx = canvas.getContext("2d");
     const DRIP_PALETTES = {
-      drip: "#ffffff",
-      "drip-honey": "#fbbf24",
-      "drip-cyan": "#22d3ee",
+      drip: "#556b2f",
+      "drip-venom": "#4b2e5e",
+      "drip-blood": "#6b1414",
     };
     const LIQUID = DRIP_PALETTES[document.documentElement.dataset.theme] || DRIP_PALETTES.drip;
     const RUNNER_COUNT = 8;
@@ -498,7 +498,7 @@
     "code-rain": startCodeRain, "code-rain-cyber": startCodeRain, "code-rain-crimson": startCodeRain,
     "rain": startRainfall, "rain-violet": startRainfall, "rain-acid": startRainfall,
     "lava-lamp": startLavaLamp, "lava-lamp-cosmic": startLavaLamp, "lava-lamp-toxic": startLavaLamp,
-    "drip": startDrip, "drip-honey": startDrip, "drip-cyan": startDrip,
+    "drip": startDrip, "drip-venom": startDrip, "drip-blood": startDrip,
   };
   let running = null; // { theme, stop }
 

@@ -103,7 +103,7 @@ DASHBOARD_THEME_VALUES = {
     "code-rain-cyber", "code-rain-crimson",
     "rain-violet", "rain-acid",
     "lava-lamp-cosmic", "lava-lamp-toxic",
-    "drip-honey", "drip-cyan",
+    "drip-venom", "drip-blood",
 }
 
 

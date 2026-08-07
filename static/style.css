@@ -127,11 +127,16 @@ html[data-theme="galaxy"]::before {
   to { background-position: -400px 300px; }
 }
 
-/* Circuit Board: a real (if simple) tileable PCB trace pattern -- bent
-   traces with right angles and pads/vias, as an inline SVG data URI,
-   not a uniform dot grid (which read as graph paper, not a circuit
-   board, per direct feedback). Two static ambient glows underneath in
-   copper-green/cyan for depth. */
+/* Circuit Board: an actual PCB trace pattern -- orthogonal copper
+   routing (right angles only, like real trace routing, not diagonals),
+   plated-through vias (a ring pad around a drilled hole, not a plain
+   dot), an IC footprint (rectangular chip body with pins on both sides
+   and a pin-1 indicator dot), and a couple of SMD resistor-style pad
+   pairs. The previous version had traces and dots but nothing anyone
+   would actually recognize as a populated board -- the chip footprint
+   is what sells it. Dark FR4-green substrate rather than neutral
+   near-black, so it reads as a green PCB, not a dark screen with lines
+   on it. */
 html[data-theme="circuit"] {
   --accent: #38e096;
   --accent-hover: #5df0ae;
@@ -139,12 +144,12 @@ html[data-theme="circuit"] {
   --accent-gradient: linear-gradient(135deg, #38e096, #22c5dc);
   --accent-soft-bg: #0d2a1c;
   --accent-soft-text: #86f0c0;
-  background-color: #050d08;
+  background-color: #03130a;
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns='http%3A//www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.2'%20opacity='0.16'%3E%3Cpath%20d='M0%2040H46V13H80'/%3E%3Cpath%20d='M160%20120H113V147H80'/%3E%3Cpath%20d='M27%20160V113H67V80'/%3E%3Cpath%20d='M133%200V46H93V80'/%3E%3Cpath%20d='M80%2080H120'/%3E%3C/g%3E%3Cg%20fill='%2338e096'%20opacity='0.22'%3E%3Ccircle%20cx='80'%20cy='13'%20r='2.2'/%3E%3Ccircle%20cx='80'%20cy='147'%20r='2.2'/%3E%3Ccircle%20cx='67'%20cy='80'%20r='2.2'/%3E%3Ccircle%20cx='93'%20cy='80'%20r='2.2'/%3E%3Ccircle%20cx='0'%20cy='40'%20r='1.8'/%3E%3Ccircle%20cx='160'%20cy='120'%20r='1.8'/%3E%3Ccircle%20cx='27'%20cy='160'%20r='1.8'/%3E%3Ccircle%20cx='133'%20cy='0'%20r='1.8'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='200'%20height='200'%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.4'%20opacity='0.22'%3E%3Cpath%20d='M0%2050H40V20H90'/%3E%3Cpath%20d='M200%2050H160V80H120'/%3E%3Cpath%20d='M0%20140H60V170H100'/%3E%3Cpath%20d='M200%20150H150V110H100'/%3E%3Cpath%20d='M100%200V40'/%3E%3Cpath%20d='M100%20200V160'/%3E%3Cpath%20d='M30%2090H70V130'/%3E%3Cpath%20d='M170%2090H130V60'/%3E%3Cpath%20d='M20%20170H35'/%3E%3Cpath%20d='M165%2030H180'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.6'%20opacity='0.3'%3E%3Crect%20x='80'%20y='85'%20width='40'%20height='30'%20rx='2'/%3E%3Cpath%20d='M80%2092H70'/%3E%3Cpath%20d='M80%20100H70'/%3E%3Cpath%20d='M80%20108H70'/%3E%3Cpath%20d='M120%2092H130'/%3E%3Cpath%20d='M120%20100H130'/%3E%3Cpath%20d='M120%20108H130'/%3E%3C/g%3E%3Cg%20fill='%2338e096'%20opacity='0.35'%3E%3Ccircle%20cx='84'%20cy='89'%20r='1.4'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%2338e096'%20opacity='0.28'%3E%3Ccircle%20cx='40'%20cy='20'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='2.6'%20stroke-width='1.2'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='2.6'%20stroke-width='1.2'/%3E%3C/g%3E%3Cg%20fill='%2338e096'%20opacity='0.4'%3E%3Ccircle%20cx='40'%20cy='20'%20r='1'/%3E%3Ccircle%20cx='160'%20cy='80'%20r='1'/%3E%3Ccircle%20cx='60'%20cy='170'%20r='1'/%3E%3Ccircle%20cx='150'%20cy='110'%20r='1'/%3E%3Ccircle%20cx='70'%20cy='130'%20r='1'/%3E%3Ccircle%20cx='130'%20cy='60'%20r='1'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%2338e096'%20stroke-width='1.4'%20opacity='0.22'%3E%3Crect%20x='16'%20y='167'%20width='6'%20height='6'/%3E%3Crect%20x='33'%20y='167'%20width='6'%20height='6'/%3E%3C/g%3E%3C/svg%3E"),
     radial-gradient(ellipse 900px 500px at 15% 0%, rgba(56, 224, 150, 0.10), transparent 60%),
     radial-gradient(ellipse 800px 550px at 100% 100%, rgba(34, 197, 220, 0.10), transparent 60%);
-  background-size: 160px 160px, auto, auto;
+  background-size: 200px 200px, auto, auto;
   background-repeat: repeat, no-repeat, no-repeat;
   background-attachment: fixed;
 }
@@ -338,48 +343,49 @@ html[data-theme="lava-lamp-toxic"] {
 }
 
 /* Drip: plain dark backdrop here, same as Code Rain/Rain/Lava Lamp above
-   -- static/theme-effects.js draws the actual growing/falling droplet
-   canvas effect when it detects this theme. Cool glassy cyan/teal, read
-   as condensation running down glass rather than Rain's cooler storm
-   blue-gray streaks -- different motion (grow-then-fall, not constant
-   fall) needed its own distinct palette too, not just a recolor. */
+   -- static/theme-effects.js draws the actual liquid-runner canvas
+   effect when it detects this theme. Muted, dark olive slime-green --
+   deliberately not a bright/saturated "cartoon" green, since the liquid
+   itself picks this color up directly (DRIP_PALETTES), not just the
+   page accent. */
 html[data-theme="drip"] {
-  --accent: #22d3ee;
-  --accent-hover: #67e8f9;
-  --accent-2: #0891b2;
-  --accent-gradient: linear-gradient(135deg, #22d3ee, #0891b2);
-  --accent-soft-bg: #0a2530;
-  --accent-soft-text: #a5f3fc;
-  background-color: #05141a;
-  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(34, 211, 238, 0.08), transparent 60%);
+  --accent: #84a83f;
+  --accent-hover: #9dc158;
+  --accent-2: #556b2f;
+  --accent-gradient: linear-gradient(135deg, #84a83f, #556b2f);
+  --accent-soft-bg: #1a2410;
+  --accent-soft-text: #c8e6a0;
+  background-color: #0d1408;
+  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(132, 168, 63, 0.08), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
 
 /* Drip colorways -- see the Code Rain colorways comment above; same
    pattern, this time for startDrip's DRIP_PALETTES (the runners'/pool's
-   own fill color, not just the page accent). */
-html[data-theme="drip-honey"] {
-  --accent: #fbbf24;
-  --accent-hover: #fcd34d;
-  --accent-2: #d97706;
-  --accent-gradient: linear-gradient(135deg, #fbbf24, #d97706);
-  --accent-soft-bg: #2e2005;
-  --accent-soft-text: #fde68a;
-  background-color: #1a1206;
-  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(251, 191, 36, 0.08), transparent 60%);
+   own fill color, not just the page accent). Both dark/muted rather
+   than bright/saturated, same reasoning as the base Slime green above. */
+html[data-theme="drip-venom"] {
+  --accent: #8b5fa8;
+  --accent-hover: #a67fc4;
+  --accent-2: #4b2e5e;
+  --accent-gradient: linear-gradient(135deg, #8b5fa8, #4b2e5e);
+  --accent-soft-bg: #241530;
+  --accent-soft-text: #dcc4ea;
+  background-color: #160a1e;
+  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(139, 95, 168, 0.1), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-html[data-theme="drip-cyan"] {
-  --accent: #22d3ee;
-  --accent-hover: #67e8f9;
-  --accent-2: #0891b2;
-  --accent-gradient: linear-gradient(135deg, #22d3ee, #0891b2);
-  --accent-soft-bg: #062730;
-  --accent-soft-text: #a5f3fc;
-  background-color: #04101a;
-  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(34, 211, 238, 0.12), transparent 60%);
+html[data-theme="drip-blood"] {
+  --accent: #b34545;
+  --accent-hover: #c96363;
+  --accent-2: #6b1414;
+  --accent-gradient: linear-gradient(135deg, #b34545, #6b1414);
+  --accent-soft-bg: #2a0d0d;
+  --accent-soft-text: #f0b8b8;
+  background-color: #150606;
+  background-image: radial-gradient(ellipse 1000px 500px at 50% -10%, rgba(179, 69, 69, 0.1), transparent 60%);
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
