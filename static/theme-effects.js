@@ -197,16 +197,41 @@
     // of the width, at the spacing this needs to not look sparse) shows
     // as a visible notch or gap. One continuous outline can't have that
     // problem by construction -- there's only ever one edge.
+    function randomMaxLen() {
+      // Skewed toward short/medium (pow > 1 biases random() down before
+      // scaling), with occasional much longer runs -- most real drips
+      // are short, a few run far longer, not a flat/uniform spread.
+      return 30 + Math.pow(Math.random(), 1.6) * 280;
+    }
+
     function makeColumn(x) {
+      const maxLen = randomMaxLen();
       return {
         x,
         bandY: 12 + Math.random() * 4,
         bandPhase: Math.random() * Math.PI * 2,
         shoulderHalfWidth: 16 + Math.random() * 10,
-        len: Math.random() * 20,
-        maxLen: 70 + Math.random() * 170,
-        growRate: 0.12 + Math.random() * 0.28,
+        // Starts at a random point along its OWN full range, not near
+        // zero -- every column beginning its growth in lockstep from
+        // "just spawned" was exactly what read as static/synchronized/
+        // same-length, since real variation only appeared after each
+        // column had independently completed a full grow-and-release
+        // cycle, which (at the old slow growRate) took anywhere from 20
+        // to 90+ real seconds. Starting pre-scattered across the range
+        // means the very first frame already shows a real spread.
+        len: Math.random() * maxLen,
+        maxLen,
+        // Several times faster than before (was 0.12-0.4, ~4-13px/sec)
+        // so growth is something you can actually see happening within
+        // a few seconds, not an imperceptible creep.
+        growRate: 0.6 + Math.random() * 1.4,
         tipR: 5 + Math.random() * 4,
+        // A slow side-to-side sway, more pronounced toward the tip than
+        // at the band -- the detail that reads as flowing/viscous liquid
+        // rather than a rigid, frozen icicle hanging perfectly straight.
+        wobblePhase: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.5 + Math.random() * 0.6,
+        wobbleAmp: 1.5 + Math.random() * 2.5,
         state: "trickling",
         dropY: 0,
         dropVy: 0,
@@ -242,16 +267,22 @@
         const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
         const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
         const sw = c.shoulderHalfWidth;
+        // Sway grows with distance from the band -- anchored (0) right
+        // at the shoulder, most pronounced at the tip -- so it reads as
+        // a flexible flowing strand, not a rigid rod pivoting stiffly.
+        const wobble = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
+        const neckX = c.x + wobble * 0.45;
+        const tipX = c.x + wobble;
 
         // Down the icicle's left side, around the bulb, back up the
         // right side -- an icicle silhouette, not a thin stroked line
         // with a separate circle glued to the end of it.
         ctx.lineTo(c.x - sw, topY);
-        ctx.quadraticCurveTo(c.x - sw * 0.7, topY + c.len * 0.25, c.x - neckHalfWidth, neckY);
-        ctx.quadraticCurveTo(c.x - tipR * 1.1, neckY + (tipY - neckY) * 0.35, c.x - tipR, tipY - tipR * 0.3);
-        ctx.quadraticCurveTo(c.x - tipR, tipY + tipR * 0.55, c.x, tipY + tipR * 0.65);
-        ctx.quadraticCurveTo(c.x + tipR, tipY + tipR * 0.55, c.x + tipR, tipY - tipR * 0.3);
-        ctx.quadraticCurveTo(c.x + tipR * 1.1, neckY + (tipY - neckY) * 0.35, c.x + neckHalfWidth, neckY);
+        ctx.quadraticCurveTo(c.x - sw * 0.7, topY + c.len * 0.25, neckX - neckHalfWidth, neckY);
+        ctx.quadraticCurveTo(tipX - tipR * 1.1, neckY + (tipY - neckY) * 0.35, tipX - tipR, tipY - tipR * 0.3);
+        ctx.quadraticCurveTo(tipX - tipR, tipY + tipR * 0.55, tipX, tipY + tipR * 0.65);
+        ctx.quadraticCurveTo(tipX + tipR, tipY + tipR * 0.55, tipX + tipR, tipY - tipR * 0.3);
+        ctx.quadraticCurveTo(tipX + tipR * 1.1, neckY + (tipY - neckY) * 0.35, neckX + neckHalfWidth, neckY);
         ctx.quadraticCurveTo(c.x + sw * 0.7, topY + c.len * 0.25, c.x + sw, topY);
 
         // The shallow "valley" back up to band level before the next
@@ -280,12 +311,17 @@
       const neckY = topY + c.len * 0.55;
       const tipR = c.tipR * Math.min(1, c.len / (c.maxLen * 0.4));
       const neckHalfWidth = Math.max(1.5, c.shoulderHalfWidth * 0.3);
+      const wobble = Math.sin(t * c.wobbleSpeed + c.wobblePhase) * c.wobbleAmp;
+      const neckX = c.x + wobble * 0.45;
+      const tipX = c.x + wobble;
       // A thin brighter curve down one side of each icicle reads as a
       // wet highlight -- purely a translucent stroke, so unlike the
-      // main fill it's harmless for several to overlap.
+      // main fill it's harmless for several to overlap. Follows the same
+      // wobble as the fill so it stays glued to the strand's left edge
+      // instead of drifting off it as the strand sways.
       ctx.beginPath();
       ctx.moveTo(c.x - c.shoulderHalfWidth * 0.45, topY + c.len * 0.08);
-      ctx.quadraticCurveTo(c.x - neckHalfWidth * 0.6, neckY, c.x - tipR * 0.35, tipY - tipR * 0.4);
+      ctx.quadraticCurveTo(neckX - neckHalfWidth * 0.6, neckY, tipX - tipR * 0.35, tipY - tipR * 0.4);
       ctx.strokeStyle = SHINE;
       ctx.lineWidth = 1.4;
       ctx.lineCap = "round";
@@ -336,8 +372,8 @@
 
         if (c.dropY - c.tipR * stretch > canvas.height) {
           c.state = "trickling";
-          c.maxLen = 70 + Math.random() * 170;
-          c.growRate = 0.12 + Math.random() * 0.28;
+          c.maxLen = randomMaxLen();
+          c.growRate = 0.6 + Math.random() * 1.4;
         }
       }
     }
