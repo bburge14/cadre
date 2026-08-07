@@ -44,6 +44,11 @@
     background-image: repeating-linear-gradient(90deg, transparent 0, transparent 9px, rgba(150,255,190,0.55) 10px, transparent 11px, transparent 13px, rgba(34,197,94,0.3) 14px, transparent 15px);
     background-size: 13px 16px;
   }
+  .theme-swatch-rain {
+    background-color: #0a1219;
+    background-image: repeating-linear-gradient(100deg, transparent 0, transparent 7px, rgba(160,200,230,0.5) 8px, transparent 9px, transparent 12px);
+    background-size: 11px 22px;
+  }
   .theme-swatch-slate {
     background-color: #0a0e1a;
     background-image:
@@ -419,6 +424,10 @@
       <div class="theme-card {{ 'selected' if values.dashboard_theme == 'deep-space' else '' }}" data-theme-value="deep-space" onclick="selectDashboardTheme('deep-space')">
         <div class="theme-swatch theme-swatch-deep-space"></div>
         <span>Deep Space</span>
+      </div>
+      <div class="theme-card {{ 'selected' if values.dashboard_theme == 'rain' else '' }}" data-theme-value="rain" onclick="selectDashboardTheme('rain')">
+        <div class="theme-swatch theme-swatch-rain"></div>
+        <span>Rainfall</span>
       </div>
     </div>
     </div>

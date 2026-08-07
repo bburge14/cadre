@@ -208,6 +208,25 @@ html[data-theme="code-rain"] {
   background-color: #010401;
 }
 
+/* Rain: same deal as Code Rain just above -- a plain dark backdrop here,
+   static/theme-effects.js draws the actual falling rain-streak canvas
+   effect when it detects this theme. Cool storm blue-gray rather than
+   Ocean Deep's calmer navy/teal or Frost's icy pale cyan -- this one's
+   about the motion, the palette just needs to read as an overcast night
+   behind it. */
+html[data-theme="rain"] {
+  --accent: #64b5f6;
+  --accent-hover: #90caf9;
+  --accent-2: #78909c;
+  --accent-gradient: linear-gradient(135deg, #64b5f6, #78909c);
+  --accent-soft-bg: #16232b;
+  --accent-soft-text: #a8d4f0;
+  background-color: #0a1219;
+  background-image: radial-gradient(ellipse 1100px 500px at 50% -10%, rgba(100, 181, 246, 0.08), transparent 60%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 /* Ember: same single-repeating-tile-pseudo-element trick as Galaxy's
    stars (one layer, one background-position animation -- no per-layer
    desync risk), but warm-colored dots drifting straight UP instead of

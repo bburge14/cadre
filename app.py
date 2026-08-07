@@ -99,7 +99,7 @@ def inject_terminal_theme():
 DASHBOARD_THEME_VALUES = {
     "default", "circuit", "slate", "light", "ocean", "volcanic", "amethyst",
     "forest", "neon-city", "blood-moon", "frost", "desert", "toxic",
-    "galaxy", "aurora", "code-rain", "ember", "sakura", "deep-space",
+    "galaxy", "aurora", "code-rain", "ember", "sakura", "deep-space", "rain",
 }
 
 
