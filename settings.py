@@ -23,6 +23,7 @@ _DEFAULTS = {
     "codex_api_key": "",
     "kimi_api_key": "",
     "default_provider": "claude",
+    "terminal_theme": "auto",
 }
 
 _ENV_FALLBACK = {key: key.upper() for key in _DEFAULTS}

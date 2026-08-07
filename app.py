@@ -27,6 +27,7 @@ import sessions_store
 import settings
 import skills_store
 import stacks_store
+import terminal_theme
 from auth import require_auth
 
 app = Flask(
@@ -1255,6 +1256,10 @@ def create_session():
             return redirect(url_for("new_session_form"))
 
     provider_id = request.form.get("provider", "claude") if source == "local" else "claude"
+    try:
+        terminal_theme.apply_theme(workdir, provider_id, settings.get("terminal_theme"))
+    except Exception as exc:
+        print(f"terminal_theme apply failed for {workdir}: {exc}")
     result = session_manager.create(label, workdir, provider=provider_id)
     flash(f"Created session '{label}' (pid {result.get('pid')}).", "success")
     return redirect(url_for("index"))
@@ -1499,6 +1504,9 @@ def save_settings():
         "gitlab_client_id": request.form.get("gitlab_client_id", ""),
         "projects_root": request.form.get("projects_root", ""),
     }
+    terminal_theme_choice = request.form.get("terminal_theme", "")
+    if terminal_theme_choice in ("auto", "dark", "light"):
+        fields["terminal_theme"] = terminal_theme_choice
     # Secret fields: the form never shows the existing value, so a blank
     # submission means "leave it as-is," not "clear it" -- only overwrite
     # when the user actually typed something.

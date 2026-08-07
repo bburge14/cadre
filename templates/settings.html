@@ -148,6 +148,19 @@
     <p class="hint" style="color:var(--danger-text);">No provider currently qualifies as a default — connect one via <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
     {% endif %}
 
+    <h2>Terminal theme</h2>
+    <p class="hint">
+      Applied automatically to every new session, whichever provider it
+      uses — each CLI has its own theme system, mapped to a single
+      dark/light/auto choice here. Only affects <em>new</em> sessions
+      going forward, not ones already running.
+    </p>
+    <select name="terminal_theme">
+      {% for opt in ['auto', 'dark', 'light'] %}
+      <option value="{{ opt }}" {{ 'selected' if opt == values.terminal_theme else '' }}>{{ opt | capitalize }}</option>
+      {% endfor %}
+    </select>
+
     <h2>AI CLI providers</h2>
     <p class="hint">
       API keys only — Gemini/Codex/Kimi's own account-login flows are
