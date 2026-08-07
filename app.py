@@ -1560,6 +1560,27 @@ def save_settings():
         fields["default_provider"] = default_provider
 
     settings.update(**fields)
+
+    if "terminal_theme" in fields:
+        # apply_theme() only ever ran at session-creation time -- a theme
+        # change here previously affected new sessions only, leaving
+        # already-created ones on whatever they got at creation. Rewrite
+        # every known session's config now too. A CLI that's already
+        # running read its config at startup, though, so this alone won't
+        # change what's on screen for a running session -- it still needs
+        # a restart (via its own Start/Stop/Restart controls) to re-read
+        # the file we just wrote.
+        applied = 0
+        for entry in sessions_store.list_sessions():
+            try:
+                terminal_theme.apply_theme(entry["workdir"], entry.get("provider", "claude"), fields["terminal_theme"])
+                applied += 1
+            except Exception as exc:
+                print(f"terminal_theme re-apply failed for {entry.get('workdir')}: {exc}")
+        if applied:
+            flash(f"Settings saved. Terminal theme re-applied to {applied} existing session(s) -- already-running ones need a restart to pick it up.", "success")
+            return redirect(url_for("settings_form", _anchor=anchor))
+
     flash("Settings saved.", "success")
     return redirect(url_for("settings_form", _anchor=anchor))
 

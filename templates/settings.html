@@ -204,10 +204,12 @@
 
     <h2>Terminal theme</h2>
     <p class="hint">
-      Applied automatically to every new session, whichever provider it
-      uses — each CLI has its own theme system, mapped to a single
-      dark/light/auto choice here. Only affects <em>new</em> sessions
-      going forward, not ones already running.
+      Applied automatically to every new session, and re-applied to every
+      existing session's own config as soon as you save here — each CLI
+      has its own theme system, mapped to a single dark/light/auto choice.
+      A session that's already <em>running</em> read its config at
+      startup though, so it needs a restart (its own Start/Stop/Restart
+      controls) to actually pick up the change.
     </p>
     <select name="terminal_theme">
       {% for opt in ['auto', 'dark', 'light'] %}
