@@ -73,8 +73,8 @@
   <div id="js-flash"></div>
 
   <div class="tabs">
+    <button type="button" class="tab-btn" data-tab="version" onclick="switchTab('version')">Version</button>
     <button type="button" class="tab-btn" data-tab="account" onclick="switchTab('account')">Account</button>
-    <button type="button" class="tab-btn" data-tab="version" onclick="switchTab('version')">Version &amp; Claude</button>
     <button type="button" class="tab-btn" data-tab="githosts" onclick="switchTab('githosts')">GitHub &amp; GitLab</button>
     <button type="button" class="tab-btn" data-tab="providers" onclick="switchTab('providers')">AI providers</button>
     <button type="button" class="tab-btn" data-tab="sessions" onclick="switchTab('sessions')">Sessions</button>
@@ -120,32 +120,6 @@
   <button class="btn btn-primary" type="button" id="apply-update-btn" onclick="applyUpdate()" style="display:none;">Update now</button>
   <div id="update-status" class="hint" style="margin-top:0.5rem;"></div>
   <pre id="update-log" class="hint" style="display:none; margin-top:0.5rem; background:var(--surface-2); border:1px solid var(--border); padding:0.6rem 0.8rem; border-radius:6px; max-height:240px; overflow-y:auto; white-space:pre-wrap; font-size:0.76rem;"></pre>
-
-  <h2>Claude account <span class="hint">(required — everything in this app runs on top of it)</span></h2>
-  {% if not claude_installed %}
-    <p class="hint" style="color:var(--danger-text);">
-      The <code>claude</code> command-line tool isn't installed on this
-      machine yet. Having a Claude/Anthropic account isn't enough by
-      itself — the CLI is a separate one-time install, and this app can't
-      do that step for you (it needs a terminal on this machine, once).
-      Install it, then reload this page:
-    </p>
-    <p class="hint"><code>npm install -g @anthropic-ai/claude-code</code><br>
-      (see <a href="https://docs.claude.com/en/docs/claude-code/setup" target="_blank">docs.claude.com</a> if you don't have Node/npm yet)</p>
-  {% elif not claude_logged_in %}
-    <p class="hint">
-      <code>claude</code> is installed but doesn't look logged in yet on
-      this machine. There's no login field here on purpose — Claude's
-      login is a normal part of using the <code>claude</code> CLI itself,
-      the same account/profile you already have. Easiest path:
-      <a href="{{ url_for('new_session_form') }}">create a session</a>,
-      open its terminal, and run <code>/login</code> — it'll give you a
-      browser link to approve with your Claude account. Once that's done
-      this message goes away and the session is ready to keep using.
-    </p>
-  {% else %}
-    <p class="status">&#10003; <code>claude</code> is installed and logged in on this machine.</p>
-  {% endif %}
   </div>
 
   <form method="post" action="{{ url_for('save_settings') }}" id="settings-form">
@@ -185,7 +159,33 @@
     </div>
 
     <div class="tab-panel" id="tab-panel-providers">
-    <h2 style="margin-top:1.1rem;">Default AI</h2>
+    <h2 style="margin-top:1.1rem;">Claude <span class="hint">(required — everything in this app runs on top of it)</span></h2>
+    {% if not claude_installed %}
+    <p class="hint" style="color:var(--danger-text);">
+      The <code>claude</code> command-line tool isn't installed on this
+      machine yet. Having a Claude/Anthropic account isn't enough by
+      itself — the CLI is a separate one-time install, and this app can't
+      do that step for you (it needs a terminal on this machine, once).
+      Install it, then reload this page:
+    </p>
+    <p class="hint"><code>npm install -g @anthropic-ai/claude-code</code><br>
+      (see <a href="https://docs.claude.com/en/docs/claude-code/setup" target="_blank">docs.claude.com</a> if you don't have Node/npm yet)</p>
+    {% elif not claude_logged_in %}
+    <p class="hint">
+      <code>claude</code> is installed but doesn't look logged in yet on
+      this machine. There's no login field here on purpose — Claude's
+      login is a normal part of using the <code>claude</code> CLI itself,
+      the same account/profile you already have. Easiest path:
+      <a href="{{ url_for('new_session_form') }}">create a session</a>,
+      open its terminal, and run <code>/login</code> — it'll give you a
+      browser link to approve with your Claude account. Once that's done
+      this message goes away and the session is ready to keep using.
+    </p>
+    {% else %}
+    <p class="status">&#10003; <code>claude</code> is installed and logged in on this machine.</p>
+    {% endif %}
+
+    <h2>Default AI</h2>
     <p class="hint">
       Pre-fills new sessions and, for a provider capable of it, runs your
       Agent Stacks. Restricted to providers that are both connected and
@@ -305,7 +305,7 @@ function switchTab(name) {
 }
 (function () {
   const requested = location.hash.replace('#', '');
-  const valid = ['account', 'version', 'githosts', 'providers', 'sessions', 'appearance'];
+  const valid = ['version', 'account', 'githosts', 'providers', 'sessions', 'appearance'];
   switchTab(valid.includes(requested) ? requested : 'version');
 })();
 
