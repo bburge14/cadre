@@ -191,7 +191,10 @@ def get_output(session_id: str, max_chars: int = 8000) -> str:
     return text[-max_chars:]
 
 
-def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id: str = "claude") -> dict:
+def _spawn(
+    session_id: str, workdir: str, label: str, resume: bool, provider_id: str = "claude",
+    cols: int | None = None, rows: int | None = None,
+) -> dict:
     with _lock:
         rt = _runtime.get(session_id)
         if rt is not None and rt["pty"].is_alive():
@@ -210,7 +213,7 @@ def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id:
             if key:
                 extra_env[provider.api_key_env_var] = key
 
-        pty_session = pty_compat.PtySession(args, cwd=workdir, extra_env=extra_env or None)
+        pty_session = pty_compat.PtySession(args, cwd=workdir, extra_env=extra_env or None, cols=cols, rows=rows)
         _runtime[session_id] = {
             "pty": pty_session,
             # Trimmed by total character count in _reader (see
@@ -228,11 +231,14 @@ def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id:
         return {"ok": True, "already_running": False, "pid": pty_session.pid}
 
 
-def start(session_id: str) -> dict:
+def start(session_id: str, cols: int | None = None, rows: int | None = None) -> dict:
     entry = sessions_store.get(session_id)
     if entry is None:
         return {"ok": False, "error": "unknown session"}
-    return _spawn(session_id, entry["workdir"], entry["label"], resume=True, provider_id=entry.get("provider", "claude"))
+    return _spawn(
+        session_id, entry["workdir"], entry["label"], resume=True,
+        provider_id=entry.get("provider", "claude"), cols=cols, rows=rows,
+    )
 
 
 def create(label: str, workdir: str, provider_id: str = "claude") -> dict:
@@ -259,9 +265,9 @@ def stop(session_id: str) -> dict:
         return {"ok": True, "was_running": had_own, "pid": pid}
 
 
-def restart(session_id: str) -> dict:
+def restart(session_id: str, cols: int | None = None, rows: int | None = None) -> dict:
     stop_result = stop(session_id)
-    start_result = start(session_id)
+    start_result = start(session_id, cols=cols, rows=rows)
     return {"stopped": stop_result, "started": start_result}
 
 
@@ -375,9 +381,9 @@ def _run_terminal_server() -> None:
 _DISPATCH = {
     "status": lambda a: status(a["session_id"]),
     "get_output": lambda a: {"output": get_output(a["session_id"])},
-    "start": lambda a: start(a["session_id"]),
+    "start": lambda a: start(a["session_id"], a.get("cols"), a.get("rows")),
     "stop": lambda a: stop(a["session_id"]),
-    "restart": lambda a: restart(a["session_id"]),
+    "restart": lambda a: restart(a["session_id"], a.get("cols"), a.get("rows")),
     "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude")),
     "restart_all_running": lambda a: {"restarted": restart_all_running()},
     "create_terminal_token": lambda a: create_terminal_token(a["session_id"]),

@@ -1913,12 +1913,21 @@ def edit_session(session_id):
 @app.post("/sessions/<session_id>/<action>")
 @require_auth
 def session_action(session_id, action):
+    # Optional -- only ever sent by a start/restart triggered from an
+    # already-open terminal view (it already knows its own real size at
+    # that point), not by the plain sessions list. Threaded straight
+    # through to the pty's initial size instead of the daemon's generic
+    # guess, so a --resume'd session's startup recap renders at the
+    # width it's actually about to be viewed at instead of baking a
+    # possibly-wrong width into its backlog forever.
+    cols = request.form.get("cols", type=int)
+    rows = request.form.get("rows", type=int)
     if action == "start":
-        session_manager.start(session_id)
+        session_manager.start(session_id, cols=cols, rows=rows)
     elif action == "stop":
         session_manager.stop(session_id)
     elif action == "restart":
-        session_manager.restart(session_id)
+        session_manager.restart(session_id, cols=cols, rows=rows)
     elif action == "delete":
         session_manager.stop(session_id)
         wipe_history = request.form.get("wipe_history") == "on"

@@ -416,6 +416,55 @@ function createTerminalConnection(sessionId, opts) {
    lines FitAddon's own proposeDimensions() does (xterm-addon-fit.js is
    ~30 lines total) using xterm's internal APIs directly, just without
    the one broken property access. */
+
+// Three fixed column-count tiers instead of continuously fitting to
+// whatever exact pixel width the container happens to have.
+//
+// Two independent reasons this matters, not one:
+//
+// 1. Backlog-replay corruption (see session_daemon.py's
+//    MAX_BACKLOG_CHARS comment for the full diagnosis): raw terminal
+//    output captured with cursor-positioning math tied to one column
+//    width doesn't render correctly replayed at a different one, and
+//    fitting continuously means nearly every distinct device/window/
+//    browser-chrome combination lands on its own unique width -- so a
+//    reconnect from the *same* physical device essentially never lands
+//    on a width any of its own backlog was actually written at.
+//    Snapping to a fixed tier means a given device class reliably lands
+//    on the same width every time instead.
+//
+// 2. A genuine Claude Code CLI rendering limitation, confirmed with an
+//    isolated synthetic test completely independent of Cadre's own
+//    code: its live status/recap area redraws itself with a fixed
+//    "cursor up N rows, clear, reprint" sequence that assumes its own
+//    content always fits in N rows. When the terminal is narrow enough
+//    that a status/recap line wraps onto more rows than N, the redraw
+//    only clears the first of those wrapped rows -- the rest are never
+//    touched again, and sit in scrollback forever as corrupted-looking
+//    leftover fragments. This is upstream CLI behavior Cadre can't fix
+//    directly; the only lever available here is keeping every tier as
+//    wide as practical so *most* status content doesn't wrap. It's not
+//    a full guarantee even at Large -- one actually-observed recap line
+//    ran 178 characters, right up against Large's own 180 -- so Medium/
+//    Small will still hit this sometimes. Deliberate tradeoff (Bradey's
+//    call): keep the terminal comfortably narrow on a real small
+//    screen rather than force every tier close enough to Large to
+//    fully dodge an occasional artifact.
+//
+// Reason 1 alone would tolerate a much narrower "small" tier (closer to
+// 30% of large, more useful on an actually small screen) -- reason 2 is
+// what keeps all three tiers clustered fairly close to Large instead.
+const TERMINAL_COL_TIERS = [180, 150, 120]; // large / medium / small
+
+function snapToColTier(availableCols) {
+  for (const tier of TERMINAL_COL_TIERS) {
+    if (tier <= availableCols) return tier;
+  }
+  // Narrower than even the smallest tier (e.g. a phone in portrait) --
+  // use whatever actually fits rather than force an overflowing size.
+  return Math.max(2, availableCols);
+}
+
 function computeFitSize(term) {
   if (!term.element || !term.element.parentElement) return null;
   const dims = term._core?._renderService?.dimensions;
@@ -433,7 +482,7 @@ function computeFitSize(term) {
     - (parseInt(elementStyle.getPropertyValue("padding-left")) || 0);
 
   return {
-    cols: Math.max(2, Math.floor(availableWidth / dims.css.cell.width)),
+    cols: snapToColTier(Math.floor(availableWidth / dims.css.cell.width)),
     rows: Math.max(1, Math.floor(availableHeight / dims.css.cell.height)),
   };
 }

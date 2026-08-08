@@ -91,7 +91,13 @@
      huge, or because older scrollback is stuck at whatever width it was
      originally written for) just reads as a big block of empty
      background past wherever the actual text stops. */
-  #terminal-wrap { flex: 1; min-height: 0; min-width: 0; max-width: 1300px; margin: 0 auto; width: 100%; overflow: hidden; background: #000; padding: 0.4rem; display: none; flex-direction: column; }
+  /* No max-width here on purpose -- static/terminal.js's own three-tier
+     column snapping (TERMINAL_COL_TIERS) is what actually caps how wide
+     the terminal gets now, deliberately, so it can reach its own "large"
+     tier on a genuinely wide screen; a separate, smaller CSS cap here
+     would just fight that and silently keep every screen stuck on a
+     lower tier than it should reach. */
+  #terminal-wrap { flex: 1; min-height: 0; min-width: 0; margin: 0 auto; width: 100%; overflow: hidden; background: #000; padding: 0.4rem; display: none; flex-direction: column; }
   #terminal { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
   #term-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 0.88rem; text-align: center; padding: 2rem; }
   #term-not-running {
@@ -258,10 +264,19 @@ function selectSession(id) {
 
 async function sessionAction(action) {
   if (!activeId) return;
+  // This view already has a real, currently-fitted terminal size --
+  // pass it through on start/restart so a --resume'd session's startup
+  // recap spawns the pty at the size it's actually about to be viewed
+  // at, instead of session_daemon.py's generic wide-desktop guess. See
+  // pty_compat.py's PtySession docstring for why this matters.
+  let sizeParams = "";
+  if (term && (action === "start" || action === "restart")) {
+    sizeParams = "&cols=" + term.cols + "&rows=" + term.rows;
+  }
   await fetch("/sessions/" + activeId + "/" + action, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: "csrf_token=" + encodeURIComponent(CSRF_TOKEN),
+    body: "csrf_token=" + encodeURIComponent(CSRF_TOKEN) + sizeParams,
   });
   // start/restart need a moment for the daemon to actually spawn the
   // pty before a new websocket connection can succeed against it.

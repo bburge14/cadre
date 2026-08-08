@@ -95,8 +95,8 @@ def get_output(session_id: str, max_chars: int = 8000) -> str:
     return resp.get("output", "")
 
 
-def start(session_id: str) -> dict:
-    return _send({"cmd": "start", "session_id": session_id})
+def start(session_id: str, cols: int | None = None, rows: int | None = None) -> dict:
+    return _send({"cmd": "start", "session_id": session_id, "cols": cols, "rows": rows})
 
 
 def create(label: str, workdir: str, provider: str = "claude") -> dict:
@@ -107,8 +107,8 @@ def stop(session_id: str) -> dict:
     return _send({"cmd": "stop", "session_id": session_id})
 
 
-def restart(session_id: str) -> dict:
-    return _send({"cmd": "restart", "session_id": session_id})
+def restart(session_id: str, cols: int | None = None, rows: int | None = None) -> dict:
+    return _send({"cmd": "restart", "session_id": session_id, "cols": cols, "rows": rows})
 
 
 def restart_all_running() -> list[str]:
