@@ -24,6 +24,7 @@ import time
 import uuid as uuid_mod
 from collections import deque
 from datetime import datetime
+from pathlib import Path
 
 import croniter
 import websockets
@@ -387,7 +388,14 @@ def _run_workflow(workflow_id: str) -> dict:
     workflow = workflows_store.get(workflow_id)
     if workflow is None:
         return {"ok": False, "error": "unknown workflow"}
-    stack = stacks_store.get(workflow["stack_id"])
+    if workflow["stack_id"] == stacks_store.GLOBAL_STACK_ID:
+        # The global team (~/.claude/agents) isn't tied to any one project
+        # directory the way a real stack is -- it applies in any directory
+        # with no project-level .claude/agents of its own, so the home
+        # directory is a safe, neutral place to spawn its sessions.
+        stack = {"workdir": str(Path.home())}
+    else:
+        stack = stacks_store.get(workflow["stack_id"])
     if stack is None:
         workflows_store.update(workflow_id, last_run_at=time.time(), last_run_status="error")
         return {"ok": False, "error": "workflow's stack no longer exists"}

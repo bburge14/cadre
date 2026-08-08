@@ -8,6 +8,14 @@ import config
 
 STORE_FILE = config.INSTANCE_DIR / "agent_stacks.json"
 
+# The one always-present team (~/.claude/agents, not tied to any project
+# directory) that Claude Code falls back to for any session not covered
+# by a more specific stack -- synthesized by app.py's _resolve_stack, not
+# a real row in this store. Shared here (rather than only living in
+# app.py) so session_daemon.py's workflow runner can recognize it too
+# without importing app.py itself.
+GLOBAL_STACK_ID = "global"
+
 
 def _load() -> list[dict]:
     if not STORE_FILE.exists():

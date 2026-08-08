@@ -348,7 +348,7 @@ def docs_page():
 # same templates) instead of needing a second, parallel set of pages --
 # it just can't be renamed, moved, or deleted, since there's no directory
 # to point elsewhere and no meaningful "delete" for the one true fallback.
-_GLOBAL_STACK_ID = "global"
+_GLOBAL_STACK_ID = stacks_store.GLOBAL_STACK_ID
 _GLOBAL_SEEDED_MARKER = config.INSTANCE_DIR / "global_seeded"
 _GLOBAL_SKILLS_SEEDED_MARKER = config.INSTANCE_DIR / "global_skills_seeded"  # legacy, pre-per-name tracking
 _SKILLS_SEEDED_FILE = config.INSTANCE_DIR / "skills_seeded.json"
@@ -1188,10 +1188,18 @@ def _next_schedule_fire(cron_expr: str) -> float | None:
         return None
 
 
+def _stack_picker_options() -> list[dict]:
+    """Every stack a workflow could target, global included -- the global
+    team has no fixed project directory of its own, but _run_workflow
+    (session_daemon.py) knows to spawn its sessions in the user's home
+    directory, where only the global ~/.claude/agents team applies."""
+    return [_resolve_stack(_GLOBAL_STACK_ID)] + stacks_store.list_stacks()
+
+
 @app.get("/workflows")
 @require_auth
 def workflows_page():
-    stacks_by_id = {s["id"]: s for s in stacks_store.list_stacks()}
+    stacks_by_id = {s["id"]: s for s in _stack_picker_options()}
     workflows = workflows_store.list_workflows()
     next_run_by_id = {
         w["id"]: _next_schedule_fire(w["schedule"])
@@ -1212,7 +1220,7 @@ def new_workflow_form():
     return render_template(
         "workflow_form.html",
         workflow=None,
-        stacks=stacks_store.list_stacks(),
+        stacks=_stack_picker_options(),
         cli_providers=providers.list_providers(),
         default_provider=settings.get("default_provider"),
     )
@@ -1228,7 +1236,7 @@ def create_workflow():
     if not name or not stack_id or not prompt:
         flash("Name, stack, and prompt are all required.", "error")
         return redirect(url_for("new_workflow_form"))
-    if stacks_store.get(stack_id) is None:
+    if _resolve_stack(stack_id) is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("new_workflow_form"))
 
@@ -1260,7 +1268,7 @@ def edit_workflow_form(workflow_id):
     return render_template(
         "workflow_form.html",
         workflow=workflow,
-        stacks=stacks_store.list_stacks(),
+        stacks=_stack_picker_options(),
         cli_providers=providers.list_providers(),
         default_provider=settings.get("default_provider"),
     )
@@ -1281,7 +1289,7 @@ def edit_workflow(workflow_id):
     if not name or not stack_id or not prompt:
         flash("Name, stack, and prompt are all required.", "error")
         return redirect(url_for("edit_workflow_form", workflow_id=workflow_id))
-    if stacks_store.get(stack_id) is None:
+    if _resolve_stack(stack_id) is None:
         flash("Unknown stack.", "error")
         return redirect(url_for("edit_workflow_form", workflow_id=workflow_id))
 
