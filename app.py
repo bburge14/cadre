@@ -1566,6 +1566,13 @@ def _read_version() -> str:
 @app.get("/settings")
 @require_auth
 def settings_form():
+    # Sweeps any internal connector session left over from an abandoned
+    # connect flow (browser closed, navigated away without clicking "I'm
+    # done") -- the explicit teardown in refresh_mcp_connector_status
+    # only fires if that button actually gets clicked, so this is the
+    # backstop that makes it truly self-cleaning instead of relying on
+    # that.
+    _discard_internal_connector_sessions()
     raw = settings.get_all()
     # Secrets never round-trip into the page -- not even masked in a value
     # attribute, since that's still plaintext in the HTML source. Only a
