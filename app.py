@@ -9,9 +9,10 @@ import tempfile
 import threading
 import time
 import zipfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
+import croniter
 import requests
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 
@@ -1174,14 +1175,34 @@ def delete_stack(stack_id):
     return redirect(url_for("index"))
 
 
+def _next_schedule_fire(cron_expr: str) -> float | None:
+    """Same computation session_daemon.py's scheduler loop uses to decide
+    what's due -- duplicated here (rather than imported) since app.py and
+    session_daemon.py are deliberately separate processes and this is a
+    small, pure, side-effect-free calculation not worth coupling them
+    over. Only used for the list page's "next run" display; the daemon's
+    own copy is what actually decides when to fire."""
+    try:
+        return croniter.croniter(cron_expr, datetime.now()).get_next(datetime).timestamp()
+    except (ValueError, KeyError):
+        return None
+
+
 @app.get("/workflows")
 @require_auth
 def workflows_page():
     stacks_by_id = {s["id"]: s for s in stacks_store.list_stacks()}
+    workflows = workflows_store.list_workflows()
+    next_run_by_id = {
+        w["id"]: _next_schedule_fire(w["schedule"])
+        for w in workflows
+        if w.get("enabled") and w.get("trigger_type") == "schedule" and w.get("schedule")
+    }
     return render_template(
         "workflows.html",
-        workflows=workflows_store.list_workflows(),
+        workflows=workflows,
         stacks_by_id=stacks_by_id,
+        next_run_by_id=next_run_by_id,
     )
 
 

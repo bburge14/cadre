@@ -4,4 +4,5 @@ python-dotenv
 requests
 psutil
 websockets
+croniter
 pywinpty; sys_platform == "win32"

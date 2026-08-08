@@ -23,7 +23,9 @@ import threading
 import time
 import uuid as uuid_mod
 from collections import deque
+from datetime import datetime
 
+import croniter
 import websockets
 import websockets.exceptions
 
@@ -590,6 +592,66 @@ _DISPATCH = {
 }
 
 
+# workflow_id -> epoch seconds of the last time the scheduler checked this
+# workflow for a due fire. Deliberately in-memory/per-process, not persisted:
+# on daemon startup every currently-enabled schedule workflow gets its
+# baseline seeded on first sight rather than fired immediately, so a
+# restart never floods-fires whatever schedules would otherwise look
+# "overdue" from everything that happened while the daemon was down.
+_scheduler_last_check: dict[str, float] = {}
+
+
+def next_schedule_fire(cron_expr: str, base: float | None = None) -> float | None:
+    """Used by both the scheduler loop below and app.py's "next run" display
+    -- returns the next epoch-seconds fire time for a cron expression, or
+    None if the expression doesn't parse."""
+    try:
+        it = croniter.croniter(cron_expr, datetime.fromtimestamp(base if base is not None else time.time()))
+        return it.get_next(datetime).timestamp()
+    except (ValueError, KeyError):
+        return None
+
+
+def _check_due_workflows() -> None:
+    now = time.time()
+    seen_ids = set()
+    for wf in workflows_store.list_workflows():
+        wid = wf["id"]
+        seen_ids.add(wid)
+        if not wf.get("enabled") or wf.get("trigger_type") != "schedule" or not wf.get("schedule"):
+            continue
+
+        last_check = _scheduler_last_check.get(wid)
+        if last_check is None:
+            _scheduler_last_check[wid] = now
+            continue
+
+        next_fire = next_schedule_fire(wf["schedule"], base=last_check)
+        if next_fire is None:
+            _scheduler_last_check[wid] = now
+            continue
+        if next_fire <= now:
+            _scheduler_last_check[wid] = now
+            run_workflow_async(wid)
+
+    # Drop bookkeeping for workflows that no longer exist, so this dict
+    # doesn't grow unbounded across a long-running daemon process.
+    for wid in list(_scheduler_last_check):
+        if wid not in seen_ids:
+            del _scheduler_last_check[wid]
+
+
+def _scheduler_loop() -> None:
+    while True:
+        time.sleep(30)
+        try:
+            _check_due_workflows()
+        except Exception:
+            # A scheduler bug should never be able to kill the whole
+            # polling loop -- the next tick just tries again.
+            pass
+
+
 class Handler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         data = b""
@@ -625,6 +687,9 @@ def main() -> None:
 
     ws_thread = threading.Thread(target=_run_terminal_server, daemon=True)
     ws_thread.start()
+
+    scheduler_thread = threading.Thread(target=_scheduler_loop, daemon=True)
+    scheduler_thread.start()
 
     print(f"session_daemon listening on 127.0.0.1:{config.DAEMON_PORT}")
     server.serve_forever()

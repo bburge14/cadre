@@ -35,6 +35,12 @@
       <td>
         {% if w.trigger_type == 'schedule' %}
           <span class="badge badge-info">schedule</span> <code>{{ w.schedule }}</code>
+          {% set next_run = next_run_by_id.get(w.id) %}
+          {% if next_run %}
+          <div class="hint next-run" data-epoch="{{ next_run }}">next run: &hellip;</div>
+          {% elif not w.enabled %}
+          <div class="hint">disabled -- won't fire</div>
+          {% endif %}
         {% else %}
           <span class="badge badge-info">manual</span>
         {% endif %}
@@ -65,3 +71,10 @@
   </div>
 </body>
 </html>
+
+<script>
+document.querySelectorAll('.next-run').forEach(el => {
+  const epoch = parseFloat(el.dataset.epoch);
+  el.textContent = 'next run: ' + new Date(epoch * 1000).toLocaleString();
+});
+</script>
