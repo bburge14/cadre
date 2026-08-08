@@ -417,21 +417,30 @@ function createTerminalConnection(sessionId, opts) {
    ~30 lines total) using xterm's internal APIs directly, just without
    the one broken property access. */
 
-// Three fixed column-count tiers instead of continuously fitting to
-// whatever exact pixel width the container happens to have.
+// "Large" is NOT a fourth fixed number -- above LARGE_THRESHOLD_COLS
+// this returns the container's own real available width, uncapped,
+// same continuous-fit behavior the terminal always had (a big/ultrawide
+// screen fills completely, the way it did before any of this). Below
+// that threshold, snaps down to one of two smaller FIXED tiers instead
+// of continuing to shrink continuously. First cut at this capped every
+// screen at a flat 180 regardless of how much wider the window actually
+// was, which was its own real regression on a big monitor (a large
+// swath of unused space where the terminal used to fill the screen) --
+// snapping should only ever kick in for screens actually too narrow for
+// 180 to fit, never for ones that could comfortably show more.
 //
-// Two independent reasons this matters, not one:
+// Two independent reasons the smaller tiers exist at all, not one:
 //
 // 1. Backlog-replay corruption (see session_daemon.py's
 //    MAX_BACKLOG_CHARS comment for the full diagnosis): raw terminal
 //    output captured with cursor-positioning math tied to one column
 //    width doesn't render correctly replayed at a different one, and
-//    fitting continuously means nearly every distinct device/window/
-//    browser-chrome combination lands on its own unique width -- so a
-//    reconnect from the *same* physical device essentially never lands
-//    on a width any of its own backlog was actually written at.
-//    Snapping to a fixed tier means a given device class reliably lands
-//    on the same width every time instead.
+//    fitting continuously on a narrow screen means nearly every
+//    distinct device/window/browser-chrome combination lands on its
+//    own unique width -- so a reconnect from the *same* physical device
+//    essentially never lands on a width any of its own backlog was
+//    actually written at. Snapping to a fixed tier means a given device
+//    class reliably lands on the same width every time instead.
 //
 // 2. A genuine Claude Code CLI rendering limitation, confirmed with an
 //    isolated synthetic test completely independent of Cadre's own
@@ -442,21 +451,23 @@ function createTerminalConnection(sessionId, opts) {
 //    only clears the first of those wrapped rows -- the rest are never
 //    touched again, and sit in scrollback forever as corrupted-looking
 //    leftover fragments. This is upstream CLI behavior Cadre can't fix
-//    directly; the only lever available here is keeping every tier as
-//    wide as practical so *most* status content doesn't wrap. It's not
-//    a full guarantee even at Large -- one actually-observed recap line
-//    ran 178 characters, right up against Large's own 180 -- so Medium/
-//    Small will still hit this sometimes. Deliberate tradeoff (Bradey's
-//    call): keep the terminal comfortably narrow on a real small
-//    screen rather than force every tier close enough to Large to
+//    directly; the only lever available here, once a screen is
+//    genuinely too narrow for the uncapped-large path above, is keeping
+//    both smaller tiers as wide as practical so *most* status content
+//    doesn't wrap. Not a full guarantee even at 180 -- one actually-
+//    observed recap line ran 178 characters, right up against it -- so
+//    Medium/Small will still hit this sometimes. Deliberate tradeoff
+//    (Bradey's call): keep the terminal comfortably narrow on a real
+//    small screen rather than force both tiers close enough to 180 to
 //    fully dodge an occasional artifact.
-//
-// Reason 1 alone would tolerate a much narrower "small" tier (closer to
-// 30% of large, more useful on an actually small screen) -- reason 2 is
-// what keeps all three tiers clustered fairly close to Large instead.
-const TERMINAL_COL_TIERS = [180, 150, 120]; // large / medium / small
+const LARGE_THRESHOLD_COLS = 180;
+const TERMINAL_COL_TIERS = [150, 120]; // medium / small -- large is uncapped, see above
 
 function snapToColTier(availableCols) {
+  // Wide enough for the uncapped "large" path -- fill it completely,
+  // same as the terminal always did, instead of snapping down to a
+  // fixed number and wasting the rest of a big/ultrawide screen.
+  if (availableCols >= LARGE_THRESHOLD_COLS) return availableCols;
   for (const tier of TERMINAL_COL_TIERS) {
     if (tier <= availableCols) return tier;
   }
