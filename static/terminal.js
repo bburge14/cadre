@@ -222,11 +222,22 @@ function syncTerminalWrapperBackground(wrapperId, theme) {
 
 // Shared between createTerminalConnection and setupTerminalFit (via the
 // term instance itself, the one object both already have a reference
-// to) -- see the long comment in setupTerminalFit for why write timing
-// relative to the first successful fit matters.
+// to) -- see markFitReady/_cadrePendingChunks for why write timing
+// relative to the first successful fit matters (a one-time thing, at
+// connect). This used to also track an in-flight-write counter for
+// fit() to defer resizing against, on the theory that resizing mid-
+// write was a source of corruption -- removed after confirming the
+// terminal's actual corruption source was unrelated (Claude Code's own
+// status-line redraw logic, see setupTerminalFit's comment), and after
+// finding that counter could get permanently stuck above zero if
+// term.write()'s completion callback ever didn't fire for some chunk
+// (this vendored xterm.js build already has at least one other known
+// bug -- see the FitAddon comment below) -- silently blocking every
+// resize from then on until the page was reloaded and a fresh term
+// object started the count over. Not worth the risk for a deferral
+// that wasn't fixing anything real.
 function writeToTerm(term, data) {
-  term._cadreWriting = (term._cadreWriting || 0) + 1;
-  term.write(data, () => { term._cadreWriting -= 1; });
+  term.write(data);
 }
 
 function markFitReady(term) {
@@ -504,24 +515,12 @@ function setupTerminalFit(term) {
     if (!size) return false;
     const { cols, rows } = size;
     if (cols !== term.cols || rows !== term.rows) {
-      if (term._cadreWriting) {
-        // A large write (most commonly the backlog replay on first
-        // connect -- a long session's whole transcript arrives as one
-        // message) is still being parsed. term.resize() reflows the
-        // entire existing buffer to the new column width; interrupting
-        // an in-flight write with that reflow is exactly what produced
-        // overlapping/corrupted-looking text -- multiple resizes
-        // landing mid-write, each reflowing a buffer the previous one
-        // hadn't finished settling. Retry shortly instead of forcing it
-        // now; the settle-loop/ResizeObserver caller doesn't need to
-        // retry itself.
-        setTimeout(fit, 100);
-        return true;
-      }
       // FitAddon's own (broken) fit() clears the render surface
       // immediately before resizing -- matching that one behavior
       // exactly, just without the property access that actually
-      // crashes.
+      // crashes. Resizes immediately, not deferred against any
+      // in-flight write -- see writeToTerm's comment for why a prior
+      // version of this deferred and what that cost.
       term._core._renderService.clear();
       term.resize(cols, rows);
     }
