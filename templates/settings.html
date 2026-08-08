@@ -877,7 +877,7 @@ async function pollMcpConnectorResult(slug, sessionId, label, attempt) {
     row.querySelectorAll('button').forEach(b => b.disabled = false);
     return;
   }
-  statusEl.innerHTML = 'Ready -- <a href="' + data.terminal_url + '" target="_blank">open the terminal</a>, ' +
+  statusEl.innerHTML = 'Ready -- <a href="' + data.terminal_url + '">open the terminal</a>, ' +
     'already sitting at the connector menu. If ' + label + " isn't visible, arrow down to \"Show unused connectors\" and press Enter -- then " +
     'arrow down to <strong>' + label + '</strong>, Enter, then Enter again on "Authenticate" and follow the browser prompt it opens. ' +
     '<button type="button" class="btn btn-primary" onclick="refreshMcpConnectorStatus()" style="margin-left:0.5rem;">I\'m done -- refresh status</button>';
