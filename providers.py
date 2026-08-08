@@ -51,9 +51,10 @@ class Provider:
     # per-agent when it's actually global.
     models: tuple[tuple[str, str], ...] = ()
 
-    def new_session_args(self, session_id: str, label: str) -> list[str]:
+    def new_session_args(self, session_id: str, label: str, unattended: bool = False) -> list[str]:
         if self.id == "claude":
-            return [self.binary, "--session-id", session_id, "--remote-control", label]
+            args = [self.binary, "--session-id", session_id, "--remote-control", label]
+            return self._add_unattended(args, unattended)
         if self.id == "kimi":
             return [self.binary, "--session", session_id]
         # Gemini/Codex: no confirmed way to choose a new session's ID
@@ -61,9 +62,10 @@ class Provider:
         # caller discover the real ID afterward via session_id_after_spawn.
         return [self.binary]
 
-    def resume_args(self, session_id: str, label: str) -> list[str]:
+    def resume_args(self, session_id: str, label: str, unattended: bool = False) -> list[str]:
         if self.id == "claude":
-            return [self.binary, "--resume", session_id, "--remote-control", label]
+            args = [self.binary, "--resume", session_id, "--remote-control", label]
+            return self._add_unattended(args, unattended)
         if self.id == "gemini":
             return [self.binary, "--resume", session_id]
         if self.id == "codex":
@@ -71,6 +73,19 @@ class Provider:
         if self.id == "kimi":
             return [self.binary, "--session", session_id]
         raise ValueError(f"Unknown provider: {self.id}")
+
+    def _add_unattended(self, args: list[str], unattended: bool) -> list[str]:
+        # Lets a workflow run finish a task with nobody there to approve
+        # each step -- opt-in only (see workflows_store.py), since this
+        # disables every permission prompt Claude Code would otherwise
+        # show for file edits/bash commands. Claude-only for now: no
+        # verified equivalent flag exists yet for Gemini/Codex/Kimi
+        # (matches this file's existing orchestration_verified=False
+        # honesty pattern) -- the workflow UI only offers the "run
+        # unattended" checkbox for Claude-provider workflows until one is.
+        if unattended and self.id == "claude":
+            return [*args, "--dangerously-skip-permissions"]
+        return args
 
     def consult_command_hint(self) -> str:
         """The exact non-interactive single-prompt invocation, for embedding

@@ -29,6 +29,7 @@ import settings
 import skills_store
 import stacks_store
 import terminal_theme
+import workflows_store
 from auth import require_auth
 
 app = Flask(
@@ -1171,6 +1172,164 @@ def delete_stack(stack_id):
     stacks_store.remove(stack_id)
     flash(f"Deleted stack '{stack['name']}'.", "success")
     return redirect(url_for("index"))
+
+
+@app.get("/workflows")
+@require_auth
+def workflows_page():
+    stacks_by_id = {s["id"]: s for s in stacks_store.list_stacks()}
+    return render_template(
+        "workflows.html",
+        workflows=workflows_store.list_workflows(),
+        stacks_by_id=stacks_by_id,
+    )
+
+
+@app.get("/workflows/new")
+@require_auth
+def new_workflow_form():
+    return render_template(
+        "workflow_form.html",
+        workflow=None,
+        stacks=stacks_store.list_stacks(),
+        cli_providers=providers.list_providers(),
+        default_provider=settings.get("default_provider"),
+    )
+
+
+@app.post("/workflows/new")
+@require_auth
+def create_workflow():
+    name = request.form.get("name", "").strip()
+    stack_id = request.form.get("stack_id", "").strip()
+    prompt = request.form.get("prompt", "").strip()
+    provider_id = request.form.get("provider", "claude")
+    if not name or not stack_id or not prompt:
+        flash("Name, stack, and prompt are all required.", "error")
+        return redirect(url_for("new_workflow_form"))
+    if stacks_store.get(stack_id) is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("new_workflow_form"))
+
+    trigger_type = request.form.get("trigger_type", "manual")
+    schedule = _workflow_schedule_from_form() if trigger_type == "schedule" else None
+    session_mode = request.form.get("session_mode", "fresh")
+    # Unattended is only ever honored for Claude (see providers.py's
+    # _add_unattended) -- refusing to even record it as on for another
+    # provider avoids a workflow silently believing it's unattended when
+    # it never actually will be.
+    unattended = request.form.get("unattended") == "on" and provider_id == "claude"
+
+    workflows_store.add(
+        name, stack_id, prompt, provider_id,
+        trigger_type=trigger_type, schedule=schedule,
+        session_mode=session_mode, unattended=unattended,
+    )
+    flash(f"Created workflow '{name}'.", "success")
+    return redirect(url_for("workflows_page"))
+
+
+@app.get("/workflows/<workflow_id>/edit")
+@require_auth
+def edit_workflow_form(workflow_id):
+    workflow = workflows_store.get(workflow_id)
+    if workflow is None:
+        flash("Unknown workflow.", "error")
+        return redirect(url_for("workflows_page"))
+    return render_template(
+        "workflow_form.html",
+        workflow=workflow,
+        stacks=stacks_store.list_stacks(),
+        cli_providers=providers.list_providers(),
+        default_provider=settings.get("default_provider"),
+    )
+
+
+@app.post("/workflows/<workflow_id>/edit")
+@require_auth
+def edit_workflow(workflow_id):
+    workflow = workflows_store.get(workflow_id)
+    if workflow is None:
+        flash("Unknown workflow.", "error")
+        return redirect(url_for("workflows_page"))
+
+    name = request.form.get("name", "").strip()
+    stack_id = request.form.get("stack_id", "").strip()
+    prompt = request.form.get("prompt", "").strip()
+    provider_id = request.form.get("provider", "claude")
+    if not name or not stack_id or not prompt:
+        flash("Name, stack, and prompt are all required.", "error")
+        return redirect(url_for("edit_workflow_form", workflow_id=workflow_id))
+    if stacks_store.get(stack_id) is None:
+        flash("Unknown stack.", "error")
+        return redirect(url_for("edit_workflow_form", workflow_id=workflow_id))
+
+    trigger_type = request.form.get("trigger_type", "manual")
+    schedule = _workflow_schedule_from_form() if trigger_type == "schedule" else None
+    session_mode = request.form.get("session_mode", "fresh")
+    unattended = request.form.get("unattended") == "on" and provider_id == "claude"
+    # Switching a "reuse" workflow to a different stack/provider, or back
+    # to "fresh", invalidates whatever session was previously pinned --
+    # the next run should start a new one rather than resuming a session
+    # that may no longer make sense for the new config.
+    if session_mode != "reuse" or stack_id != workflow["stack_id"] or provider_id != workflow["provider"]:
+        workflows_store.clear_pinned_session(workflow_id)
+
+    workflows_store.update(
+        workflow_id, name=name, stack_id=stack_id, prompt=prompt, provider=provider_id,
+        trigger_type=trigger_type, schedule=schedule, session_mode=session_mode, unattended=unattended,
+    )
+    flash(f"Saved '{name}'.", "success")
+    return redirect(url_for("workflows_page"))
+
+
+@app.post("/workflows/<workflow_id>/delete")
+@require_auth
+def delete_workflow(workflow_id):
+    workflow = workflows_store.get(workflow_id)
+    if workflow is None:
+        flash("Unknown workflow.", "error")
+        return redirect(url_for("workflows_page"))
+    workflows_store.remove(workflow_id)
+    flash(f"Deleted workflow '{workflow['name']}'.", "success")
+    return redirect(url_for("workflows_page"))
+
+
+@app.post("/workflows/<workflow_id>/run")
+@require_auth
+def run_workflow_now(workflow_id):
+    workflow = workflows_store.get(workflow_id)
+    if workflow is None:
+        flash("Unknown workflow.", "error")
+        return redirect(url_for("workflows_page"))
+    session_manager.run_workflow(workflow_id)
+    flash(f"Running '{workflow['name']}' -- check back shortly for its status.", "success")
+    return redirect(url_for("workflows_page"))
+
+
+def _workflow_schedule_from_form() -> str | None:
+    """Builds a cron expression from the form's schedule fields -- either
+    a friendly preset (hourly/daily-at-time/every-N-minutes) or, if
+    "advanced" was chosen, whatever raw cron string was typed directly.
+    Phase 1 only stores this string; nothing acts on it until the
+    scheduler (phase 2) exists."""
+    preset = request.form.get("schedule_preset", "daily")
+    if preset == "advanced":
+        return request.form.get("schedule_cron", "").strip() or None
+    if preset == "hourly":
+        return "0 * * * *"
+    if preset == "every_n_minutes":
+        n = request.form.get("schedule_minutes", "").strip()
+        n = n if n.isdigit() and int(n) > 0 else "15"
+        return f"*/{n} * * * *"
+    # "daily" (default): a specific hour:minute, 24h fields from the form
+    hour = request.form.get("schedule_hour", "").strip()
+    minute = request.form.get("schedule_minute", "").strip()
+    hour = hour if hour.isdigit() and 0 <= int(hour) <= 23 else "9"
+    minute = minute if minute.isdigit() and 0 <= int(minute) <= 59 else "0"
+    return f"{minute} {hour} * * *"
+
+
 
 
 def _render_diagram(agents_dir, heading, back_url, back_label, save_action):

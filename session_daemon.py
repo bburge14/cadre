@@ -32,6 +32,8 @@ import providers
 import pty_compat
 import sessions_store
 import settings
+import stacks_store
+import workflows_store
 
 _TOKEN_TTL_SECONDS = 60
 _terminal_tokens: dict[str, tuple[str, float]] = {}
@@ -48,6 +50,19 @@ _ANSI_OTHER_RE = re.compile(r"\x1b[^\[]")
 # yet -- expect to add entries here once seen on real hardware.
 TRUST_PROMPT_PATTERNS: dict[str, str] = {
     "claude": "trustthisfolder",
+}
+
+# The one-time warning Claude Code shows *only* when launched with
+# --dangerously-skip-permissions (i.e. only for unattended=True workflow
+# runs) -- confirmed via live testing 2026-08-08 that this is a separate
+# prompt from TRUST_PROMPT_PATTERNS above, not a variant of it, and that
+# without handling it a workflow's readiness poll times out after
+# _WORKFLOW_READY_TIMEOUT with the session just sitting here forever.
+# Its options have the OPPOSITE polarity from the trust-folder prompt --
+# "1. No, exit" / "2. Yes, I accept" -- so this needs its own "2\r"
+# response, not the trust-prompt's "1\r".
+UNATTENDED_WARNING_PATTERNS: dict[str, str] = {
+    "claude": "bypasspermissionsmode",
 }
 
 # Substrings (ANSI-stripped, whitespace-collapsed, lowercased -- same
@@ -95,10 +110,61 @@ _lock = threading.Lock()
 _runtime: dict[str, dict] = {}
 
 
-def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: str) -> None:
+def _mark_ready(session_id: str) -> None:
+    with _lock:
+        rt = _runtime.get(session_id)
+        if rt is not None:
+            rt["ready"] = True
+
+
+def _schedule_ready(session_id: str) -> None:
+    # A short settle delay past "trust prompt handled" (or past spawn, for
+    # a provider with no trust prompt at all) -- rt["ready"] is what a
+    # workflow run (session_daemon.py's _run_workflow) waits on before
+    # writing a prompt into a freshly spawned session; writing the instant
+    # the trust prompt clears risks landing before the CLI's own startup
+    # rendering (welcome banner, prompt box) has actually finished.
+    threading.Timer(1.5, _mark_ready, args=(session_id,)).start()
+
+
+# Safety-net upper bound for "no prompt is coming at all" -- confirmed via
+# live testing 2026-08-08 that Claude Code remembers having already
+# trusted a directory and already accepted the bypass-permissions warning
+# on a per-project basis, and simply never shows either prompt again on a
+# later run. Detection-only readiness (only ever marking ready *after*
+# seeing a pattern) can't handle that: if the prompt never appears, it
+# never fires, and every workflow run against an already-trusted directory
+# would time out and error forever. This fallback timer guarantees ready
+# eventually gets set either way; it's generous (well past the ~1-2s
+# observed for a prompt to actually render) so it only ever matters for
+# the "prompt was skipped" case, not the normal "respond to it" case,
+# which still completes via the much faster _schedule_ready path below.
+_READY_FALLBACK_SECONDS = 8
+
+
+def _reader(
+    session_id: str, pty_session: pty_compat.PtySession, provider_id: str, unattended: bool = False,
+) -> None:
     trust_pattern = TRUST_PROMPT_PATTERNS.get(provider_id)
     trust_check_buffer = ""
     trust_handled = trust_pattern is None
+
+    bypass_pattern = UNATTENDED_WARNING_PATTERNS.get(provider_id) if unattended else None
+    bypass_check_buffer = ""
+    bypass_handled = bypass_pattern is None
+
+    ready_scheduled = False
+    fallback_timer = threading.Timer(_READY_FALLBACK_SECONDS, _mark_ready, args=(session_id,))
+    fallback_timer.start()
+
+    def _maybe_schedule_ready() -> None:
+        nonlocal ready_scheduled
+        if trust_handled and bypass_handled and not ready_scheduled:
+            ready_scheduled = True
+            fallback_timer.cancel()
+            _schedule_ready(session_id)
+
+    _maybe_schedule_ready()
     limit_check_buffer = ""
     limit_already_flagged = False
     while True:
@@ -134,8 +200,21 @@ def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: st
             if trust_pattern in plain_nospace:
                 pty_session.write(b"1\r")
                 trust_handled = True
+                _maybe_schedule_ready()
             elif len(trust_check_buffer) > 20000:
                 trust_check_buffer = trust_check_buffer[-5000:]
+
+        if not bypass_handled:
+            bypass_check_buffer += text
+            plain = _ANSI_CSI_RE.sub("", bypass_check_buffer)
+            plain = _ANSI_OTHER_RE.sub("", plain)
+            plain_nospace = re.sub(r"\s+", "", plain).lower()
+            if bypass_pattern in plain_nospace:
+                pty_session.write(b"2\r")
+                bypass_handled = True
+                _maybe_schedule_ready()
+            elif len(bypass_check_buffer) > 20000:
+                bypass_check_buffer = bypass_check_buffer[-5000:]
 
         if not limit_already_flagged:
             limit_check_buffer += text
@@ -191,9 +270,38 @@ def get_output(session_id: str, max_chars: int = 8000) -> str:
     return text[-max_chars:]
 
 
+def write(session_id: str, text: str) -> dict:
+    """Sends text into a running session's pty as if a human had typed it
+    and pressed Enter. This is what lets a workflow run actually deliver
+    its prompt.
+
+    The text and the Enter keystroke are two separate pty writes with a
+    short gap between them, not one combined "text\r" write -- confirmed
+    via live testing 2026-08-08 that Claude Code's chat input runs under
+    bracketed paste mode, which buffers a burst of input as a paste and
+    swallows a \r embedded in the same write instead of treating it as
+    Enter. The text lands in the input box either way; without the split,
+    it just sits there unsubmitted forever. (The trust-prompt and
+    bypass-permissions-warning auto-confirms in _reader don't need this --
+    those are raw selection menus that appear before bracketed paste mode
+    is active, and a single combined write works fine there.)"""
+    with _lock:
+        rt = _runtime.get(session_id)
+        if rt is None or not rt["pty"].is_alive():
+            return {"ok": False, "error": "session not running"}
+        rt["pty"].write(text.encode("utf-8"))
+    time.sleep(0.15)
+    with _lock:
+        rt = _runtime.get(session_id)
+        if rt is None or not rt["pty"].is_alive():
+            return {"ok": False, "error": "session not running"}
+        rt["pty"].write(b"\r")
+    return {"ok": True}
+
+
 def _spawn(
     session_id: str, workdir: str, label: str, resume: bool, provider_id: str = "claude",
-    cols: int | None = None, rows: int | None = None,
+    cols: int | None = None, rows: int | None = None, unattended: bool = False,
 ) -> dict:
     with _lock:
         rt = _runtime.get(session_id)
@@ -205,7 +313,10 @@ def _spawn(
             return {"ok": True, "already_running": True, "pid": externals[0], "externally_managed": True}
 
         provider = providers.get(provider_id)
-        args = provider.resume_args(session_id, label) if resume else provider.new_session_args(session_id, label)
+        args = (
+            provider.resume_args(session_id, label, unattended) if resume
+            else provider.new_session_args(session_id, label, unattended)
+        )
 
         extra_env = {}
         if provider.api_key_env_var:
@@ -225,28 +336,114 @@ def _spawn(
             "subscribers": [],
             "limit_hit": False,
             "limit_message": None,
+            # Set True by _mark_ready once the trust prompt (if any) has
+            # been handled and a short settle delay has passed -- see
+            # _schedule_ready. A workflow run waits on this before writing
+            # a prompt into a freshly spawned session.
+            "ready": False,
         }
-        t = threading.Thread(target=_reader, args=(session_id, pty_session, provider_id), daemon=True)
+        t = threading.Thread(
+            target=_reader, args=(session_id, pty_session, provider_id, unattended), daemon=True,
+        )
         t.start()
         return {"ok": True, "already_running": False, "pid": pty_session.pid}
 
 
-def start(session_id: str, cols: int | None = None, rows: int | None = None) -> dict:
+def start(
+    session_id: str, cols: int | None = None, rows: int | None = None, unattended: bool = False,
+) -> dict:
     entry = sessions_store.get(session_id)
     if entry is None:
         return {"ok": False, "error": "unknown session"}
     return _spawn(
         session_id, entry["workdir"], entry["label"], resume=True,
-        provider_id=entry.get("provider", "claude"), cols=cols, rows=rows,
+        provider_id=entry.get("provider", "claude"), cols=cols, rows=rows, unattended=unattended,
     )
 
 
-def create(label: str, workdir: str, provider_id: str = "claude") -> dict:
+def create(label: str, workdir: str, provider_id: str = "claude", unattended: bool = False) -> dict:
     session_id = str(uuid_mod.uuid4())
     sessions_store.add(label, workdir, session_id=session_id, provider=provider_id)
-    result = _spawn(session_id, workdir, label, resume=False, provider_id=provider_id)
+    result = _spawn(session_id, workdir, label, resume=False, provider_id=provider_id, unattended=unattended)
     result["session_id"] = session_id
     return result
+
+
+_WORKFLOW_READY_TIMEOUT = 30  # seconds -- see write()'s docstring for why a run waits on rt["ready"]
+
+
+def _run_workflow(workflow_id: str) -> dict:
+    """Runs a saved workflow once: resolves which session to use (a fresh
+    one, or the workflow's own pinned one -- see workflows_store.py's
+    session_mode), waits for it to actually be ready for input, then
+    writes the workflow's prompt into it exactly the way a human typing
+    it and hitting Enter would. Used by both the manual "Run Now" RPC and
+    the (future) scheduler -- deliberately doesn't check workflow["enabled"]
+    itself, since a manual run should still work on a disabled workflow;
+    the scheduler is what's expected to filter on that before calling
+    here."""
+    workflow = workflows_store.get(workflow_id)
+    if workflow is None:
+        return {"ok": False, "error": "unknown workflow"}
+    stack = stacks_store.get(workflow["stack_id"])
+    if stack is None:
+        workflows_store.update(workflow_id, last_run_at=time.time(), last_run_status="error")
+        return {"ok": False, "error": "workflow's stack no longer exists"}
+
+    provider_id = workflow.get("provider") or "claude"
+    unattended = bool(workflow.get("unattended"))
+
+    if workflow.get("session_mode") == "reuse" and workflow.get("pinned_session_id"):
+        session_id = workflow["pinned_session_id"]
+        spawn_result = start(session_id, unattended=unattended)
+    elif workflow.get("session_mode") == "reuse":
+        label = f"Workflow: {workflow['name']}"
+        spawn_result = create(label, stack["workdir"], provider_id, unattended=unattended)
+        session_id = spawn_result.get("session_id")
+        if session_id:
+            workflows_store.update(workflow_id, pinned_session_id=session_id)
+    else:  # "fresh" (default) -- a brand-new session every run
+        label = f"Workflow: {workflow['name']}"
+        spawn_result = create(label, stack["workdir"], provider_id, unattended=unattended)
+        session_id = spawn_result.get("session_id")
+
+    if not session_id or not spawn_result.get("ok"):
+        workflows_store.update(workflow_id, last_run_at=time.time(), last_run_status="error")
+        return {"ok": False, "error": "failed to start session for this workflow"}
+
+    deadline = time.time() + _WORKFLOW_READY_TIMEOUT
+    while time.time() < deadline:
+        with _lock:
+            rt = _runtime.get(session_id)
+            if rt is not None and rt.get("ready"):
+                break
+        time.sleep(0.5)
+    else:
+        workflows_store.update(
+            workflow_id, last_run_at=time.time(), last_run_status="error", last_run_session_id=session_id,
+        )
+        return {"ok": False, "error": "session never became ready for input", "session_id": session_id}
+
+    write_result = write(session_id, workflow["prompt"])
+    status_value = "ok" if write_result.get("ok") else "error"
+    workflows_store.update(
+        workflow_id, last_run_at=time.time(), last_run_status=status_value, last_run_session_id=session_id,
+    )
+    return {"ok": write_result.get("ok", False), "session_id": session_id}
+
+
+def run_workflow_async(workflow_id: str) -> dict:
+    """Fire-and-forget entry point for the run_workflow RPC -- _run_workflow
+    itself can legitimately block for up to _WORKFLOW_READY_TIMEOUT (30s)
+    waiting for a freshly spawned session to become ready, well past the
+    TCP control channel's own 10s socket timeout (session_manager.py's
+    _send). Runs it in a background thread instead and returns
+    immediately; the caller (app.py's "Run Now" route) reads the actual
+    outcome later from the workflow's own last_run_status/last_run_at,
+    the same way session start/restart already work as a fire-and-see
+    pattern backed by status polling."""
+    threading.Thread(target=_run_workflow, args=(workflow_id,), daemon=True).start()
+    return {"ok": True, "started": True}
 
 
 def stop(session_id: str) -> dict:
@@ -387,6 +584,8 @@ _DISPATCH = {
     "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude")),
     "restart_all_running": lambda a: {"restarted": restart_all_running()},
     "create_terminal_token": lambda a: create_terminal_token(a["session_id"]),
+    "write": lambda a: write(a["session_id"], a["text"]),
+    "run_workflow": lambda a: run_workflow_async(a["workflow_id"]),
     "ping": lambda a: {"ok": True},
 }
 

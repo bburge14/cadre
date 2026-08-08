@@ -118,3 +118,13 @@ def restart_all_running() -> list[str]:
 
 def create_terminal_token(session_id: str) -> dict:
     return _send({"cmd": "create_terminal_token", "session_id": session_id})
+
+
+def send_input(session_id: str, text: str) -> dict:
+    """Writes text into a running session's pty as if a human typed it and
+    pressed Enter -- see session_daemon.py's write()."""
+    return _send({"cmd": "write", "session_id": session_id, "text": text})
+
+
+def run_workflow(workflow_id: str) -> dict:
+    return _send({"cmd": "run_workflow", "workflow_id": workflow_id})

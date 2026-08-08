@@ -1,0 +1,152 @@
+<!doctype html>
+<html data-theme="{{ dashboard_theme }}">
+<head>
+<meta charset="utf-8">
+<title>{{ 'Edit' if workflow else 'New' }} workflow — Cadre</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='cadre-logo.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
+<script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
+<script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
+</head>
+<body>
+  {% from '_topbar.html' import topbar %}
+  {{ topbar(active='workflows') }}
+  <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('workflows_page') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to workflows</a></p>
+  <h1>{{ 'Edit ' + workflow.name if workflow else 'New workflow' }}</h1>
+  <p class="hint">A workflow sends one saved prompt to an Agent Stack, either when you click "Run now" or (once a schedule is set) on its own.</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('edit_workflow', workflow_id=workflow.id) if workflow else url_for('create_workflow') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <section>
+  <h2 style="margin-top:0;">Task</h2>
+  <label>name</label>
+  <input type="text" name="name" value="{{ workflow.name if workflow else '' }}" required>
+
+  <label>stack <span class="hint">(which team runs this)</span></label>
+  <select name="stack_id" required>
+    {% for s in stacks %}
+    <option value="{{ s.id }}" {{ 'selected' if workflow and workflow.stack_id == s.id }}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+
+  <label>prompt <span class="hint">(sent verbatim as the task instructions each time this workflow runs)</span></label>
+  <textarea name="prompt" rows="6" required>{{ workflow.prompt if workflow else '' }}</textarea>
+
+  <label>provider</label>
+  <select name="provider" id="provider-field">
+    {% for p in cli_providers %}
+    <option value="{{ p.id }}" {{ 'selected' if (workflow.provider if workflow else default_provider) == p.id }}>{{ p.label }}</option>
+    {% endfor %}
+  </select>
+  </section>
+
+  <section>
+  <h2>Trigger</h2>
+  <label><input type="radio" name="trigger_type" value="manual" id="trigger-manual" style="width:auto;" {{ 'checked' if not workflow or workflow.trigger_type == 'manual' }}> Manual — only runs when you click "Run now"</label>
+  <label><input type="radio" name="trigger_type" value="schedule" id="trigger-schedule" style="width:auto;" {{ 'checked' if workflow and workflow.trigger_type == 'schedule' }}> Schedule</label>
+
+  <div id="schedule-fields" style="margin-top:0.8rem; {{ '' if workflow and workflow.trigger_type == 'schedule' else 'display:none;' }}">
+    <p class="hint">Schedules are saved now but nothing acts on them yet — the scheduler that actually fires these is a follow-up.</p>
+    <select name="schedule_preset" id="schedule-preset">
+      <option value="daily">Daily at a set time</option>
+      <option value="hourly">Every hour</option>
+      <option value="every_n_minutes">Every N minutes</option>
+      <option value="advanced">Advanced (raw cron)</option>
+    </select>
+
+    <div id="preset-daily" class="schedule-sub">
+      <label>hour (0-23) <span class="hint">/ minute (0-59), 24h, server time</span></label>
+      <div style="display:flex; gap:0.5rem;">
+        <input type="number" name="schedule_hour" min="0" max="23" value="9" style="width:6rem;">
+        <input type="number" name="schedule_minute" min="0" max="59" value="0" style="width:6rem;">
+      </div>
+    </div>
+    <div id="preset-every_n_minutes" class="schedule-sub" style="display:none;">
+      <label>every N minutes</label>
+      <input type="number" name="schedule_minutes" min="1" value="15" style="width:6rem;">
+    </div>
+    <div id="preset-advanced" class="schedule-sub" style="display:none;">
+      <label>raw cron expression</label>
+      <input type="text" name="schedule_cron" placeholder="0 9 * * *">
+    </div>
+  </div>
+  </section>
+
+  <section>
+  <h2>Session</h2>
+  <label><input type="radio" name="session_mode" value="fresh" style="width:auto;" {{ 'checked' if not workflow or workflow.session_mode == 'fresh' }}> Fresh session each run <span class="hint">(default — relies on files/docs for continuity, not chat memory; recommended for repeating check-and-act tasks)</span></label>
+  <label><input type="radio" name="session_mode" value="reuse" style="width:auto;" {{ 'checked' if workflow and workflow.session_mode == 'reuse' }}> Reuse one pinned session <span class="hint">(keeps accumulating conversation history across runs — for an ongoing/cumulative task)</span></label>
+  </section>
+
+  <section>
+  <h2>Unattended mode</h2>
+  <label id="unattended-label"><input type="checkbox" name="unattended" id="unattended-checkbox" style="width:auto;" {{ 'checked' if workflow and workflow.unattended }}> Skip permission prompts (Claude only)</label>
+  <p class="hint" id="unattended-hint">Off by default: a scheduled or unattended run stalls at the first action it would normally ask you to confirm. Turning this on runs Claude with <code>--dangerously-skip-permissions</code>, so it can finish a task with nobody watching — only enable it for a workflow whose task and target directory you trust completely.</p>
+  <p class="hint" id="unattended-unsupported" style="display:none;">Only supported for Claude right now — no verified unattended flag exists yet for this provider, so this workflow will always stop at its first confirmation prompt.</p>
+  </section>
+
+  <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if workflow else 'Create workflow' }}</button>
+  </form>
+</body>
+</html>
+
+<script>
+function updateScheduleVisibility() {
+  document.getElementById('schedule-fields').style.display =
+    document.getElementById('trigger-schedule').checked ? '' : 'none';
+}
+document.getElementById('trigger-manual').addEventListener('change', updateScheduleVisibility);
+document.getElementById('trigger-schedule').addEventListener('change', updateScheduleVisibility);
+
+function updateSchedulePreset() {
+  const preset = document.getElementById('schedule-preset').value;
+  document.querySelectorAll('.schedule-sub').forEach(el => el.style.display = 'none');
+  const sub = document.getElementById('preset-' + preset);
+  if (sub) sub.style.display = '';
+}
+document.getElementById('schedule-preset').addEventListener('change', updateSchedulePreset);
+
+// Reconstruct which preset (and its values) an existing workflow's stored
+// cron string came from, so re-saving an edited workflow without touching
+// the schedule fields doesn't silently reset it back to the "daily at
+// 9:00" defaults -- mirrors the four shapes _workflow_schedule_from_form()
+// in app.py can produce.
+(function () {
+  const existing = {{ (workflow.schedule if workflow else None) | tojson }};
+  if (existing) {
+    let m;
+    if (existing === "0 * * * *") {
+      document.getElementById('schedule-preset').value = "hourly";
+    } else if ((m = existing.match(/^\*\/(\d+) \* \* \* \*$/))) {
+      document.getElementById('schedule-preset').value = "every_n_minutes";
+      document.querySelector('input[name="schedule_minutes"]').value = m[1];
+    } else if ((m = existing.match(/^(\d+) (\d+) \* \* \*$/))) {
+      document.getElementById('schedule-preset').value = "daily";
+      document.querySelector('input[name="schedule_minute"]').value = m[1];
+      document.querySelector('input[name="schedule_hour"]').value = m[2];
+    } else {
+      document.getElementById('schedule-preset').value = "advanced";
+      document.querySelector('input[name="schedule_cron"]').value = existing;
+    }
+  }
+  updateSchedulePreset();
+})();
+
+function updateUnattendedAvailability() {
+  const isClaude = document.getElementById('provider-field').value === 'claude';
+  const checkbox = document.getElementById('unattended-checkbox');
+  checkbox.disabled = !isClaude;
+  if (!isClaude) checkbox.checked = false;
+  document.getElementById('unattended-hint').style.display = isClaude ? '' : 'none';
+  document.getElementById('unattended-unsupported').style.display = isClaude ? 'none' : '';
+}
+document.getElementById('provider-field').addEventListener('change', updateUnattendedAvailability);
+updateUnattendedAvailability();
+</script>
