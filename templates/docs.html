@@ -26,6 +26,7 @@
     <a href="#terminal">Terminal &amp; themes</a>
     <a href="#stacks">Agent stacks</a>
     <a href="#global-agents">"Global (default)" stack</a>
+    <a href="#workflows">Workflows</a>
     <a href="#skills">Skills</a>
     <a href="#providers">AI providers (Claude / Gemini / Codex / Kimi)</a>
     <a href="#other-provider-stacks">Agent Stacks on other providers</a>
@@ -172,6 +173,91 @@
     the first time it's ever found empty (once — clearing it out on
     purpose later won't bring that back), so a fresh install isn't just
     staring at an empty default team.
+  </p>
+
+  <h2 id="workflows">Workflows</h2>
+  <p>
+    A session only ever does something when a person opens it and types a
+    prompt. A <strong>workflow</strong> is how you get an Agent Stack to run
+    a task <em>without</em> you sitting down each time — save a prompt once,
+    then either click "Run now" whenever you want it done, or set a
+    schedule and let it fire on its own.
+  </p>
+  <p>
+    <strong>Worked example:</strong> say you have a stack that handles
+    email — a triage agent, a reply-drafting agent. A workflow named
+    "Morning inbox triage," pointed at that stack, with the prompt
+    <em>"Check the inbox for anything new, triage each message by
+    urgency, and draft — don't send — a reply for anything that needs
+    one,"</em> scheduled daily at 8am. Every morning it spins up, the
+    stack's coordinator reads that prompt and delegates to whichever of
+    its own agents fit (same delegation it would do if you'd typed that
+    prompt yourself), and by the time you check the dashboard there are
+    triaged tickets and draft replies waiting — nobody had to open a
+    session and ask for it.
+  </p>
+  <h3>Creating one</h3>
+  <p>
+    "+ New workflow" (from the Workflows nav icon) asks for:
+  </p>
+  <ul>
+    <li><strong>Stack</strong> — which team runs this. Whatever
+      directory-scoped stack you want, or "Global (default)" if you don't
+      have a dedicated stack for this task (its session spawns in your
+      home directory, where only the global team applies).</li>
+    <li><strong>Prompt</strong> — sent to that stack's top-level session
+      exactly as written, every single run. Write it the same way you'd
+      type a request into a live session — you can name a specific agent
+      if you want ("have the triage agent handle new tickets, then hand
+      off to the reply agent"), or just describe the task and let the
+      coordinator decide who handles it, same as usual.</li>
+    <li><strong>Provider</strong> — which CLI runs it. Unattended mode
+      (below) is Claude-only for now.</li>
+  </ul>
+  <h3>Trigger: manual vs. schedule</h3>
+  <p>
+    <strong>Manual</strong> only ever runs when you click "Run now."
+    <strong>Schedule</strong> adds a cron trigger — pick a preset (hourly,
+    daily at a specific time, every N minutes) or type raw cron directly
+    for anything else. A background check runs every 30 seconds; the
+    workflows list shows each schedule's next run time.
+  </p>
+  <h3>Session mode: fresh vs. reuse</h3>
+  <p>
+    <strong>Fresh session each run</strong> (the default) starts a brand
+    new session every time — the right choice for almost everything,
+    since a recurring check-and-act task cares about current reality
+    (what's actually in the inbox right now, what files actually exist),
+    not the model's memory of its own past turns. A fresh run can still
+    pick up where a previous one left off through the same
+    <code>PROJECT_STATUS.md</code>-style continuity file "Hand off to
+    fresh session" already uses (see Sessions above) — persistent state
+    on disk, not chat history, is what actually carries context forward.
+    <strong>Reuse one pinned session</strong> keeps one single session
+    alive across every run instead, accumulating real conversation
+    history — pick this only for a genuinely ongoing/cumulative task
+    where that history itself matters.
+  </p>
+  <h3>Unattended mode</h3>
+  <p>
+    Off by default, and only ever available for Claude. A workflow run
+    normally stops and waits at the exact same confirmation prompts a
+    live session would show you — which means an unattended (no human
+    watching) run just stalls there forever unless something answers
+    them. Turning this on runs Claude with
+    <code>--dangerously-skip-permissions</code>, letting it finish a task
+    with nobody watching. Only turn it on for a workflow whose task and
+    target directory you fully trust — it will run any command the task
+    calls for, including destructive ones, with nothing left to ask you
+    first.
+  </p>
+  <h3>Checking on a run</h3>
+  <p>
+    The workflows list shows each one's last-run status ("ok" once the
+    prompt was successfully delivered, not necessarily that the task
+    itself finished or succeeded — check that session's own terminal for
+    the actual outcome) and, for reuse-mode workflows, links through to
+    the pinned session doing the work.
   </p>
 
   <h2 id="skills">Skills</h2>

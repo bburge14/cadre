@@ -25,10 +25,16 @@
     <section>
     <h2 id="basics" style="margin-top:0;">Basics</h2>
     <label>name <span class="hint">(lowercase-hyphenated, e.g. rust-engineer)</span></label>
-    <input name="name" value="{{ agent.frontmatter.get('name', '') if agent else '' }}" required>
+    <input name="name" value="{{ agent.frontmatter.get('name', '') if agent else '' }}" placeholder="e.g. email-triage-agent" required>
 
-    <label>description <span class="hint">(what Claude matches your request against to auto-delegate here)</span></label>
-    <input name="description" value="{{ agent.frontmatter.get('description', '') if agent else '' }}" required>
+    <label>description <span class="hint">(what Claude matches your request against to auto-delegate here)</span>
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Be specific about <em>when</em> this agent should get the work, not just what it broadly does — this is the only thing the coordinator sees before deciding to delegate here.</p>
+        <p>Weak: "Handles email."</p>
+        <p>Better: "Use for triaging incoming support tickets by urgency and category -- not for drafting replies, that's the reply agent."</p>
+      </div></details>
+    </label>
+    <input name="description" value="{{ agent.frontmatter.get('description', '') if agent else '' }}" placeholder="e.g. Use for triaging incoming support tickets by urgency and category." required>
     </section>
 
     <section>
@@ -129,8 +135,13 @@
 
     <section>
     <h2 id="prompt">System prompt</h2>
-    <label>system prompt (markdown body)</label>
-    <textarea name="body">{{ agent.body if agent else '' }}</textarea>
+    <label>system prompt (markdown body)
+      <details class="help"><summary></summary><div class="help-body">
+        <p>What this agent always knows before it starts working -- its role, how it should approach tasks, anything it should always check or never do.</p>
+        <p>Concrete beats abstract: naming an exact file to check or a specific format to follow beats a general instruction to "be thorough."</p>
+      </div></details>
+    </label>
+    <textarea name="body" placeholder="e.g.&#10;You triage incoming support tickets by urgency and category.&#10;&#10;For each new ticket:&#10;1. Read it and classify urgency (low/medium/high)&#10;2. Check PROJECT_STATUS.md for any relevant open threads&#10;3. Hand off to the reply agent with your classification and a one-line summary">{{ agent.body if agent else '' }}</textarea>
     </section>
 
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">Save &amp; restart session</button>

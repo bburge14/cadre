@@ -12,7 +12,10 @@
   {% from '_topbar.html' import topbar %}
   {{ topbar(active='workflows') }}
 
-  <div class="sub">A workflow is a saved task (a prompt, run against one Agent Stack) you can fire on demand — a schedule comes later. Each run either starts a brand-new session or resumes one pinned session, depending on how the workflow's own "session mode" is set.</div>
+  <div class="sub">
+    A workflow is a saved prompt sent to an Agent Stack, either when you click "Run now" or on its own once a schedule is set — e.g. a workflow named "Morning inbox triage" pointed at your email stack, prompt "check the inbox and draft replies to anything new," scheduled daily at 8am.
+    New to this? <a href="{{ url_for('docs_page') }}#workflows">the Workflows section of the docs</a> walks through creating one, trigger types, session modes, and unattended mode.
+  </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -26,7 +29,7 @@
   </div>
   <div class="card">
   <table class="list">
-    <tr><th>Name</th><th>Stack</th><th>Trigger</th><th>Last run</th><th></th></tr>
+    <tr><th>Name</th><th>Stack</th><th>Trigger</th><th>Last run <span class="hint" style="font-weight:normal;">("ok" = prompt delivered, not necessarily finished)</span></th><th></th></tr>
     {% for w in workflows %}
     {% set stack = stacks_by_id.get(w.stack_id) %}
     <tr>
@@ -48,6 +51,9 @@
       <td>
         {% if w.last_run_at %}
           <span class="badge {{ 'badge-on' if w.last_run_status == 'ok' else 'badge-off' }}"><span class="badge-dot"></span>{{ w.last_run_status or 'unknown' }}</span>
+          {% if w.last_run_session_id %}
+          <div class="hint"><a href="{{ url_for('session_detail', session_id=w.last_run_session_id) }}">view session &rarr;</a></div>
+          {% endif %}
         {% else %}
           <span class="hint">never run</span>
         {% endif %}
@@ -65,7 +71,9 @@
       </td>
     </tr>
     {% else %}
-    <tr><td class="empty" colspan="5">No workflows yet — "+ New workflow" to create one.</td></tr>
+    <tr><td class="empty" colspan="5">
+      No workflows yet. "+ New workflow" to create one — pick a stack, write a prompt (e.g. "check the inbox and draft replies to anything new"), and either run it on demand or set a schedule.
+    </td></tr>
     {% endfor %}
   </table>
   </div>

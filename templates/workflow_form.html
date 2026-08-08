@@ -13,7 +13,10 @@
   {{ topbar(active='workflows') }}
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('workflows_page') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to workflows</a></p>
   <h1>{{ 'Edit ' + workflow.name if workflow else 'New workflow' }}</h1>
-  <p class="hint">A workflow sends one saved prompt to an Agent Stack, either when you click "Run now" or (once a schedule is set) on its own.</p>
+  <p class="hint">A workflow sends one saved prompt to an Agent Stack, either when you click "Run now" or (once a schedule is set) on its own. See <a href="{{ url_for('docs_page') }}#workflows">the docs</a> for a full walkthrough.</p>
+  {% if not workflow %}
+  <p class="hint">Example: name "Morning inbox triage," stack = your email stack, prompt "check the inbox for anything new and draft (don't send) a reply for anything that needs one," scheduled daily at 8am.</p>
+  {% endif %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -27,17 +30,24 @@
   <section>
   <h2 style="margin-top:0;">Task</h2>
   <label>name</label>
-  <input type="text" name="name" value="{{ workflow.name if workflow else '' }}" required>
+  <input type="text" name="name" value="{{ workflow.name if workflow else '' }}" placeholder="e.g. Morning inbox triage" required>
 
-  <label>stack <span class="hint">(which team runs this)</span></label>
+  <label>stack <span class="hint">(which team runs this -- "Global (default)" always exists if you don't have a dedicated one)</span></label>
   <select name="stack_id" required>
     {% for s in stacks %}
     <option value="{{ s.id }}" {{ 'selected' if workflow and workflow.stack_id == s.id }}>{{ s.name }}</option>
     {% endfor %}
   </select>
 
-  <label>prompt <span class="hint">(sent verbatim as the task instructions each time this workflow runs)</span></label>
-  <textarea name="prompt" rows="6" required>{{ workflow.prompt if workflow else '' }}</textarea>
+  <label>prompt <span class="hint">(sent verbatim as the task instructions each time this workflow runs)</span>
+    <details class="help"><summary></summary><div class="help-body">
+      <p>Written the same way you'd type a request into a live session -- the stack's coordinator reads it and delegates to whichever of its own agents fit, same as usual.</p>
+      <p>Weak: "handle email."</p>
+      <p>Better: "check the inbox for anything new, triage each message by urgency, and draft (don't send) a reply for anything that needs one."</p>
+      <p>You can also name a specific agent directly: "have the triage agent handle new tickets, then hand off to the reply agent."</p>
+    </div></details>
+  </label>
+  <textarea name="prompt" rows="6" placeholder="e.g. Check the inbox for anything new, triage each message by urgency, and draft (don't send) a reply for anything that needs one." required>{{ workflow.prompt if workflow else '' }}</textarea>
 
   <label>provider</label>
   <select name="provider" id="provider-field">
@@ -53,7 +63,7 @@
   <label><input type="radio" name="trigger_type" value="schedule" id="trigger-schedule" style="width:auto;" {{ 'checked' if workflow and workflow.trigger_type == 'schedule' }}> Schedule</label>
 
   <div id="schedule-fields" style="margin-top:0.8rem; {{ '' if workflow and workflow.trigger_type == 'schedule' else 'display:none;' }}">
-    <p class="hint">Schedules are saved now but nothing acts on them yet — the scheduler that actually fires these is a follow-up.</p>
+    <p class="hint">A background check runs every 30 seconds and fires anything due -- the workflows list shows this one's next run time once saved.</p>
     <select name="schedule_preset" id="schedule-preset">
       <option value="daily">Daily at a set time</option>
       <option value="hourly">Every hour</option>

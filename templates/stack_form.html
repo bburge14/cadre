@@ -98,7 +98,7 @@
     <section>
     <h2 id="details" style="margin-top:0;">Directory</h2>
     <label>name</label>
-    <input type="text" name="name" value="{{ stack.name if stack else (prefill_name | default('')) }}" required>
+    <input type="text" name="name" value="{{ stack.name if stack else (prefill_name | default('')) }}" placeholder="e.g. My Coding Project" required>
 
     <label>directory <span class="hint">(absolute path — existing directory or new, either is fine; defaults below based on the name if left blank, or pick an existing one you're already using)</span></label>
     <div style="display:flex; gap:0.5rem;">
