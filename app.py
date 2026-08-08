@@ -149,6 +149,8 @@ def enforce_csrf():
 def _sessions_with_status() -> list[dict]:
     sessions = []
     for entry in sessions_store.list_sessions():
+        if entry.get("internal"):
+            continue
         sessions.append({**entry, "status": session_manager.status(entry["id"])})
     return sessions
 
@@ -1042,7 +1044,7 @@ def _known_directories() -> list[str]:
     workdirs and existing stacks' workdirs -- so pointing a new stack at
     an already-existing project doesn't mean typing/copying its path from
     memory. Purely a convenience list; any absolute path still works."""
-    dirs = {s["workdir"] for s in sessions_store.list_sessions()}
+    dirs = {s["workdir"] for s in sessions_store.list_sessions() if not s.get("internal")}
     dirs |= {s["workdir"] for s in stacks_store.list_stacks()}
     return sorted(dirs)
 
@@ -1150,7 +1152,9 @@ def edit_stack(stack_id):
     stacks_store.update(stack_id, name=name, workdir=str(path))
 
     if written:
-        matching_session = next((s for s in sessions_store.list_sessions() if s["workdir"] == str(path)), None)
+        matching_session = next(
+            (s for s in sessions_store.list_sessions() if s["workdir"] == str(path) and not s.get("internal")), None,
+        )
         if matching_session:
             session_manager.restart(matching_session["id"])
 
@@ -1595,22 +1599,28 @@ def settings_form():
 _CONNECTOR_SESSION_LABEL = "Cadre: Connectors"
 
 
-def _get_or_create_connector_session() -> str:
-    """One persistent session, reused for every connector-connect action --
-    the whole point is a user never has to know this session exists or
-    dig for it themselves; Cadre gets them straight to its terminal,
-    already sitting at the /mcp menu. Claude only: this drives Claude
-    Code's own /mcp picker (see session_daemon.py's
-    start_mcp_connector_session), which has no equivalent on the other
-    providers."""
-    existing = next(
-        (s for s in sessions_store.list_sessions() if s["label"] == _CONNECTOR_SESSION_LABEL), None,
-    )
-    if existing is not None:
-        if not session_manager.status(existing["id"]).get("running"):
-            session_manager.start(existing["id"])
-        return existing["id"]
-    result = session_manager.create(_CONNECTOR_SESSION_LABEL, str(Path.home()), provider="claude")
+def _discard_internal_connector_sessions() -> None:
+    """Tears down every leftover internal connector session -- called
+    both when "I'm done" is clicked and defensively before opening a new
+    one, so an abandoned flow (browser closed mid-setup, etc.) gets
+    cleaned up the next time anyone visits this tab instead of lingering
+    forever."""
+    for s in sessions_store.list_sessions():
+        if s.get("internal") and s["label"] == _CONNECTOR_SESSION_LABEL:
+            session_manager.stop(s["id"])
+            sessions_store.remove(s["id"])
+
+
+def _create_connector_session() -> str:
+    """A fresh, internal (hidden from the normal session list -- see
+    sessions_store.add's internal flag) session for driving Claude Code's
+    own /mcp picker. Not reused across connects and torn down again once
+    the user's done (see _discard_internal_connector_sessions) -- this
+    exists purely as a vehicle for that one menu, not something anyone
+    should find or manage as an ordinary session. Claude only: no
+    equivalent of /mcp exists on the other providers."""
+    _discard_internal_connector_sessions()
+    result = session_manager.create(_CONNECTOR_SESSION_LABEL, str(Path.home()), provider="claude", internal=True)
     return result["session_id"]
 
 
@@ -1619,7 +1629,7 @@ def _get_or_create_connector_session() -> str:
 def connect_mcp_connector(name):
     if name not in providers.CLAUDE_CONNECTOR_LABELS:
         return {"ok": False, "error": "unknown connector"}
-    session_id = _get_or_create_connector_session()
+    session_id = _create_connector_session()
     result = session_manager.start_mcp_connector_session(session_id)
     result["session_id"] = session_id
     return result
@@ -1637,9 +1647,10 @@ def poll_mcp_connector_result():
     return data
 
 
-@app.get("/settings/connectors/status")
+@app.post("/settings/connectors/status")
 @require_auth
 def refresh_mcp_connector_status():
+    _discard_internal_connector_sessions()
     return {"ok": True, "connector_status": providers.claude_mcp_connectors()}
 
 

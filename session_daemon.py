@@ -426,9 +426,11 @@ def start(
     )
 
 
-def create(label: str, workdir: str, provider_id: str = "claude", unattended: bool = False) -> dict:
+def create(
+    label: str, workdir: str, provider_id: str = "claude", unattended: bool = False, internal: bool = False,
+) -> dict:
     session_id = str(uuid_mod.uuid4())
-    sessions_store.add(label, workdir, session_id=session_id, provider=provider_id)
+    sessions_store.add(label, workdir, session_id=session_id, provider=provider_id, internal=internal)
     result = _spawn(session_id, workdir, label, resume=False, provider_id=provider_id, unattended=unattended)
     result["session_id"] = session_id
     return result
@@ -653,7 +655,7 @@ _DISPATCH = {
     "start": lambda a: start(a["session_id"], a.get("cols"), a.get("rows")),
     "stop": lambda a: stop(a["session_id"]),
     "restart": lambda a: restart(a["session_id"], a.get("cols"), a.get("rows")),
-    "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude")),
+    "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude"), internal=a.get("internal", False)),
     "restart_all_running": lambda a: {"restarted": restart_all_running()},
     "create_terminal_token": lambda a: create_terminal_token(a["session_id"]),
     "write": lambda a: write(a["session_id"], a["text"]),

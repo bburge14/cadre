@@ -15,6 +15,7 @@ def _load() -> list[dict]:
     sessions = json.loads(STORE_FILE.read_text())
     for s in sessions:
         s.setdefault("provider", "claude")
+        s.setdefault("internal", False)
     return sessions
 
 
@@ -34,7 +35,9 @@ def get(session_id: str) -> dict | None:
     return None
 
 
-def add(label: str, workdir: str, session_id: str | None = None, provider: str = "claude") -> dict:
+def add(
+    label: str, workdir: str, session_id: str | None = None, provider: str = "claude", internal: bool = False,
+) -> dict:
     sessions = _load()
     entry = {
         "id": session_id or str(uuid.uuid4()),
@@ -42,6 +45,12 @@ def add(label: str, workdir: str, session_id: str | None = None, provider: str =
         "workdir": workdir,
         "provider": provider,
         "created_at": time.time(),
+        # Never shown in the dashboard's own session list -- a session
+        # Cadre spun up for its own internal use (e.g. driving Claude
+        # Code's /mcp connector picker), not one the user asked to create
+        # and manage themselves. Still a completely normal session
+        # otherwise; nothing else treats this specially.
+        "internal": internal,
     }
     sessions.append(entry)
     _save(sessions)
