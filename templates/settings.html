@@ -287,7 +287,7 @@
   <div class="tabs">
     <button type="button" class="tab-btn" data-tab="version" onclick="switchTab('version')">Version</button>
     <button type="button" class="tab-btn" data-tab="account" onclick="switchTab('account')">Account</button>
-    <button type="button" class="tab-btn" data-tab="githosts" onclick="switchTab('githosts')">GitHub &amp; GitLab</button>
+    <button type="button" class="tab-btn" data-tab="githosts" onclick="switchTab('githosts')">Connectors</button>
     <button type="button" class="tab-btn" data-tab="providers" onclick="switchTab('providers')">AI providers</button>
     <button type="button" class="tab-btn" data-tab="sessions" onclick="switchTab('sessions')">Sessions</button>
     <button type="button" class="tab-btn" data-tab="appearance" onclick="switchTab('appearance')">Appearance</button>
@@ -382,7 +382,35 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="tab-panel" id="tab-panel-githosts">
-    <h2 style="margin-top:1.1rem;">GitHub</h2>
+    <h2 style="margin-top:1.1rem;">AI connectors</h2>
+    <p class="hint">
+      Gmail, Google Calendar, and Google Drive access for Claude Code sessions -- these are Anthropic's own connectors tied to your <code>claude</code> CLI login, not something Cadre stores credentials for itself. Claude-only: no equivalent exists yet for Gemini/Codex/Kimi.
+      "Connect" drives Claude Code's own connector setup for you (opens its authorization page in a new tab) instead of needing a terminal.
+    </p>
+    <table class="list" style="margin-bottom:1rem;">
+      <tr><th>Connector</th><th>Status</th><th></th></tr>
+      {% for slug, label in [('gmail', 'Gmail'), ('calendar', 'Google Calendar'), ('drive', 'Google Drive')] %}
+      <tr id="connector-row-{{ slug }}">
+        <td>{{ label }}</td>
+        <td>
+          {% set state = connector_status.get(slug) %}
+          {% if state is true %}
+          <span class="badge badge-on"><span class="badge-dot"></span>connected</span>
+          {% elif state is false %}
+          <span class="badge badge-off"><span class="badge-dot"></span>not connected</span>
+          {% else %}
+          <span class="hint">unknown</span>
+          {% endif %}
+        </td>
+        <td>
+          <button type="button" class="btn" onclick="connectMcpConnector('{{ slug }}', '{{ label }}')">{{ 'Reconnect' if state else 'Connect' }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div id="connector-status" class="hint"></div>
+
+    <h2>GitHub</h2>
     <p class="hint">
       Register an OAuth App at
       <a href="https://github.com/settings/developers" target="_blank">github.com/settings/developers</a>
@@ -796,6 +824,86 @@ async function selectDashboardTheme(name) {
   // of the dashboard unchanged) until a separate, easy-to-miss click on
   // "Save" further down the page.
   await ajaxSaveForm(form, 'Theme saved.');
+}
+
+async function connectMcpConnector(slug, label) {
+  const statusEl = document.getElementById('connector-status');
+  const row = document.getElementById('connector-row-' + slug);
+  row.querySelectorAll('button').forEach(b => b.disabled = true);
+  statusEl.textContent = 'Opening a connector session... (this can take up to about 30 seconds the first time)';
+  try {
+    const res = await fetch("/settings/connectors/" + slug + "/connect", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf_token=' + encodeURIComponent('{{ csrf_token() }}'),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      statusEl.textContent = "Couldn't open a connector session: " + (data.error || 'unknown error');
+      row.querySelectorAll('button').forEach(b => b.disabled = false);
+      return;
+    }
+    pollMcpConnectorResult(slug, data.session_id, label);
+  } catch (e) {
+    statusEl.textContent = "Couldn't open a connector session: " + e;
+    row.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+}
+
+async function pollMcpConnectorResult(slug, sessionId, label, attempt) {
+  attempt = attempt || 0;
+  const statusEl = document.getElementById('connector-status');
+  const row = document.getElementById('connector-row-' + slug);
+  if (attempt > 40) {
+    statusEl.textContent = "Connector session setup timed out -- try again.";
+    row.querySelectorAll('button').forEach(b => b.disabled = false);
+    return;
+  }
+  let data;
+  try {
+    data = await (await fetch("/settings/connectors/result?session_id=" + encodeURIComponent(sessionId))).json();
+  } catch (e) {
+    statusEl.textContent = "Couldn't check connector session: " + e;
+    row.querySelectorAll('button').forEach(b => b.disabled = false);
+    return;
+  }
+  if (data.pending) {
+    setTimeout(() => pollMcpConnectorResult(slug, sessionId, label, attempt + 1), 750);
+    return;
+  }
+  const result = data.result || {};
+  if (!result.ok) {
+    statusEl.textContent = "Couldn't open the connector menu: " + (result.error || 'unknown error');
+    row.querySelectorAll('button').forEach(b => b.disabled = false);
+    return;
+  }
+  statusEl.innerHTML = 'Ready -- <a href="' + data.terminal_url + '" target="_blank">open the terminal</a>, ' +
+    'already sitting at the connector menu. If ' + label + " isn't visible, arrow down to \"Show unused connectors\" and press Enter -- then " +
+    'arrow down to <strong>' + label + '</strong>, Enter, then Enter again on "Authenticate" and follow the browser prompt it opens. ' +
+    '<button type="button" class="btn btn-primary" onclick="refreshMcpConnectorStatus()" style="margin-left:0.5rem;">I\'m done -- refresh status</button>';
+  row.querySelectorAll('button').forEach(b => b.disabled = false);
+}
+
+async function refreshMcpConnectorStatus() {
+  const statusEl = document.getElementById('connector-status');
+  statusEl.textContent = 'Checking connector status...';
+  try {
+    const data = await (await fetch("/settings/connectors/status")).json();
+    const status = data.connector_status || {};
+    for (const slug of Object.keys(status)) {
+      const row = document.getElementById('connector-row-' + slug);
+      if (!row) continue;
+      const cell = row.children[1];
+      if (status[slug] === true) {
+        cell.innerHTML = '<span class="badge badge-on"><span class="badge-dot"></span>connected</span>';
+      } else if (status[slug] === false) {
+        cell.innerHTML = '<span class="badge badge-off"><span class="badge-dot"></span>not connected</span>';
+      }
+    }
+    statusEl.textContent = 'Status refreshed.';
+  } catch (e) {
+    statusEl.textContent = "Couldn't refresh status: " + e;
+  }
 }
 
 let latestKnownVersion = null;

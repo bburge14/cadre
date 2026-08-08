@@ -12,7 +12,9 @@ one-off login action. Simpler and clearer: API keys only for these three.
 """
 from __future__ import annotations
 
+import re
 import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -182,6 +184,47 @@ def claude_logged_in() -> bool:
     here after `/login` succeeds. Presence isn't a live validity check (the
     token could be expired/revoked), just "you've logged in before"."""
     return (Path.home() / ".claude" / ".credentials.json").exists()
+
+
+# The three Anthropic-hosted connectors confirmed reachable via `claude mcp
+# list` (2026-08-08) -- tied to the logged-in claude.ai account, not
+# anything Cadre registers itself. Note this reflects the *account-level*
+# connector being registered/reachable, not that any particular freshly
+# spawned session has already completed its own one-time in-session
+# authorization -- confirmed via direct testing that a brand-new session
+# can still say "needs authentication" even when this reports Connected.
+CLAUDE_CONNECTOR_LABELS: dict[str, str] = {
+    "gmail": "claude.ai Gmail",
+    "calendar": "claude.ai Google Calendar",
+    "drive": "claude.ai Google Drive",
+}
+
+_MCP_LIST_LINE_RE = re.compile(r"^(.+?):\s+\S+\s+-\s+(.+)$")
+
+
+def claude_mcp_connectors() -> dict[str, bool | None]:
+    """Runs `claude mcp list` and reports each of the three known
+    connectors as True (Connected), False (some other status), or None
+    (not found in the output at all, e.g. claude isn't installed/logged
+    in). Best-effort -- a failure here shouldn't break loading Settings,
+    it just means the status badges show as unknown."""
+    result = {slug: None for slug in CLAUDE_CONNECTOR_LABELS}
+    if not binary_found("claude"):
+        return result
+    try:
+        proc = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return result
+    labels_by_name = {label: slug for slug, label in CLAUDE_CONNECTOR_LABELS.items()}
+    for line in proc.stdout.splitlines():
+        m = _MCP_LIST_LINE_RE.match(line.strip())
+        if not m:
+            continue
+        name, status_text = m.group(1).strip(), m.group(2).strip()
+        slug = labels_by_name.get(name)
+        if slug is not None:
+            result[slug] = "connected" in status_text.lower()
+    return result
 
 
 def usable(provider_id: str) -> bool:

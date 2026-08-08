@@ -1588,7 +1588,59 @@ def settings_form():
         has_security_question=auth.has_security_question(),
         current_host=config.HOST,
         tailscale=network_info.tailscale_status(),
+        connector_status=providers.claude_mcp_connectors(),
     )
+
+
+_CONNECTOR_SESSION_LABEL = "Cadre: Connectors"
+
+
+def _get_or_create_connector_session() -> str:
+    """One persistent session, reused for every connector-connect action --
+    the whole point is a user never has to know this session exists or
+    dig for it themselves; Cadre gets them straight to its terminal,
+    already sitting at the /mcp menu. Claude only: this drives Claude
+    Code's own /mcp picker (see session_daemon.py's
+    start_mcp_connector_session), which has no equivalent on the other
+    providers."""
+    existing = next(
+        (s for s in sessions_store.list_sessions() if s["label"] == _CONNECTOR_SESSION_LABEL), None,
+    )
+    if existing is not None:
+        if not session_manager.status(existing["id"]).get("running"):
+            session_manager.start(existing["id"])
+        return existing["id"]
+    result = session_manager.create(_CONNECTOR_SESSION_LABEL, str(Path.home()), provider="claude")
+    return result["session_id"]
+
+
+@app.post("/settings/connectors/<name>/connect")
+@require_auth
+def connect_mcp_connector(name):
+    if name not in providers.CLAUDE_CONNECTOR_LABELS:
+        return {"ok": False, "error": "unknown connector"}
+    session_id = _get_or_create_connector_session()
+    result = session_manager.start_mcp_connector_session(session_id)
+    result["session_id"] = session_id
+    return result
+
+
+@app.get("/settings/connectors/result")
+@require_auth
+def poll_mcp_connector_result():
+    session_id = request.args.get("session_id", "").strip()
+    if not session_id:
+        return {"ok": False, "error": "missing session_id"}
+    data = session_manager.get_mcp_connector_session_result(session_id)
+    if not data.get("pending") and data.get("result", {}).get("ok"):
+        data["terminal_url"] = url_for("session_terminal", session_id=session_id)
+    return data
+
+
+@app.get("/settings/connectors/status")
+@require_auth
+def refresh_mcp_connector_status():
+    return {"ok": True, "connector_status": providers.claude_mcp_connectors()}
 
 
 @app.get("/settings/check-update")

@@ -91,7 +91,7 @@ def status(session_id: str) -> dict:
 
 
 def get_output(session_id: str, max_chars: int = 8000) -> str:
-    resp = _send({"cmd": "get_output", "session_id": session_id})
+    resp = _send({"cmd": "get_output", "session_id": session_id, "max_chars": max_chars})
     return resp.get("output", "")
 
 
@@ -128,3 +128,18 @@ def send_input(session_id: str, text: str) -> dict:
 
 def run_workflow(workflow_id: str) -> dict:
     return _send({"cmd": "run_workflow", "workflow_id": workflow_id})
+
+
+def start_mcp_connector_session(session_id: str) -> dict:
+    """Fire-and-forget -- can take longer than this module's own 10s RPC
+    timeout, see session_daemon.py's start_mcp_connector_session_async.
+    Poll get_mcp_connector_session_result() for the actual outcome."""
+    return _send({"cmd": "start_mcp_connector_session", "session_id": session_id})
+
+
+def get_mcp_connector_session_result(session_id: str) -> dict:
+    return _send({"cmd": "get_mcp_connector_session_result", "session_id": session_id})
+
+
+def finish_mcp_connector_auth(session_id: str) -> dict:
+    return _send({"cmd": "finish_mcp_connector_auth", "session_id": session_id})

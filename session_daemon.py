@@ -302,6 +302,68 @@ def write(session_id: str, text: str) -> dict:
     return {"ok": True}
 
 
+# claude.ai's Gmail/Calendar/Drive connectors (see providers.py's docs
+# references -- these are Anthropic-hosted, tied to the logged-in Claude
+# account, confirmed via direct testing 2026-08-08) have no scriptable
+# API of their own for connecting one: the only way is Claude Code's own
+# interactive `/mcp` picker, an arrow-key-driven menu with no shareable
+# link to skip straight to.
+#
+# Originally attempted to fully script that picker (find the row, expand
+# "unused connectors", select, confirm) server-side. Abandoned after
+# extensive live testing 2026-08-08: hand-written raw arrow-key bytes
+# (\x1b[B) didn't reliably land as actual navigation in this specific
+# menu -- get_output()'s ANSI-stripping also collapses this screen's
+# cursor-positioning enough that reliably locating "the current selected
+# row" from the stripped text alone wasn't achievable without a real
+# server-side terminal emulator (out of scope, see MAX_BACKLOG_CHARS'
+# comment above for the same conclusion elsewhere in this file).
+#
+# What this does instead, and is fully reliable: spawn/reuse the
+# connector session, wait for it to actually be ready for input (skipping
+# this on a brand-new session sends /mcp into whatever trust-prompt
+# screen is still showing -- confirmed via live testing), and run /mcp.
+# That's real progress over the status quo -- it gets the user to the
+# menu with zero terminal knowledge needed -- the last few keystrokes
+# (down/Enter through an obvious, self-explanatory menu) happen in a
+# real embedded terminal instead of guessed-at automation.
+def start_mcp_connector_session(session_id: str) -> dict:
+    deadline = time.time() + _WORKFLOW_READY_TIMEOUT
+    while time.time() < deadline:
+        with _lock:
+            rt = _runtime.get(session_id)
+            if rt is not None and rt.get("ready"):
+                break
+        time.sleep(0.5)
+    else:
+        return {"ok": False, "error": "session never became ready for input"}
+    if not write(session_id, "/mcp").get("ok"):
+        return {"ok": False, "error": "session not running"}
+    return {"ok": True}
+
+
+_mcp_connector_session_results: dict[str, dict] = {}
+
+
+def _start_mcp_connector_session_impl(session_id: str) -> None:
+    result = start_mcp_connector_session(session_id)
+    with _lock:
+        _mcp_connector_session_results[session_id] = result
+
+
+def start_mcp_connector_session_async(session_id: str) -> dict:
+    threading.Thread(target=_start_mcp_connector_session_impl, args=(session_id,), daemon=True).start()
+    return {"ok": True, "started": True}
+
+
+def get_mcp_connector_session_result(session_id: str) -> dict:
+    with _lock:
+        result = _mcp_connector_session_results.pop(session_id, None)
+    if result is None:
+        return {"ok": True, "pending": True}
+    return {"ok": True, "pending": False, "result": result}
+
+
 def _spawn(
     session_id: str, workdir: str, label: str, resume: bool, provider_id: str = "claude",
     cols: int | None = None, rows: int | None = None, unattended: bool = False,
@@ -587,7 +649,7 @@ def _run_terminal_server() -> None:
 
 _DISPATCH = {
     "status": lambda a: status(a["session_id"]),
-    "get_output": lambda a: {"output": get_output(a["session_id"])},
+    "get_output": lambda a: {"output": get_output(a["session_id"], a.get("max_chars", 8000))},
     "start": lambda a: start(a["session_id"], a.get("cols"), a.get("rows")),
     "stop": lambda a: stop(a["session_id"]),
     "restart": lambda a: restart(a["session_id"], a.get("cols"), a.get("rows")),
@@ -596,6 +658,8 @@ _DISPATCH = {
     "create_terminal_token": lambda a: create_terminal_token(a["session_id"]),
     "write": lambda a: write(a["session_id"], a["text"]),
     "run_workflow": lambda a: run_workflow_async(a["workflow_id"]),
+    "start_mcp_connector_session": lambda a: start_mcp_connector_session_async(a["session_id"]),
+    "get_mcp_connector_session_result": lambda a: get_mcp_connector_session_result(a["session_id"]),
     "ping": lambda a: {"ok": True},
 }
 
