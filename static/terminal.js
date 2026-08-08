@@ -220,6 +220,25 @@ function syncTerminalWrapperBackground(wrapperId, theme) {
   if (el) el.style.background = theme.background;
 }
 
+// Shared between createTerminalConnection and setupTerminalFit (via the
+// term instance itself, the one object both already have a reference
+// to) -- see the long comment in setupTerminalFit for why write timing
+// relative to the first successful fit matters.
+function writeToTerm(term, data) {
+  term._cadreWriting = (term._cadreWriting || 0) + 1;
+  term.write(data, () => { term._cadreWriting -= 1; });
+}
+
+function markFitReady(term) {
+  if (term._cadreFitReady) return;
+  term._cadreFitReady = true;
+  if (term._cadrePendingChunks && term._cadrePendingChunks.length) {
+    const combined = term._cadrePendingChunks.join("");
+    term._cadrePendingChunks = [];
+    writeToTerm(term, combined);
+  }
+}
+
 function createTerminalConnection(sessionId, opts) {
   const { tokenUrl, csrfToken, term, onStatus, onNotRunning } = opts;
   let ws = null;
@@ -274,10 +293,23 @@ function createTerminalConnection(sessionId, opts) {
       });
       data = await resp.json();
     } catch (e) {
+      if (manuallyClosed) return;
       onStatus("couldn't reach the server — retrying…");
       scheduleReconnect();
       return;
     }
+    // close() (below) can run while the token fetch above was still in
+    // flight -- it has no live `ws` to close yet at that point (still
+    // null), so without this check the connection this call was told to
+    // abandon would open a websocket anyway right here, moments later.
+    // That stale connection's onmessage still fires normally, writing
+    // its own copy of the backlog into the same shared term instance as
+    // whatever connection actually replaced it -- two independent
+    // writers landing at slightly different times is exactly what
+    // produced interleaved, overlapping-looking corrupted text (not a
+    // sizing/resize issue at all, despite how similar the visual
+    // symptom looked to that class of bug).
+    if (manuallyClosed) return;
     if (!data.ok) {
       onStatus("couldn't get a terminal token: " + (data.error || "unknown error"));
       return;
@@ -297,7 +329,22 @@ function createTerminalConnection(sessionId, opts) {
       // never wrong just because of a drop/reconnect.
       ws.send("\x01" + JSON.stringify({ cols: term.cols, rows: term.rows }));
     };
-    ws.onmessage = (event) => { term.write(event.data); };
+    ws.onmessage = (event) => {
+      // Nothing gets written before the terminal has been sized
+      // correctly at least once -- writing the backlog replay (often
+      // hundreds of KB, a long session's whole transcript, arriving
+      // before setupTerminalFit's settle loop has necessarily run yet)
+      // at whatever default size xterm happened to start at corrupts it
+      // outright: raw ANSI cursor-positioning bytes captured from a
+      // session running at one width don't render correctly at another,
+      // and a later resize() can't undo cursor math that already
+      // executed wrong. See setupTerminalFit/markFitReady.
+      if (!term._cadreFitReady) {
+        (term._cadrePendingChunks = term._cadrePendingChunks || []).push(event.data);
+        return;
+      }
+      writeToTerm(term, event.data);
+    };
     ws.onclose = (event) => {
       if (manuallyClosed) { onStatus("disconnected"); return; }
       // 4004 = session daemon's own "session not running" close code
@@ -396,12 +443,29 @@ function setupTerminalFit(term) {
     const size = computeFitSize(term);
     if (!size) return false;
     const { cols, rows } = size;
-    if (cols === term.cols && rows === term.rows) return true;
-    // FitAddon's own (broken) fit() clears the render surface immediately
-    // before resizing -- matching that one behavior exactly, just
-    // without the property access that actually crashes.
-    term._core._renderService.clear();
-    term.resize(cols, rows);
+    if (cols !== term.cols || rows !== term.rows) {
+      if (term._cadreWriting) {
+        // A large write (most commonly the backlog replay on first
+        // connect -- a long session's whole transcript arrives as one
+        // message) is still being parsed. term.resize() reflows the
+        // entire existing buffer to the new column width; interrupting
+        // an in-flight write with that reflow is exactly what produced
+        // overlapping/corrupted-looking text -- multiple resizes
+        // landing mid-write, each reflowing a buffer the previous one
+        // hadn't finished settling. Retry shortly instead of forcing it
+        // now; the settle-loop/ResizeObserver caller doesn't need to
+        // retry itself.
+        setTimeout(fit, 100);
+        return true;
+      }
+      // FitAddon's own (broken) fit() clears the render surface
+      // immediately before resizing -- matching that one behavior
+      // exactly, just without the property access that actually
+      // crashes.
+      term._core._renderService.clear();
+      term.resize(cols, rows);
+    }
+    markFitReady(term);
     return true;
   }
 
@@ -420,10 +484,34 @@ function setupTerminalFit(term) {
   // exactly one resize happens during startup, not up to six; the
   // ResizeObserver below still catches anything that first measurement
   // got slightly wrong, the same way it catches any later real resize.
+  //
+  // That alone still wasn't enough on a narrower screen, though: xterm
+  // starts at its own default size (80x24) the instant term.open() runs,
+  // and createTerminalConnection's connect() (a fetch + websocket open)
+  // was firing in parallel with this settle loop, not after it -- on a
+  // fast localhost connection the backlog message could arrive and get
+  // written to the terminal *before* this loop's first successful
+  // measurement ever ran, permanently corrupting that content (ANSI
+  // cursor-positioning bytes captured from a session running at one
+  // width render incorrectly at a different one, and a later resize()
+  // can reflow the buffer but can't undo cursor math that already
+  // executed wrong). createTerminalConnection now checks
+  // term._cadreFitReady (set by markFitReady below, the first time fit()
+  // actually succeeds) and buffers any message that arrives before
+  // that, flushing the buffer here in one combined write once sizing is
+  // actually correct -- so the very first thing ever written happens at
+  // the right size, not just every write after the first stray one.
   let attempts = 0;
   const settleTimer = setInterval(() => {
     attempts += 1;
-    if (fit() || attempts >= 20) clearInterval(settleTimer);
+    if (fit() || attempts >= 20) {
+      clearInterval(settleTimer);
+      // Layout measurement never succeeded (e.g. the tab was hidden the
+      // whole time) -- don't leave incoming content buffered forever
+      // waiting for a fit that's never coming; render at whatever
+      // default size xterm already has rather than show nothing.
+      markFitReady(term);
+    }
   }, 50);
 
   // term.element's own parent is the div passed to term.open() -- its

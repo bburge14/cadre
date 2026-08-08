@@ -71,6 +71,26 @@ LIMIT_PATTERNS: list[str] = [
     "contextwindowexceeded",
 ]
 
+# A cap on total *characters* of raw backlog kept per session, not just
+# item count -- the previous deque(maxlen=2000) capped how many
+# splitlines() fragments were kept, but a rich TUI's own live status-bar
+# redraws (cursor-positioning + overwrite, not real newlines) produce a
+# huge number of tiny fragments, so 2000 of them could still add up to
+# ~150KB+ of raw bytes spanning a long time window. Replaying backlog
+# that old into a terminal connecting at a *different* column width than
+# whatever was active when those bytes were originally written garbles
+# outright -- cursor-positioning escapes captured for one width don't
+# mean anything at another, and there's no reliable "full screen clear"
+# marker in this kind of output to safely resync from (confirmed: this
+# CLI's redraws use cursor-home + overwrite, never an actual clear-
+# screen sequence). A real fix needs a server-side virtual terminal
+# tracking actual screen-cell state so it can re-render at any width on
+# demand (the way tmux/screen do) -- out of scope here. Capping by
+# character count instead bounds *how much* stale, possibly-wrong-width
+# content a new connection can ever be handed, which doesn't eliminate
+# the problem but meaningfully shrinks its blast radius and window.
+MAX_BACKLOG_CHARS = 60_000
+
 _lock = threading.Lock()
 _runtime: dict[str, dict] = {}
 
@@ -92,6 +112,9 @@ def _reader(session_id: str, pty_session: pty_compat.PtySession, provider_id: st
                 break
             for line in text.splitlines(keepends=True):
                 rt["output"].append(line)
+                rt["output_chars"] += len(line)
+            while rt["output_chars"] > MAX_BACKLOG_CHARS and rt["output"]:
+                rt["output_chars"] -= len(rt["output"].popleft())
             subscribers = list(rt["subscribers"])
         # Fan out live bytes to any open terminal websockets for this
         # session. This is the *only* place that reads pty_session -- a
@@ -190,7 +213,11 @@ def _spawn(session_id: str, workdir: str, label: str, resume: bool, provider_id:
         pty_session = pty_compat.PtySession(args, cwd=workdir, extra_env=extra_env or None)
         _runtime[session_id] = {
             "pty": pty_session,
-            "output": deque(maxlen=2000),
+            # Trimmed by total character count in _reader (see
+            # MAX_BACKLOG_CHARS), not by item count -- deque() here is
+            # unbounded on its own, popleft()'d manually instead.
+            "output": deque(),
+            "output_chars": 0,
             "provider": provider_id,
             "subscribers": [],
             "limit_hit": False,
