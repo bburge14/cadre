@@ -1166,7 +1166,12 @@ textarea { font-family: ui-monospace, monospace; font-size: 0.84rem; min-height:
 
 /* ---- Inline help ---- */
 
-details.help { display: inline-block; margin-left: 0.35rem; vertical-align: middle; }
+/* position: relative anchors the popover below to this trigger instead of
+   the page's static top-left corner -- without it, .help-body's
+   position: absolute would place it relative to the nearest *other*
+   positioned ancestor (or the page itself), landing nowhere near the "?"
+   that opened it. */
+details.help { display: inline-block; position: relative; margin-left: 0.35rem; vertical-align: middle; }
 details.help > summary {
   display: inline-flex;
   align-items: center;
@@ -1188,16 +1193,26 @@ details.help > summary::-webkit-details-marker { display: none; }
 details.help > summary::before { content: "?"; }
 details.help > summary:hover { border-color: var(--accent); color: var(--accent); }
 details.help[open] > summary { background: var(--accent-gradient); border-color: transparent; color: #fff; }
+/* Floats over the page instead of sitting inline in the surrounding
+   paragraph/label -- the old display: block version pushed whatever text
+   came after the "?" down and to the side instead of overlaying it,
+   which is what actually looked broken. */
 details.help > .help-body {
   display: block;
-  margin: 0.5rem 0 0.8rem;
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 30;
+  margin: 0;
   padding: 0.6rem 0.8rem;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 0.79rem;
   color: var(--text-dim);
-  max-width: 46ch;
+  width: max-content;
+  max-width: min(46ch, calc(100vw - 2.5rem));
+  box-shadow: var(--shadow);
 }
 details.help > .help-body code { font-size: 0.85em; }
 details.help > .help-body p { margin: 0 0 0.5rem; }
