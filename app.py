@@ -1620,20 +1620,25 @@ def create_session():
     else:
         stack_id = request.form.get("stack_id", "").strip()
         stack = _resolve_stack(stack_id) if stack_id else None
-        if stack and stack.get("workdir"):
-            # A real stack -- no path typed/browsed at all, a new folder
-            # named after the label gets created right inside it. Real
-            # stack.get("workdir") check (not just stack_id truthy) is
-            # what excludes Global here, same as the form's own JS: it
-            # has no fixed directory of its own to create a subfolder in.
+        if stack:
+            # Any selected stack -- real (has its own workdir) or Global
+            # (doesn't, falls back to projects_root as the base) --
+            # auto-creates a folder named after the label. No path typed
+            # or browsed either way. Confirmed via real feedback
+            # 2026-08-10 that Global falling through to "no, type a path
+            # yourself" here (the previous stack.get("workdir") check
+            # excluded it) was wrong -- Global not having one *fixed*
+            # directory doesn't mean it needs a human to type one by
+            # hand every time, same as a real stack doesn't.
             if not label:
                 flash("Label is required.", "error")
                 return redirect(url_for("new_session_form"))
+            base = Path(stack["workdir"]) if stack.get("workdir") else settings.projects_root()
             slug = git_hosts.slugify_repo_name(label)
-            target_dir = Path(stack["workdir"]) / slug
+            target_dir = base / slug
             suffix = 2
             while target_dir.exists():
-                target_dir = Path(stack["workdir"]) / f"{slug}-{suffix}"
+                target_dir = base / f"{slug}-{suffix}"
                 suffix += 1
             target_dir.mkdir(parents=True, exist_ok=True)
             workdir = str(target_dir)

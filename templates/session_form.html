@@ -45,10 +45,10 @@
     </div>
 
     <div class="source-panel active" id="panel-local">
-      <label>agent stack <span class="hint">(picking a real stack creates a new folder for this session inside it, named after the label -- no path to type. "Global (default)" and "Custom directory" have no fixed directory of their own, so pick/browse one below instead)</span></label>
+      <label>agent stack <span class="hint">(picks or creates a folder for this session automatically, named after the label -- no path to type. Only "Custom directory" needs one typed/browsed yourself)</span></label>
       <select name="stack_id" id="session-stack-select" onchange="applyStackSelection()">
         {% for stack in stacks %}
-        <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or '' }}">{{ stack.name }}</option>
+        <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or default_base }}">{{ stack.name }}</option>
         {% endfor %}
         <option value="" data-workdir="">Custom directory&hellip;</option>
       </select>
