@@ -18,13 +18,37 @@ system beyond the one admin login you create for yourself below.
 
 ## Prerequisites
 
-- Python 3.10+ (`python3 --version` / `python --version` on Windows)
+Just two things need to already be on the machine before any setup script
+below can even run — everything else (`claude`, API keys, GitHub/GitLab)
+comes after and isn't needed yet:
+
+- **Python 3.10+**, with its `venv` module actually working — check with
+  `python3 --version` (`python --version` on Windows). Download:
+  [python.org/downloads](https://www.python.org/downloads/). On Debian/
+  Ubuntu (including minimal server images), `python3` alone isn't always
+  enough — `venv` is a separate package, and `python3 -m venv` fails
+  outright without it:
+  ```bash
+  sudo apt install python3-venv
+  ```
+  If setup dies right at the "Creating virtual environment..." step,
+  this is almost always why.
+- **Git** — needed for `git clone` on Linux/macOS (no alternative given
+  there). Download: [git-scm.com/downloads](https://git-scm.com/downloads).
+  Windows users can skip this entirely and download the ZIP from this
+  repo's [Releases page](https://github.com/bburge14/cadre/releases)
+  instead — see the Windows steps below.
+
+Once those two are in place, the rest of this doc gets you running. Not
+needed for setup itself, but you'll want them before the app is actually
+useful:
+
 - The `claude` CLI installed and working (`claude --version`), logged into
   your own Anthropic account (`claude`, then `/login`) on a Pro, Max, Team,
   or Enterprise plan — Remote Control isn't available on API-key-only
-  setups
+  setups. Install: [docs.claude.com/en/docs/claude-code/setup](https://docs.claude.com/en/docs/claude-code/setup).
 - On Linux, if you want this running as an always-on background service:
-  `systemd --user` (already present on basically every modern distro)
+  `systemd --user` (already present on basically every modern distro).
 - Runs on Linux, macOS, and Windows. The two processes (below) use a real
   platform-native pseudo-terminal either way — Python's `pty` module on
   Linux/macOS, `pywinpty` (wraps Windows' ConPTY) on Windows — installed
