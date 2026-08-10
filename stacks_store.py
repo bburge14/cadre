@@ -20,7 +20,10 @@ GLOBAL_STACK_ID = "global"
 def _load() -> list[dict]:
     if not STORE_FILE.exists():
         return []
-    return json.loads(STORE_FILE.read_text())
+    stacks = json.loads(STORE_FILE.read_text())
+    for s in stacks:
+        s.setdefault("integration_ids", [])
+    return stacks
 
 
 def _save(stacks: list[dict]) -> None:

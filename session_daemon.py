@@ -31,6 +31,7 @@ import websockets
 import websockets.exceptions
 
 import config
+import integrations_store
 import providers
 import pty_compat
 import sessions_store
@@ -364,6 +365,24 @@ def get_mcp_connector_session_result(session_id: str) -> dict:
     return {"ok": True, "pending": False, "result": result}
 
 
+def _stack_integration_env(workdir: str) -> dict:
+    """Env vars for whichever integrations the stack rooted at this
+    directory has opted into (see integrations_store.py + stack_form.html's
+    checklist) -- matched by exact workdir string, the same way every
+    other workdir-to-stack lookup in this app already works. No match
+    (including the Global stack, which has no workdir of its own) means
+    no integration env vars, same as a plain, unmanaged directory."""
+    stack = next((s for s in stacks_store.list_stacks() if s["workdir"] == workdir), None)
+    if stack is None:
+        return {}
+    env = {}
+    for integration_id in stack.get("integration_ids", []):
+        integration = integrations_store.get(integration_id)
+        if integration:
+            env[integration["env_var"]] = integration["value"]
+    return env
+
+
 def _spawn(
     session_id: str, workdir: str, label: str, resume: bool, provider_id: str = "claude",
     cols: int | None = None, rows: int | None = None, unattended: bool = False,
@@ -388,6 +407,7 @@ def _spawn(
             key = settings.get(f"{provider_id}_api_key")
             if key:
                 extra_env[provider.api_key_env_var] = key
+        extra_env.update(_stack_integration_env(workdir))
 
         pty_session = pty_compat.PtySession(args, cwd=workdir, extra_env=extra_env or None, cols=cols, rows=rows)
         _runtime[session_id] = {

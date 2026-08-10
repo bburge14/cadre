@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import secrets
 import shutil
 import subprocess
@@ -21,6 +22,7 @@ import agents_store
 import auth
 import config
 import git_hosts
+import integrations_store
 import network_info
 import presets
 import providers
@@ -1021,6 +1023,81 @@ def delete_skill_route(name):
     return redirect(url_for("skills_page"))
 
 
+# ---- Integrations ----
+
+
+@app.get("/integrations")
+@require_auth
+def integrations_page():
+    return render_template("integrations.html", integrations=integrations_store.list_integrations())
+
+
+@app.get("/integrations/new")
+@require_auth
+def new_integration_form():
+    return render_template("integration_form.html", integration=None)
+
+
+@app.post("/integrations/new")
+@require_auth
+def create_integration():
+    name = request.form.get("name", "").strip()
+    env_var = request.form.get("env_var", "").strip()
+    value = request.form.get("value", "").strip()
+    if not name or not env_var or not value:
+        flash("Name, environment variable, and value are all required.", "error")
+        return redirect(url_for("new_integration_form"))
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", env_var):
+        flash("Environment variable must look like SLACK_BOT_TOKEN -- letters, numbers, underscores, not starting with a number.", "error")
+        return redirect(url_for("new_integration_form"))
+    integrations_store.add(name, env_var, value)
+    flash(f"Created integration '{name}'.", "success")
+    return redirect(url_for("integrations_page"))
+
+
+@app.get("/integrations/<integration_id>/edit")
+@require_auth
+def edit_integration_form(integration_id):
+    integration = integrations_store.get(integration_id)
+    if integration is None:
+        flash("Unknown integration.", "error")
+        return redirect(url_for("integrations_page"))
+    return render_template("integration_form.html", integration=integration)
+
+
+@app.post("/integrations/<integration_id>/edit")
+@require_auth
+def edit_integration(integration_id):
+    integration = integrations_store.get(integration_id)
+    if integration is None:
+        flash("Unknown integration.", "error")
+        return redirect(url_for("integrations_page"))
+    name = request.form.get("name", "").strip()
+    env_var = request.form.get("env_var", "").strip()
+    value = request.form.get("value", "").strip()
+    if not name or not env_var:
+        flash("Name and environment variable are both required.", "error")
+        return redirect(url_for("edit_integration_form", integration_id=integration_id))
+    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", env_var):
+        flash("Environment variable must look like SLACK_BOT_TOKEN -- letters, numbers, underscores, not starting with a number.", "error")
+        return redirect(url_for("edit_integration_form", integration_id=integration_id))
+    integrations_store.update(integration_id, name=name, env_var=env_var, value=value or None)
+    flash(f"Saved '{name}'.", "success")
+    return redirect(url_for("integrations_page"))
+
+
+@app.post("/integrations/<integration_id>/delete")
+@require_auth
+def delete_integration(integration_id):
+    integration = integrations_store.get(integration_id)
+    if integration is None:
+        flash("Unknown integration.", "error")
+        return redirect(url_for("integrations_page"))
+    integrations_store.remove(integration_id)
+    flash(f"Deleted integration '{integration['name']}'.", "success")
+    return redirect(url_for("integrations_page"))
+
+
 # ---- Agent stack presets ----
 
 
@@ -1109,6 +1186,7 @@ def edit_stack_form(stack_id):
         active_names=active_names,
         default_base=str(settings.projects_root() / "agent-stacks"),
         known_dirs=_known_directories(),
+        integrations=integrations_store.list_integrations(),
     )
 
 
@@ -1149,7 +1227,7 @@ def edit_stack(stack_id):
         flash(str(exc), "error")
         return redirect(url_for("edit_stack_form", stack_id=stack_id))
 
-    stacks_store.update(stack_id, name=name, workdir=str(path))
+    stacks_store.update(stack_id, name=name, workdir=str(path), integration_ids=request.form.getlist("integration_ids"))
 
     if written:
         matching_session = next(

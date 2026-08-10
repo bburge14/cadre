@@ -28,7 +28,9 @@
     <a href="#global-agents">"Global (default)" stack</a>
     <a href="#workflows">Workflows</a>
     <a href="#skills">Skills</a>
+    <a href="#integrations">Integrations</a>
     <a href="#providers">AI providers (Claude / Gemini / Codex / Kimi)</a>
+    <a href="#connectors">Connectors (Gmail / Calendar / Drive)</a>
     <a href="#other-provider-stacks">Agent Stacks on other providers</a>
     <a href="#delegation">Delegating an agent's work to another provider</a>
     <a href="#git-hosts">Connecting GitHub / GitLab</a>
@@ -309,6 +311,45 @@
     Code actually loading a Cadre-created skill in a live session.
   </div>
 
+  <h2 id="integrations">Integrations</h2>
+  <p>
+    A named credential — API key, token, webhook URL, any secret string —
+    that gets injected as an environment variable into a session, for
+    whichever stacks opt into it. Not tied to any one service; think
+    Slack, SendGrid, a webhook URL for some internal tool, anything an
+    agent's own scripts or Bash commands need a secret to reach.
+    Different from a <a href="#other-provider-stacks">provider's own API
+    key</a> in Settings (those are Cadre's own credentials for running a
+    CLI) and from <a href="#connectors">Connectors</a> below (those are
+    Anthropic's own account-level OAuth for Claude Code specifically) —
+    this is for everything else.
+  </p>
+  <h3>Creating one</h3>
+  <p>
+    The Integrations icon next to "Agent Stacks" on the dashboard — name
+    it, pick an environment variable (e.g. <code>SLACK_BOT_TOKEN</code>),
+    paste the value. The value never round-trips back into the page once
+    saved, same as every other secret field in Cadre.
+  </p>
+  <h3>Attaching one to a stack</h3>
+  <p>
+    From that stack's own edit page — a checklist alongside the
+    agents/presets picker. Only checked integrations apply; a stack sees
+    nothing by default. Every session spawned for that stack afterward
+    has the corresponding environment variable set, readable the normal
+    way (<code>echo $SLACK_BOT_TOKEN</code>, or however a script reads
+    its environment) — no code changes needed on the agent's side beyond
+    knowing the variable name exists.
+  </p>
+  <div class="note">
+    Claude-only in the sense that every session in this app is a Claude
+    Code session underneath — but this has nothing to do with which
+    provider handles an individual agent's work, it's plain environment
+    variables, so it applies uniformly regardless. The "Global (default)"
+    stack doesn't support attaching integrations yet, since it has no
+    fixed directory of its own to key the lookup on.
+  </div>
+
   <h2 id="providers">AI providers</h2>
   <p>
     Every agent in every stack is still a <strong>Claude Code
@@ -346,6 +387,33 @@
     rough edges if you're the first to actually try one (see "Agent Stacks
     on other providers" below).
   </p>
+
+  <h2 id="connectors">Connectors (Gmail, Google Calendar, Google Drive)</h2>
+  <p>
+    Separate from Integrations above — these are Anthropic's own
+    account-level connectors, tied to whichever claude.ai account the
+    <code>claude</code> CLI is logged into on this machine, not something
+    Cadre stores credentials for itself. Claude-only, since Gemini/Codex/
+    Kimi have no equivalent yet.
+  </p>
+  <p>
+    Settings &gt; Connectors shows live status per connector and a
+    "Connect" button — it spins up (or reuses) a dedicated session,
+    waits for it to be ready, and opens Claude Code's own <code>/mcp</code>
+    picker automatically, then hands you a direct link to that session's
+    terminal, already sitting at the connector menu. Fully automating the
+    rest of that menu (arrow-key navigation, extracting the auth URL)
+    turned out not to be reliably scriptable after extensive testing —
+    the last few keystrokes (clearly spelled out on screen once you're
+    there) happen in a real terminal instead.
+  </p>
+  <div class="note">
+    The OAuth handshake for these connectors is per-session, not
+    per-account — a connector showing "connected" in Settings only means
+    it's registered for your account, not that a brand-new session can
+    use it yet. Each session that actually needs one has to complete that
+    same one-time authorization itself.
+  </div>
 
   <h2 id="other-provider-stacks">Agent Stacks on other providers</h2>
   <p>

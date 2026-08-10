@@ -143,6 +143,32 @@
     </ul>
     </section>
 
+    {% if stack and not stack.get('is_global') %}
+    <section>
+    <h2 id="integrations">Integrations
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Each one checked here gets injected as an environment variable into every session spawned for this stack -- an agent can read it like any other env var (e.g. <code>echo $SLACK_BOT_TOKEN</code>).</p>
+        <p>Manage the actual credentials from the <a href="{{ url_for('integrations_page') }}">Integrations page</a> -- this is just which ones this specific stack gets.</p>
+      </div></details>
+    </h2>
+    {% if integrations %}
+    <ul class="agent-list">
+      {% for integration in integrations %}
+      <li>
+        <input type="checkbox" name="integration_ids" value="{{ integration.id }}" id="integ-{{ integration.id }}" {{ 'checked' if integration.id in (stack.integration_ids or []) }} style="width:auto;">
+        <label for="integ-{{ integration.id }}" style="margin:0;">
+          <strong>{{ integration.name }}</strong>
+          <div class="desc"><code>{{ integration.env_var }}</code></div>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="hint">No integrations exist yet -- <a href="{{ url_for('new_integration_form') }}">create one</a>, then come back here to attach it to this stack.</p>
+    {% endif %}
+    </section>
+    {% endif %}
+
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if stack else 'Create stack' }}</button>
   </form>
     </div>
