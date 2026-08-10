@@ -17,6 +17,7 @@
   </div>
   <div class="sub">
     A named credential (API key, token, webhook URL -- any secret string) that gets injected as an environment variable into a session, for whichever stacks opt into it on that stack's own edit page. Not tied to any one provider -- e.g. a Slack bot token, a SendGrid API key, a webhook URL for some internal tool.
+    New to this? <a href="{{ url_for('docs_page') }}#integrations">the Integrations section of the docs</a> walks through creating one and attaching it to a stack.
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -44,7 +45,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td class="empty" colspan="3">No integrations yet -- "+ New integration" to add one, then attach it to a stack from that stack's own edit page.</td></tr>
+    <tr><td class="empty" colspan="3">No integrations yet -- "+ New integration" to add one (e.g. a Slack bot token as <code>SLACK_BOT_TOKEN</code>), then attach it to a stack from that stack's own edit page.</td></tr>
     {% endfor %}
   </table>
   </div>

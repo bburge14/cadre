@@ -16,8 +16,9 @@
   {{ topbar() }}
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('integrations_page') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to integrations</a></p>
   <h1>{{ 'Edit ' + integration.name if integration else 'New integration' }}</h1>
+  <p class="hint">See <a href="{{ url_for('docs_page') }}#integrations">the docs</a> for a full walkthrough.</p>
   {% if not integration %}
-  <p class="hint">Example: name "Slack Bot Token", environment variable <code>SLACK_BOT_TOKEN</code>, value the actual token -- an agent in any stack you attach this to can then read <code>$SLACK_BOT_TOKEN</code> from its environment.</p>
+  <p class="hint">Example: name "Slack Bot Token", environment variable <code>SLACK_BOT_TOKEN</code>, value the actual token -- an agent in any stack you attach this to can then read <code>$SLACK_BOT_TOKEN</code> from its environment. After saving, go attach it to a stack from that stack's own edit page -- creating it here doesn't give any stack access yet.</p>
   {% endif %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
