@@ -45,15 +45,13 @@
     </div>
 
     <div class="source-panel active" id="panel-local">
-      {% if stacks %}
-      <label>agent stack <span class="hint">(picks that stack's directory for you -- or choose "Custom directory" to type/browse one yourself)</span></label>
+      <label>agent stack <span class="hint">(picks that stack's directory for you -- "Global (default)" has no fixed directory of its own, so type/browse one below; any real stack fills it in automatically)</span></label>
       <select id="session-stack-select" onchange="applyStackSelection()">
-        <option value="">Custom directory&hellip;</option>
         {% for stack in stacks %}
-        <option value="{{ stack.workdir }}">{{ stack.name }}</option>
+        <option value="{{ stack.workdir or '' }}">{{ stack.name }}</option>
         {% endfor %}
+        <option value="">Custom directory&hellip;</option>
       </select>
-      {% endif %}
 
       <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
       <div style="display:flex; gap:0.5rem;">
