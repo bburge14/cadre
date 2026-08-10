@@ -28,7 +28,7 @@
 
   <form method="post" action="{{ url_for('edit_session', session_id=session.id) if session else url_for('create_session') }}">
     <label>label <span class="hint">(shown in claude.ai/code's session list)</span></label>
-    <input name="label" value="{{ session.label if session else '' }}" {{ 'required' if session else '' }}>
+    <input name="label" id="session-label-field" value="{{ session.label if session else '' }}" oninput="updateFolderPreview()" {{ 'required' if session else '' }}>
 
     {% if session %}
     <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
@@ -45,24 +45,28 @@
     </div>
 
     <div class="source-panel active" id="panel-local">
-      <label>agent stack <span class="hint">(picks that stack's directory for you -- "Global (default)" has no fixed directory of its own, so type/browse one below; any real stack fills it in automatically)</span></label>
-      <select id="session-stack-select" onchange="applyStackSelection()">
+      <label>agent stack <span class="hint">(picking a real stack creates a new folder for this session inside it, named after the label -- no path to type. "Global (default)" and "Custom directory" have no fixed directory of their own, so pick/browse one below instead)</span></label>
+      <select name="stack_id" id="session-stack-select" onchange="applyStackSelection()">
         {% for stack in stacks %}
-        <option value="{{ stack.workdir or '' }}">{{ stack.name }}</option>
+        <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or '' }}">{{ stack.name }}</option>
         {% endfor %}
-        <option value="">Custom directory&hellip;</option>
+        <option value="" data-workdir="">Custom directory&hellip;</option>
       </select>
 
-      <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
-      <div style="display:flex; gap:0.5rem;">
-        <input name="workdir" id="new-session-workdir-field" list="known-dirs" placeholder="{{ default_base }}/my-project" style="flex:1;">
-        <button type="button" class="btn" onclick="openDirBrowser('new-session-workdir-field')" style="flex-shrink:0;">Browse&hellip;</button>
+      <p class="hint" id="stack-folder-preview" style="display:none;"></p>
+
+      <div id="manual-workdir-section">
+        <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
+        <div style="display:flex; gap:0.5rem;">
+          <input name="workdir" id="new-session-workdir-field" list="known-dirs" placeholder="{{ default_base }}/my-project" style="flex:1;">
+          <button type="button" class="btn" onclick="openDirBrowser('new-session-workdir-field')" style="flex-shrink:0;">Browse&hellip;</button>
+        </div>
+        <datalist id="known-dirs">
+          {% for dir in known_dirs %}
+          <option value="{{ dir }}">
+          {% endfor %}
+        </datalist>
       </div>
-      <datalist id="known-dirs">
-        {% for dir in known_dirs %}
-        <option value="{{ dir }}">
-        {% endfor %}
-      </datalist>
 
       <label>provider <span class="hint">(which CLI runs this session)</span></label>
       <select name="provider" id="provider-select" onchange="updateProviderNote()">
@@ -117,10 +121,34 @@ const PROVIDER_REMOTE_CONTROL = {
 {% endif %}
 function applyStackSelection() {
   const select = document.getElementById('session-stack-select');
-  const field = document.getElementById('new-session-workdir-field');
-  if (select.value) {
-    field.value = select.value;
+  const workdir = select.options[select.selectedIndex].dataset.workdir;
+  const manualSection = document.getElementById('manual-workdir-section');
+  const preview = document.getElementById('stack-folder-preview');
+  if (workdir) {
+    // A real stack (Global/Custom both have an empty data-workdir) --
+    // the actual folder gets created server-side in create_session(),
+    // this is just a live preview of what that'll be.
+    manualSection.style.display = 'none';
+    preview.style.display = 'block';
+    updateFolderPreview();
+  } else {
+    manualSection.style.display = '';
+    preview.style.display = 'none';
   }
+}
+function updateFolderPreview() {
+  const preview = document.getElementById('stack-folder-preview');
+  if (preview.style.display === 'none') return;
+  const select = document.getElementById('session-stack-select');
+  const workdir = select.options[select.selectedIndex].dataset.workdir;
+  const label = document.getElementById('session-label-field').value.trim();
+  // Matches git_hosts.slugify_repo_name() exactly (including that it
+  // does NOT lowercase) -- this is a preview of the real server-side
+  // slug, not an independent approximation, confirmed via live testing
+  // 2026-08-10 that they'd drifted (this used to lowercase and the
+  // server never did).
+  const slug = label.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || '(label)';
+  preview.textContent = 'Will create: ' + workdir + '/' + slug;
 }
 function selectSource(src) {
   document.getElementById('source-field').value = src;
@@ -156,6 +184,7 @@ function updateProviderNote() {
     : "No native remote control for this provider yet -- reachable only through this dashboard's own terminal (Open terminal on the session page).";
 }
 updateProviderNote();
+applyStackSelection();
 {% endif %}
 {% if not session and gitlab_connected %}
 loadRepos("{{ url_for('gitlab_repos_json') }}", "repo-select-gitlab");

@@ -1618,13 +1618,33 @@ def create_session():
         if not label:
             label = repo_full_name
     else:
-        workdir = request.form.get("workdir", "").strip()
-        if not label or not workdir:
-            flash("Label and working directory are both required.", "error")
-            return redirect(url_for("new_session_form"))
-        if not Path(workdir).is_dir():
-            flash(f"'{workdir}' is not a directory that exists on this machine.", "error")
-            return redirect(url_for("new_session_form"))
+        stack_id = request.form.get("stack_id", "").strip()
+        stack = _resolve_stack(stack_id) if stack_id else None
+        if stack and stack.get("workdir"):
+            # A real stack -- no path typed/browsed at all, a new folder
+            # named after the label gets created right inside it. Real
+            # stack.get("workdir") check (not just stack_id truthy) is
+            # what excludes Global here, same as the form's own JS: it
+            # has no fixed directory of its own to create a subfolder in.
+            if not label:
+                flash("Label is required.", "error")
+                return redirect(url_for("new_session_form"))
+            slug = git_hosts.slugify_repo_name(label)
+            target_dir = Path(stack["workdir"]) / slug
+            suffix = 2
+            while target_dir.exists():
+                target_dir = Path(stack["workdir"]) / f"{slug}-{suffix}"
+                suffix += 1
+            target_dir.mkdir(parents=True, exist_ok=True)
+            workdir = str(target_dir)
+        else:
+            workdir = request.form.get("workdir", "").strip()
+            if not label or not workdir:
+                flash("Label and working directory are both required.", "error")
+                return redirect(url_for("new_session_form"))
+            if not Path(workdir).is_dir():
+                flash(f"'{workdir}' is not a directory that exists on this machine.", "error")
+                return redirect(url_for("new_session_form"))
 
     provider_id = request.form.get("provider", "claude") if source == "local" else "claude"
     try:

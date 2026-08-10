@@ -1248,13 +1248,28 @@ details.help > .help-body p:last-child { margin-bottom: 0; }
 }
 .dirbrowser-body { padding: 0.4rem 0.6rem; overflow-y: auto; flex: 1; }
 .dirbrowser-row {
-  padding: 0.5rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   font-size: 0.86rem;
   transition: background 0.1s ease;
 }
 .dirbrowser-row:hover { background: var(--surface-2); }
+.dirbrowser-row-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dirbrowser-row-name svg { flex-shrink: 0; color: var(--text-faint); }
+.dirbrowser-row-select { flex-shrink: 0; margin-right: 0.4rem; }
 .dirbrowser-footer {
   padding: 0.7rem 1rem;
   border-top: 1px solid var(--border-soft);
