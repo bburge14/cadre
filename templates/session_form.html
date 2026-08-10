@@ -45,6 +45,16 @@
     </div>
 
     <div class="source-panel active" id="panel-local">
+      {% if stacks %}
+      <label>agent stack <span class="hint">(picks that stack's directory for you -- or choose "Custom directory" to type/browse one yourself)</span></label>
+      <select id="session-stack-select" onchange="applyStackSelection()">
+        <option value="">Custom directory&hellip;</option>
+        {% for stack in stacks %}
+        <option value="{{ stack.workdir }}">{{ stack.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+
       <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
       <div style="display:flex; gap:0.5rem;">
         <input name="workdir" id="new-session-workdir-field" list="known-dirs" placeholder="{{ default_base }}/my-project" style="flex:1;">
@@ -107,6 +117,13 @@ const PROVIDER_REMOTE_CONTROL = {
   {% endfor %}
 };
 {% endif %}
+function applyStackSelection() {
+  const select = document.getElementById('session-stack-select');
+  const field = document.getElementById('new-session-workdir-field');
+  if (select.value) {
+    field.value = select.value;
+  }
+}
 function selectSource(src) {
   document.getElementById('source-field').value = src;
   document.querySelectorAll('.source-tab').forEach(el => el.classList.toggle('active', el.dataset.source === src));

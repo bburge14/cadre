@@ -1573,6 +1573,7 @@ def new_session_form():
         default_provider=settings.get("default_provider"),
         default_base=str(settings.projects_root()),
         known_dirs=_known_directories(),
+        stacks=[s for s in stacks_store.list_stacks()],
     )
 
 
