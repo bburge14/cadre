@@ -1521,7 +1521,17 @@ def stack_set_spawnable(stack_id):
 @app.get("/api/browse-dirs")
 @require_auth
 def browse_dirs():
-    raw = request.args.get("path", "").strip() or str(settings.projects_root())
+    # Home directory, not settings.projects_root() -- confirmed via live
+    # testing 2026-08-10 that defaulting to the configured projects root
+    # backfires the moment it doesn't exist yet: projects_root() creates
+    # it on the spot (mkdir(parents=True, exist_ok=True)), so the browser
+    # opens straight into a brand-new, genuinely empty folder with no
+    # obvious explanation why nothing's there. Home has real, familiar
+    # content to navigate from regardless of whether projects_root has
+    # ever been used -- the text fields' own placeholder/autocomplete
+    # still point at projects_root as the *suggested* new path, this only
+    # changes where clicking "Browse" with an empty field starts looking.
+    raw = request.args.get("path", "").strip() or str(Path.home())
     try:
         target = Path(raw).expanduser().resolve()
     except (OSError, RuntimeError) as exc:
