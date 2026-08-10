@@ -1521,7 +1521,7 @@ def stack_set_spawnable(stack_id):
 @app.get("/api/browse-dirs")
 @require_auth
 def browse_dirs():
-    raw = request.args.get("path", "").strip() or str(Path.home())
+    raw = request.args.get("path", "").strip() or str(settings.projects_root())
     try:
         target = Path(raw).expanduser().resolve()
     except (OSError, RuntimeError) as exc:
@@ -1561,6 +1561,8 @@ def new_session_form():
         gitlab_configured=bool(settings.get("gitlab_client_id")),
         cli_providers=providers.list_providers(),
         default_provider=settings.get("default_provider"),
+        default_base=str(settings.projects_root()),
+        known_dirs=_known_directories(),
     )
 
 

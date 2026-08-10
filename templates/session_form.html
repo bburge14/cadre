@@ -47,9 +47,14 @@
     <div class="source-panel active" id="panel-local">
       <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
       <div style="display:flex; gap:0.5rem;">
-        <input name="workdir" id="new-session-workdir-field" placeholder="/home/you/projects/my-repo" style="flex:1;">
+        <input name="workdir" id="new-session-workdir-field" list="known-dirs" placeholder="{{ default_base }}/my-project" style="flex:1;">
         <button type="button" class="btn" onclick="openDirBrowser('new-session-workdir-field')" style="flex-shrink:0;">Browse&hellip;</button>
       </div>
+      <datalist id="known-dirs">
+        {% for dir in known_dirs %}
+        <option value="{{ dir }}">
+        {% endfor %}
+      </datalist>
 
       <label>provider <span class="hint">(which CLI runs this session)</span></label>
       <select name="provider" id="provider-select" onchange="updateProviderNote()">
