@@ -23,7 +23,7 @@
   <p><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
   <h1 style="font-size:1.2rem;">{{ 'Edit session' if session else 'New session' }}</h1>
   {% if not session %}
-  <p class="hint">Starts a brand-new Claude Code session (no prior history) in the directory you pick, with Remote Control enabled — it'll show up in claude.ai/code under this label. Uses the same global agent team as every other session.</p>
+  <p class="hint">Starts a brand-new session (no prior history) in the directory you pick, using whichever provider you choose below. Claude sessions also get Remote Control enabled automatically — it'll show up in claude.ai/code under this label. Uses the same global agent team as every other session in that directory.</p>
   {% endif %}
 
   <form method="post" action="{{ url_for('edit_session', session_id=session.id) if session else url_for('create_session') }}">
