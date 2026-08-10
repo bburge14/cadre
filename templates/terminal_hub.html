@@ -29,10 +29,10 @@
     border-right: 1px solid var(--border-soft); overflow-y: auto;
   }
   .term-sidebar-header {
-    display: flex; align-items: center; gap: 0.5rem;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem;
     padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
   }
-  .term-sidebar-header span { font-size: 0.88rem; font-weight: 600; }
+  .term-sidebar-header span { font-size: 0.88rem; font-weight: 600; flex-basis: 100%; order: -1; }
   .term-stack-header {
     display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
     padding: 0.55rem 0.8rem; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);
@@ -111,9 +111,10 @@
 </head>
 <body>
   <div class="term-sidebar">
+    {% from '_topbar.html' import nav_icons %}
     <div class="term-sidebar-header">
-      <a class="btn btn-icon" href="{{ url_for('index') }}" title="Dashboard" aria-label="Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
       <span>Sessions</span>
+      {{ nav_icons(active='terminal') }}
     </div>
     <div id="session-list">
       {% for group in stack_groups %}
@@ -145,6 +146,7 @@
           <button class="btn btn-icon" title="Start" aria-label="Start" onclick="sessionAction('start')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
           <button class="btn btn-icon" title="Stop" aria-label="Stop" onclick="sessionAction('stop')"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
           <button class="btn btn-icon btn-primary" title="Restart" aria-label="Restart" onclick="sessionAction('restart')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></button>
+          <button class="btn btn-icon btn-danger" title="Delete session" aria-label="Delete session" onclick="sessionAction('delete')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
         </div>
         <select class="btn" id="terminal-theme-select" title="Terminal theme (applies to every session)" onchange="saveTerminalTheme(this.value)" style="flex-shrink:0; width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
           {% for value, label in terminal_theme_options %}
@@ -264,6 +266,9 @@ function selectSession(id) {
 
 async function sessionAction(action) {
   if (!activeId) return;
+  if (action === "delete") {
+    if (!confirm("Delete this session? This stops it and removes it from the list.")) return;
+  }
   // This view already has a real, currently-fitted terminal size --
   // pass it through on start/restart so a --resume'd session's startup
   // recap spawns the pty at the size it's actually about to be viewed
@@ -278,6 +283,10 @@ async function sessionAction(action) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: "csrf_token=" + encodeURIComponent(CSRF_TOKEN) + sizeParams,
   });
+  if (action === "delete") {
+    window.location.href = "{{ url_for('terminal_hub') }}";
+    return;
+  }
   // start/restart need a moment for the daemon to actually spawn the
   // pty before a new websocket connection can succeed against it.
   setTimeout(() => { if (activeId) selectSession(activeId); }, 1200);
