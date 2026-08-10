@@ -1644,13 +1644,13 @@ def _read_version() -> str:
 @app.get("/settings")
 @require_auth
 def settings_form():
-    # Sweeps any internal connector session left over from an abandoned
-    # connect flow (browser closed, navigated away without clicking "I'm
-    # done") -- the explicit teardown in refresh_mcp_connector_status
-    # only fires if that button actually gets clicked, so this is the
-    # backstop that makes it truly self-cleaning instead of relying on
-    # that.
-    _discard_internal_connector_sessions()
+    # Sweeps only genuinely stale (see _CONNECTOR_SESSION_STALE_SECONDS)
+    # leftover internal connector sessions -- a backstop for a truly
+    # abandoned flow, not an aggressive every-page-load teardown (that
+    # was a real bug: it could kill a session still actively in use just
+    # from navigating back to this page -- see
+    # _discard_internal_connector_sessions' docstring).
+    _discard_internal_connector_sessions(min_age_seconds=_CONNECTOR_SESSION_STALE_SECONDS)
     raw = settings.get_all()
     # Secrets never round-trip into the page -- not even masked in a value
     # attribute, since that's still plaintext in the HTML source. Only a
@@ -1684,16 +1684,31 @@ def settings_form():
 _CONNECTOR_SESSION_LABEL = "Cadre: Connectors"
 
 
-def _discard_internal_connector_sessions() -> None:
-    """Tears down every leftover internal connector session -- called
-    both when "I'm done" is clicked and defensively before opening a new
-    one, so an abandoned flow (browser closed mid-setup, etc.) gets
-    cleaned up the next time anyone visits this tab instead of lingering
-    forever."""
+_CONNECTOR_SESSION_STALE_SECONDS = 600  # 10 minutes
+
+
+def _discard_internal_connector_sessions(min_age_seconds: float = 0) -> None:
+    """Tears down leftover internal connector sessions older than
+    min_age_seconds. Two very different call sites use this:
+
+    - Explicitly clicking "Connect" passes 0 (discard unconditionally) --
+      that's a deliberate "start fresh" action, so whatever session
+      existed before genuinely should go.
+    - Settings' own page load passes _CONNECTOR_SESSION_STALE_SECONDS,
+      as a backstop for a truly abandoned flow (browser closed mid-setup,
+      etc.). Confirmed via real user testing 2026-08-10 that discarding
+      unconditionally here was a real bug: simply navigating back to
+      Settings (or clicking Connect a second time) while a connector
+      session's terminal tab was still open elsewhere silently killed it
+      out from under that tab, which then showed "unknown session" --
+      the age gate keeps the self-cleaning behavior for genuinely
+      abandoned sessions without nuking one still actively in use."""
+    now = time.time()
     for s in sessions_store.list_sessions():
         if s.get("internal") and s["label"] == _CONNECTOR_SESSION_LABEL:
-            session_manager.stop(s["id"])
-            sessions_store.remove(s["id"])
+            if now - s.get("created_at", 0) >= min_age_seconds:
+                session_manager.stop(s["id"])
+                sessions_store.remove(s["id"])
 
 
 def _create_connector_session() -> str:
