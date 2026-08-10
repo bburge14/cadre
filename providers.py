@@ -207,12 +207,24 @@ def claude_mcp_connectors() -> dict[str, bool | None]:
     connectors as True (Connected), False (some other status), or None
     (not found in the output at all, e.g. claude isn't installed/logged
     in). Best-effort -- a failure here shouldn't break loading Settings,
-    it just means the status badges show as unknown."""
+    it just means the status badges show as unknown.
+
+    Resolves the full path via shutil.which() rather than passing the
+    bare "claude" to subprocess -- confirmed via live Windows testing
+    2026-08-10 that this matters there specifically: an npm-installed
+    CLI is a .cmd/.ps1 shim, not a raw .exe, and subprocess.run(['claude',
+    ...]) fails with FileNotFoundError (WinError 2) since Python's
+    subprocess -- unlike a real shell, and unlike pywinpty's own spawn()
+    which is how this app already successfully launches claude sessions
+    -- doesn't search PATHEXT for a bare command name. shutil.which()
+    does, on every OS, which is exactly what binary_found() already
+    relies on below."""
+    claude_path = shutil.which(get("claude").binary)
     result = {slug: None for slug in CLAUDE_CONNECTOR_LABELS}
-    if not binary_found("claude"):
+    if not claude_path:
         return result
     try:
-        proc = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=20)
+        proc = subprocess.run([claude_path, "mcp", "list"], capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.TimeoutExpired):
         return result
     labels_by_name = {label: slug for slug, label in CLAUDE_CONNECTOR_LABELS.items()}
