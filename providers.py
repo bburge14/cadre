@@ -71,12 +71,21 @@ class Provider:
         if self.id == "claude":
             args = [self.binary, "--resume", session_id, "--remote-control", label]
             return self._add_unattended(args, unattended)
-        if self.id == "gemini":
-            return [self.binary, "--resume", session_id]
-        if self.id == "codex":
-            return [self.binary, "resume", session_id]
-        if self.id == "kimi":
-            return [self.binary, "--session", session_id]
+        # Gemini/Codex/Kimi: same root problem as new_session_args() above,
+        # confirmed via live testing 2026-08-10 for Codex specifically
+        # (`ERROR: No saved session found with ID <cadre's own uuid>`) --
+        # these sessions never actually get the *CLI's own* real
+        # internal session id, since new_session_args() never hands them
+        # one and this app has no way to discover it after the fact yet.
+        # Passing Cadre's own made-up session_id to --resume/resume was
+        # always going to fail; it isn't a real, known session as far as
+        # the CLI itself is concerned. Starting fresh (same as
+        # new_session_args) at least produces a working session instead
+        # of a hard error -- conversation continuity across a
+        # Restart/Stop-Start genuinely doesn't work yet for these three,
+        # which is a real limitation, not a bug being papered over.
+        if self.id in ("gemini", "codex", "kimi"):
+            return self.new_session_args(session_id, label, unattended)
         raise ValueError(f"Unknown provider: {self.id}")
 
     def _add_unattended(self, args: list[str], unattended: bool) -> list[str]:
