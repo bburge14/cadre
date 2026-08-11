@@ -468,13 +468,29 @@
 
   <h2 id="git-hosts">Connecting GitHub / GitLab</h2>
   <p>
-    Optional — only needed if you want "+ New session" to clone a repo
-    instead of pointing at a directory already on this machine. In
+    Optional — only needed if you want "+ New session" to clone (or create)
+    a repo instead of pointing at a directory already on this machine. In
     Settings, register an OAuth App (GitHub: github.com/settings/developers;
     GitLab: your instance's User Settings → Applications) using the exact
     callback URL Settings shows you, paste the Client ID/Secret in, save.
     "+ New session" then shows a "Connect your account" link on the
-    GitHub/GitLab tab.
+    GitHub/GitLab tab. Once connected, that tab offers both "Clone existing
+    repo" (pick from a list) and "Create new repo" (name it, choose
+    public/private — Cadre creates the empty repo on GitHub/GitLab, then
+    clones it).
+  </p>
+  <p>
+    The CLI inside a session runs its own <code>git</code> commands
+    directly — Cadre doesn't sit in between. What the connected account
+    actually buys you: the credentials used for the initial clone are also
+    persisted into that repo's own git config, so <code>git push</code>/
+    <code>git pull</code> run later from inside the session (by you or the
+    agent) stay authenticated as that account too, not just the one-time
+    clone. Pointing "Local directory" at a folder that's <em>already</em> a
+    git checkout of a repo on a connected account links it the same way
+    automatically. Reconnecting (or disconnecting) an account in Settings
+    re-applies to every repo Cadre has linked so far — nothing needs
+    re-cloning.
   </p>
 
   <h2 id="appearance">Dashboard appearance</h2>

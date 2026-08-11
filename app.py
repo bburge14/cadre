@@ -1584,19 +1584,34 @@ def create_session():
     source = request.form.get("source", "local")
 
     if source in ("github", "gitlab"):
-        repo_full_name = request.form.get("repo_full_name", "").strip()
         token = git_hosts.get_token(source)
-        if not repo_full_name or not token:
-            flash(f"Pick a repo to clone from {source.title()}.", "error")
+        if not token:
+            flash(f"Connect your {source.title()} account first.", "error")
             return redirect(url_for("new_session_form"))
-        try:
-            list_repos = git_hosts.github_list_repos if source == "github" else git_hosts.gitlab_list_repos
-            clone_url_for = git_hosts.github_clone_url_for if source == "github" else git_hosts.gitlab_clone_url_for
-            repos = list_repos(token)
-            clone_url = clone_url_for(repo_full_name, repos)
-        except Exception as exc:
-            flash(f"Couldn't look up that repo: {exc}", "error")
-            return redirect(url_for("new_session_form"))
+
+        new_repo_name = request.form.get("new_repo_name", "").strip()
+        if new_repo_name:
+            create_repo = git_hosts.github_create_repo if source == "github" else git_hosts.gitlab_create_repo
+            private = request.form.get("new_repo_private") == "on"
+            try:
+                clone_url = create_repo(token, new_repo_name, private=private)
+            except Exception as exc:
+                flash(f"Couldn't create that repo on {source.title()}: {exc}", "error")
+                return redirect(url_for("new_session_form"))
+            repo_full_name = new_repo_name
+        else:
+            repo_full_name = request.form.get("repo_full_name", "").strip()
+            if not repo_full_name:
+                flash(f"Pick a repo to clone from {source.title()}.", "error")
+                return redirect(url_for("new_session_form"))
+            try:
+                list_repos = git_hosts.github_list_repos if source == "github" else git_hosts.gitlab_list_repos
+                clone_url_for = git_hosts.github_clone_url_for if source == "github" else git_hosts.gitlab_clone_url_for
+                repos = list_repos(token)
+                clone_url = clone_url_for(repo_full_name, repos)
+            except Exception as exc:
+                flash(f"Couldn't look up that repo: {exc}", "error")
+                return redirect(url_for("new_session_form"))
 
         projects_root = settings.projects_root()
         target_dir = projects_root / git_hosts.slugify_repo_name(repo_full_name)
@@ -1617,6 +1632,16 @@ def create_session():
         workdir = str(target_dir)
         if not label:
             label = repo_full_name
+        # Cadre's own clone above only authenticates itself, one-off --
+        # this persists the same credentials into the repo's own config so
+        # `git push`/`git pull` run later by the agent inside the session
+        # (not just this clone) stay authenticated as the connected
+        # account, and so reconnecting later (relink_all, in set_token)
+        # re-applies automatically without re-cloning.
+        try:
+            git_hosts.link_workdir(workdir, source)
+        except Exception as exc:
+            print(f"git_hosts.link_workdir failed for {workdir}: {exc}")
     else:
         stack_id = request.form.get("stack_id", "").strip()
         stack = _resolve_stack(stack_id) if stack_id else None
@@ -1650,6 +1675,18 @@ def create_session():
             if not Path(workdir).is_dir():
                 flash(f"'{workdir}' is not a directory that exists on this machine.", "error")
                 return redirect(url_for("new_session_form"))
+            # Not a repo Cadre itself cloned -- but if it's an existing
+            # git checkout of a repo on a connected GitHub/GitLab account,
+            # link it the same way so push/pull work here too, same as a
+            # freshly-cloned one. Harmless no-op for a plain folder or a
+            # repo on an unconnected/different host (detect_git_host
+            # returns None).
+            try:
+                detected = git_hosts.detect_git_host(workdir)
+                if detected and git_hosts.get_token(detected):
+                    git_hosts.link_workdir(workdir, detected)
+            except Exception as exc:
+                print(f"git_hosts existing-repo link check failed for {workdir}: {exc}")
 
     provider_id = request.form.get("provider", "claude") if source == "local" else "claude"
     try:

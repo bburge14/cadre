@@ -15,6 +15,14 @@
   .source-tab.active { background: var(--accent-gradient); border-color: transparent; color: #fff; font-weight: 500; }
   .source-panel { display: none; }
   .source-panel.active { display: block; }
+  .repo-mode-tabs { display: flex; gap: 1rem; margin: 0.8rem 0 0.6rem; }
+  .repo-mode-tab { cursor: pointer; font-size: 0.85rem; color: var(--text-faint); border-bottom: 2px solid transparent; padding-bottom: 0.2rem; }
+  .repo-mode-tab:hover { color: var(--text-dim); }
+  .repo-mode-tab.active { color: var(--accent); border-color: var(--accent); font-weight: 500; }
+  .repo-mode-panel { display: none; }
+  .repo-mode-panel.active { display: block; }
+  .checkbox-label { display: flex; align-items: center; gap: 0.4rem; font-weight: normal; margin-top: 0.5rem; }
+  .checkbox-label input { width: auto; accent-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -84,10 +92,22 @@
       <p class="hint">Connect your account to pick a repo here.</p>
       <a class="btn btn-primary" href="{{ url_for('github_oauth_start') }}">Connect your GitHub account</a>
       {% else %}
-      <label>repository</label>
-      <select name="repo_full_name" id="repo-select-github">
-        <option value="">Loading repos…</option>
-      </select>
+      <div class="repo-mode-tabs">
+        <span class="repo-mode-tab active" data-mode="existing" onclick="selectRepoMode('github','existing')">Clone existing repo</span>
+        <span class="repo-mode-tab" data-mode="new" onclick="selectRepoMode('github','new')">Create new repo</span>
+      </div>
+      <div class="repo-mode-panel active" data-mode="existing" id="panel-github-existing">
+        <label>repository</label>
+        <select name="repo_full_name" id="repo-select-github">
+          <option value="">Loading repos…</option>
+        </select>
+      </div>
+      <div class="repo-mode-panel" data-mode="new" id="panel-github-new">
+        <label>new repository name</label>
+        <input type="text" name="new_repo_name" id="new-repo-name-github" placeholder="my-new-project" disabled>
+        <label class="checkbox-label"><input type="checkbox" name="new_repo_private" id="new-repo-private-github" checked disabled> private</label>
+        <p class="hint">Creates an empty repo on GitHub, then clones it here — same as picking an existing one.</p>
+      </div>
       {% endif %}
     </div>
 
@@ -98,10 +118,22 @@
       <p class="hint">Connect your account to pick a repo here.</p>
       <a class="btn btn-primary" href="{{ url_for('gitlab_oauth_start') }}">Connect your GitLab account</a>
       {% else %}
-      <label>repository</label>
-      <select name="repo_full_name" id="repo-select-gitlab">
-        <option value="">Loading repos…</option>
-      </select>
+      <div class="repo-mode-tabs">
+        <span class="repo-mode-tab active" data-mode="existing" onclick="selectRepoMode('gitlab','existing')">Clone existing repo</span>
+        <span class="repo-mode-tab" data-mode="new" onclick="selectRepoMode('gitlab','new')">Create new repo</span>
+      </div>
+      <div class="repo-mode-panel active" data-mode="existing" id="panel-gitlab-existing">
+        <label>repository</label>
+        <select name="repo_full_name" id="repo-select-gitlab">
+          <option value="">Loading repos…</option>
+        </select>
+      </div>
+      <div class="repo-mode-panel" data-mode="new" id="panel-gitlab-new">
+        <label>new repository name</label>
+        <input type="text" name="new_repo_name" id="new-repo-name-gitlab" placeholder="my-new-project" disabled>
+        <label class="checkbox-label"><input type="checkbox" name="new_repo_private" id="new-repo-private-gitlab" checked disabled> private</label>
+        <p class="hint">Creates an empty repo on GitLab, then clones it here — same as picking an existing one.</p>
+      </div>
       {% endif %}
     </div>
     {% endif %}
@@ -150,11 +182,38 @@ function updateFolderPreview() {
   const slug = label.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || '(label)';
   preview.textContent = 'Will create: ' + workdir + '/' + slug;
 }
+const repoMode = { github: 'existing', gitlab: 'existing' };
 function selectSource(src) {
   document.getElementById('source-field').value = src;
   document.querySelectorAll('.source-tab').forEach(el => el.classList.toggle('active', el.dataset.source === src));
   ['local', 'github', 'gitlab'].forEach(s => {
-    document.getElementById('panel-' + s).classList.toggle('active', s === src);
+    const panel = document.getElementById('panel-' + s);
+    const active = s === src;
+    panel.classList.toggle('active', active);
+    // github/gitlab both have a repo_full_name select and (now) a
+    // new_repo_name input -- same field names in both panels, since
+    // only one panel is ever really "the" source. A browser form
+    // submits every non-disabled field regardless of what's visually
+    // hidden, so without this the inactive panel's stale/default value
+    // silently wins over whichever one the user actually picked
+    // (confirmed real: GitHub's select stays populated once
+    // loadRepos() runs, so picking a GitLab repo while GitHub was
+    // still connected used to submit GitHub's repo_full_name instead).
+    panel.querySelectorAll('input, select, textarea').forEach(el => { el.disabled = !active; });
+    if (active && (s === 'github' || s === 'gitlab')) applyRepoMode(s);
+  });
+}
+function selectRepoMode(provider, mode) {
+  repoMode[provider] = mode;
+  applyRepoMode(provider);
+}
+function applyRepoMode(provider) {
+  const mode = repoMode[provider];
+  document.querySelectorAll('#panel-' + provider + ' .repo-mode-tab').forEach(el => el.classList.toggle('active', el.dataset.mode === mode));
+  document.querySelectorAll('#panel-' + provider + ' .repo-mode-panel').forEach(el => {
+    const active = el.dataset.mode === mode;
+    el.classList.toggle('active', active);
+    el.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = !active; });
   });
 }
 function loadRepos(url, selectId) {
@@ -185,6 +244,7 @@ function updateProviderNote() {
 }
 updateProviderNote();
 applyStackSelection();
+selectSource('local');
 {% endif %}
 {% if not session and gitlab_connected %}
 loadRepos("{{ url_for('gitlab_repos_json') }}", "repo-select-gitlab");
