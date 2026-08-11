@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
-<link rel="stylesheet" href="{{ url_for('static', filename='vendor/xterm.css') }}">
 <style>
   body { max-width: 760px; }
   .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
@@ -15,18 +14,6 @@
   .status-off { background: var(--text-faint); }
   .workdir { color: var(--text-faint); font-family: ui-monospace, monospace; font-size: 0.85rem; }
   pre#output { background: var(--surface-2); border: 1px solid var(--border); padding: 0.8rem; border-radius: var(--radius-sm); max-height: 420px; overflow-y: auto; font-size: 0.78rem; white-space: pre-wrap; margin-top: 1rem; }
-  /* resize:vertical gives it a native browser drag handle in the
-     bottom-right corner -- same idea as dragging an OS terminal
-     window's edge, just scoped to this one panel on the page instead
-     of the whole browser window. overflow can't be "visible" for
-     resize to apply at all; "hidden" (not "auto") since xterm.js
-     manages its own internal scrollback, not the outer div's. */
-  #terminal-container {
-    display: none; margin-top: 1rem; background: #000; border-radius: var(--radius-sm);
-    padding: 0.5rem; height: 420px; min-height: 200px; resize: vertical; overflow: hidden;
-  }
-  #terminal { height: 100%; }
-  .term-status { font-size: 0.78rem; color: var(--text-faint); margin-top: 0.3rem; }
   .danger-zone { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border-soft); }
   .limit-banner { display: none; background: var(--warning-bg); color: var(--warning-text); border: 1px solid #7a4a1a; border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
 </style>
@@ -53,8 +40,7 @@
     <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-icon" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button></form>
     <form class="inline" method="post" action="{{ url_for('session_action', session_id=session.id, action='restart') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-icon btn-primary" title="Restart" aria-label="Restart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></button></form>
     <a class="btn btn-icon" href="{{ url_for('edit_session_form', session_id=session.id) }}" title="Edit" aria-label="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></a>
-    <button class="btn btn-primary" type="button" id="terminal-toggle" onclick="toggleTerminal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l4 3-4 3M12 15h4"/></svg><span id="terminal-toggle-label">Open terminal</span></button>
-    <a class="btn btn-icon" href="{{ url_for('session_terminal', session_id=session.id) }}" title="Open in full-page terminal" aria-label="Open in full-page terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></a>
+    <a class="btn btn-primary" href="{{ url_for('session_terminal', session_id=session.id) }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l4 3-4 3M12 15h4"/></svg> Open terminal</a>
     {% if matching_stack %}
     <a class="btn" href="{{ url_for('edit_stack_form', stack_id=matching_stack.id) }}">This directory's stack: {{ matching_stack.name }}</a>
     {% else %}
@@ -64,11 +50,6 @@
 
   <p class="hint" style="margin-top:1.2rem;">Output (session URL / QR appears here after starting):</p>
   <pre id="output"></pre>
-
-  <div id="terminal-container">
-    <div id="terminal"></div>
-    <div class="term-status" id="term-status">connecting…</div>
-  </div>
 
   <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border-soft);">
     <h3 style="margin-top:0;">Session getting long?</h3>
@@ -99,8 +80,6 @@
     </form>
   </div>
 
-<script src="{{ url_for('static', filename='vendor/xterm.js') }}?v={{ asset_version }}"></script>
-<script src="{{ url_for('static', filename='terminal.js') }}?v={{ asset_version }}"></script>
 <script>
 let wasLimitHit = {{ 'true' if status.limit_hit else 'false' }};
 if ("Notification" in window && Notification.permission === "default") {
@@ -114,11 +93,9 @@ async function poll() {
     document.getElementById("status-text").textContent = data.running ? "running" : "stopped";
     document.getElementById("dot").className = "status-dot " + (data.running ? "status-on" : "status-off");
     document.getElementById("pid-text").textContent = data.pid ? "(pid " + data.pid + ")" : "";
-    if (!terminalOpen) {
-      const out = document.getElementById("output");
-      out.textContent = data.output;
-      out.scrollTop = out.scrollHeight;
-    }
+    const out = document.getElementById("output");
+    out.textContent = data.output;
+    out.scrollTop = out.scrollHeight;
 
     const banner = document.getElementById("limit-banner");
     banner.style.display = data.limit_hit ? "block" : "none";
@@ -131,65 +108,6 @@ async function poll() {
 }
 poll();
 setInterval(poll, 3000);
-
-let terminalOpen = false;
-let term = null;
-let fitAddon = null;
-let connection = null;
-
-function toggleTerminal() {
-  const container = document.getElementById("terminal-container");
-  const output = document.getElementById("output");
-  const label = document.getElementById("terminal-toggle-label");
-  terminalOpen = !terminalOpen;
-
-  if (!terminalOpen) {
-    container.style.display = "none";
-    output.style.display = "block";
-    label.textContent = "Open terminal";
-    if (connection) { connection.close(); connection = null; }
-    return;
-  }
-
-  container.style.display = "block";
-  output.style.display = "none";
-  label.textContent = "Close terminal";
-
-  const firstOpen = !term;
-  if (firstOpen) {
-    const initialTheme = resolveXtermTheme("{{ terminal_theme }}");
-    term = new Terminal({ convertEol: true, fontSize: 13, theme: initialTheme });
-    term.open(document.getElementById("terminal"));
-    syncTerminalWrapperBackground("terminal-container", initialTheme);
-    // Without this, the terminal never resizes to fill #terminal-container
-    // at all -- it just sits at whatever size it happened to render at
-    // first, which also meant the drag handle on the container resized
-    // an empty box around the terminal without the terminal itself
-    // changing size.
-    fitAddon = setupTerminalFit(term);
-  } else if (fitAddon) {
-    fitAddon.fit();
-  }
-
-  const statusEl = document.getElementById("term-status");
-  connection = createTerminalConnection("{{ session.id }}", {
-    tokenUrl: "{{ url_for('session_terminal_token', session_id=session.id) }}",
-    csrfToken: "{{ csrf_token() }}",
-    term: term,
-    onStatus: (text) => {
-      statusEl.textContent = text;
-      if (text === "connected" && fitAddon) fitAddon.fit();
-    },
-  });
-  if (firstOpen) {
-    // Wrapped so the key row always sends through whatever `connection`
-    // currently is, not the one that existed at attach time -- closing
-    // and reopening the terminal replaces `connection` with a new object.
-    attachMobileKeyRow(document.getElementById("terminal-container"), {
-      send: (data) => { if (connection) connection.send(data); },
-    });
-  }
-}
 </script>
 </body>
 </html>
