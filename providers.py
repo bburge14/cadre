@@ -57,11 +57,14 @@ class Provider:
         if self.id == "claude":
             args = [self.binary, "--session-id", session_id, "--remote-control", label]
             return self._add_unattended(args, unattended)
-        if self.id == "kimi":
-            return [self.binary, "--session", session_id]
-        # Gemini/Codex: no confirmed way to choose a new session's ID
-        # upfront (see plan's Known Unknowns) -- start fresh and let the
-        # caller discover the real ID afterward via session_id_after_spawn.
+        # Gemini/Codex/Kimi: no confirmed way to choose a new session's ID
+        # upfront -- start fresh instead. Kimi previously passed
+        # `--session <freshly-generated-id>` here on the assumption that'd
+        # create a new session under that id; confirmed wrong via live
+        # testing 2026-08-10 (`error: failed to start shell: Session
+        # "<id>" not found`) -- --session only resumes an existing one, it
+        # can't mint a new one under a chosen id, same real limitation
+        # already flagged here for Gemini/Codex.
         return [self.binary]
 
     def resume_args(self, session_id: str, label: str, unattended: bool = False) -> list[str]:
