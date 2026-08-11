@@ -31,12 +31,12 @@
     <tr>
       <td><a href="{{ url_for('session_detail', session_id=s.id) }}">{{ s.label }}</a></td>
       <td>{{ s.get('provider', 'claude') | capitalize }}</td>
-      <td class="workdir">{{ s.workdir }}</td>
+      <td class="workdir" title="{{ s.workdir }}">{{ s.workdir }}</td>
       <td>
         <span class="badge {{ 'badge-on' if s.status.running else 'badge-off' }}"><span class="badge-dot"></span>{{ 'running' if s.status.running else 'stopped' }}{% if s.status.pid %} &middot; {{ s.status.pid }}{% endif %}</span>
         {% if s.status.limit_hit %}<br><span class="badge badge-warn" title="{{ s.status.limit_message }}" style="margin-top:0.35rem;">limit hit</span>{% endif %}
       </td>
-      <td>
+      <td class="actions">
         <div class="btn-group">
         <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='start') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-icon" title="Start" aria-label="Start"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></form>
         <form class="inline" method="post" action="{{ url_for('session_action', session_id=s.id, action='stop') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-icon" title="Stop" aria-label="Stop"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button></form>

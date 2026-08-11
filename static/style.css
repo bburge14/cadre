@@ -1075,7 +1075,8 @@ table.list th {
 table.list tbody tr { border-bottom: 1px solid var(--border-soft); transition: background 0.1s ease; }
 table.list tbody tr:last-child { border-bottom: none; }
 table.list tbody tr:hover { background: var(--surface-2); }
-table.list td.workdir { color: var(--text-faint); font-size: 0.79rem; font-family: ui-monospace, monospace; }
+table.list td.workdir { color: var(--text-faint); font-size: 0.79rem; font-family: ui-monospace, monospace; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.list td.actions { white-space: nowrap; }
 table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
 
 /* ---- Status / badges ---- */
