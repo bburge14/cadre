@@ -253,7 +253,18 @@ function selectSession(id) {
       // sessions right after the page loaded).
       if (text === "connected" && fitAddon) fitAddon.fit();
     },
-    onNotRunning: () => { if (activeId === id) showNotRunning(); },
+    onNotRunning: () => {
+      if (activeId !== id) return;
+      showNotRunning();
+      // Only ever fires for the session New Session's form just redirected
+      // here for (?autostart=1&session=<id>) -- consumed once so it can
+      // never re-trigger from switching back to this same session later,
+      // or from someone else's stray link with the param still in it.
+      if (pendingAutostartId && id === pendingAutostartId) {
+        pendingAutostartId = null;
+        waitForFitReady(term).then(() => sessionAction("start"));
+      }
+    },
   });
   if (!document.querySelector(".term-key-row")) {
     attachMobileKeyRow(document.getElementById("terminal-wrap"), {
@@ -337,8 +348,25 @@ function startPolling() {
   }, 3000);
 }
 
+function waitForFitReady(term, timeoutMs = 2000) {
+  // term._cadreFitReady is set by terminal.js's markFitReady the first
+  // time a real container-based measurement succeeds -- same readiness
+  // signal createTerminalConnection already waits on before flushing any
+  // buffered output, reused here so sessionAction("start") reads the
+  // real fitted term.cols/term.rows instead of xterm's 80x24 default.
+  return new Promise((resolve) => {
+    if (term._cadreFitReady) { resolve(); return; }
+    const start = Date.now();
+    (function check() {
+      if (term._cadreFitReady || Date.now() - start > timeoutMs) { resolve(); return; }
+      requestAnimationFrame(check);
+    })();
+  });
+}
+
 const urlParams = new URLSearchParams(window.location.search);
 const requested = urlParams.get("session") || localStorage.getItem(LAST_SESSION_KEY);
+let pendingAutostartId = urlParams.get("autostart") === "1" ? requested : null;
 if (requested && document.querySelector('.term-session-row[data-session-id="' + requested + '"]')) {
   selectSession(requested);
 }

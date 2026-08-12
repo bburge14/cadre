@@ -1693,9 +1693,18 @@ def create_session():
         terminal_theme.apply_theme(workdir, provider_id, settings.get("terminal_theme"))
     except Exception as exc:
         print(f"terminal_theme apply failed for {workdir}: {exc}")
-    result = session_manager.create(label, workdir, provider=provider_id)
-    flash(f"Created session '{label}' (pid {result.get('pid')}).", "success")
-    return redirect(url_for("index"))
+    # autostart=False -- deliberately NOT spawning the pty here. Doing so
+    # would use session_daemon.py's generic wide-desktop size guess, and a
+    # freshly-spawned CLI whose live status/recap redraw assumed that
+    # width can render corrupted once the terminal hub (below) opens with
+    # the browser's real, usually-narrower size and forces a resize.
+    # Landing on the terminal hub with ?autostart=1 instead makes it spawn
+    # the pty itself, the same way Restart already correctly does from an
+    # open terminal view -- with real cols/rows from the start, no resize
+    # needed. See create()'s autostart docstring for the full diagnosis.
+    result = session_manager.create(label, workdir, provider=provider_id, autostart=False)
+    flash(f"Created session '{label}'.", "success")
+    return redirect(url_for("terminal_hub", session=result["session_id"], autostart=1))
 
 
 # ---- Settings ----

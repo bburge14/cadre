@@ -99,8 +99,8 @@ def start(session_id: str, cols: int | None = None, rows: int | None = None) -> 
     return _send({"cmd": "start", "session_id": session_id, "cols": cols, "rows": rows})
 
 
-def create(label: str, workdir: str, provider: str = "claude", internal: bool = False) -> dict:
-    return _send({"cmd": "create", "label": label, "workdir": workdir, "provider": provider, "internal": internal})
+def create(label: str, workdir: str, provider: str = "claude", internal: bool = False, autostart: bool = True) -> dict:
+    return _send({"cmd": "create", "label": label, "workdir": workdir, "provider": provider, "internal": internal, "autostart": autostart})
 
 
 def stop(session_id: str) -> dict:

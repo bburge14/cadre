@@ -448,10 +448,25 @@ def start(
 
 def create(
     label: str, workdir: str, provider_id: str = "claude", unattended: bool = False, internal: bool = False,
+    autostart: bool = True,
 ) -> dict:
     session_id = str(uuid_mod.uuid4())
     sessions_store.add(label, workdir, session_id=session_id, provider=provider_id, internal=internal)
-    result = _spawn(session_id, workdir, label, resume=False, provider_id=provider_id, unattended=unattended)
+    if autostart:
+        result = _spawn(session_id, workdir, label, resume=False, provider_id=provider_id, unattended=unattended)
+    else:
+        # Caller (New Session's web form) will spawn this itself once its
+        # own terminal view is open and has a real, correctly-fitted
+        # cols/rows to hand to start() -- see terminal_hub.html's autostart
+        # param. Spawning eagerly here would use _spawn()'s generic
+        # wide-desktop guess (pty_compat.py's cols=None default), and a
+        # freshly-spawned CLI whose live status/recap redraw assumed that
+        # width can render corrupted once the browser's real (usually
+        # narrower) size arrives moments later and forces a resize --
+        # confirmed on a real Codex install 2026-08-12 ("wonky on startup,
+        # fine after restart" -- restart already passes real cols/rows
+        # since it's only ever triggered from an open terminal view).
+        result = {"ok": True, "already_running": False, "pid": None}
     result["session_id"] = session_id
     return result
 
@@ -675,7 +690,7 @@ _DISPATCH = {
     "start": lambda a: start(a["session_id"], a.get("cols"), a.get("rows")),
     "stop": lambda a: stop(a["session_id"]),
     "restart": lambda a: restart(a["session_id"], a.get("cols"), a.get("rows")),
-    "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude"), internal=a.get("internal", False)),
+    "create": lambda a: create(a["label"], a["workdir"], a.get("provider", "claude"), internal=a.get("internal", False), autostart=a.get("autostart", True)),
     "restart_all_running": lambda a: {"restarted": restart_all_running()},
     "create_terminal_token": lambda a: create_terminal_token(a["session_id"]),
     "write": lambda a: write(a["session_id"], a["text"]),
