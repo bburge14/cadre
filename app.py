@@ -21,6 +21,7 @@ import agent_formats
 import agents_store
 import auth
 import config
+import custom_presets_store
 import git_hosts
 import integrations_store
 import network_info
@@ -1159,7 +1160,7 @@ def new_stack_form():
     return render_template(
         "stack_form.html",
         stack=None,
-        stack_presets=presets.list_presets(),
+        stack_presets=_all_presets(),
         library=presets.list_library_agents(),
         library_divisions=presets.load_divisions(),
         active_names=set(),
@@ -1169,6 +1170,43 @@ def new_stack_form():
         prefill_workdir=request.args.get("workdir", ""),
         cli_providers=providers.list_providers(),
     )
+
+
+@app.post("/presets/save")
+@require_auth
+def save_custom_preset():
+    # JSON response, not redirect+flash -- this is only ever called via
+    # fetch() from stack_form.html's own JS. A redirect here would have
+    # fetch() silently follow (and thus consume) the flash-carrying page
+    # itself before the caller's own location.reload() ever ran, so the
+    # flash message would never actually reach the user -- confirmed live
+    # 2026-08-12 as the reason "Saved preset" never appeared on screen
+    # despite the save genuinely working.
+    name = request.form.get("name", "").strip()
+    description = request.form.get("description", "").strip()
+    agent_ids = request.form.getlist("agent_ids")
+    if not name:
+        return {"ok": False, "error": "Name the preset first."}, 400
+    # Only real, currently-existing library agent names -- guards against
+    # a stale/tampered checkbox value referencing something that no
+    # longer exists (or never did) ending up baked into a saved preset.
+    valid_names = {a.name for a in presets.list_library_agents()}
+    agent_ids = [a for a in agent_ids if a in valid_names]
+    if not agent_ids:
+        return {"ok": False, "error": "Check at least one agent from the library first."}, 400
+    entry = custom_presets_store.add(name, description, agent_ids)
+    return {"ok": True, "preset": entry}
+
+
+@app.post("/presets/<preset_id>/delete")
+@require_auth
+def delete_custom_preset(preset_id):
+    # JSON, not redirect+flash -- same reasoning as save_custom_preset().
+    preset = custom_presets_store.get(preset_id)
+    if preset is None:
+        return {"ok": False, "error": "Unknown preset (bundled presets can't be deleted)."}, 404
+    custom_presets_store.remove(preset_id)
+    return {"ok": True}
 
 
 @app.post("/stacks/new")
@@ -1210,7 +1248,7 @@ def edit_stack_form(stack_id):
         "stack_form.html",
         stack=stack,
         stack_agents=stack_agents,
-        stack_presets=presets.list_presets(),
+        stack_presets=_all_presets(),
         library=presets.list_library_agents(),
         library_divisions=presets.load_divisions(),
         active_names=active_names,
@@ -1303,6 +1341,15 @@ def _next_schedule_fire(cron_expr: str) -> float | None:
         return croniter.croniter(cron_expr, datetime.now()).get_next(datetime).timestamp()
     except (ValueError, KeyError):
         return None
+
+
+def _all_presets() -> list[dict]:
+    """Bundled presets (shipped with Cadre, read-only) plus whatever the
+    user has saved themselves (custom_presets_store, per-install data) --
+    combined here rather than in presets.py itself, since presets.py's
+    own list_presets() stays a pure read of the bundled manifest, mirrored
+    by how every other *_store.py module owns exactly its own data."""
+    return presets.list_presets() + custom_presets_store.list_custom_presets()
 
 
 def _stack_picker_options() -> list[dict]:

@@ -10,22 +10,26 @@
 <script src="{{ url_for('static', filename='tabs.js') }}?v={{ asset_version }}"></script>
 <script src="{{ url_for('static', filename='section-nav.js') }}?v={{ asset_version }}"></script>
 <style>
-  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem; }
-  .preset-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem; cursor: pointer; transition: border-color 0.12s ease, background 0.12s ease; }
-  .preset-card:hover { border-color: var(--border-strong); }
-  .preset-card.selected { border-color: transparent; background: var(--accent-soft-bg); border-image: var(--accent-gradient) 1; }
-  .preset-card h3 { margin: 0 0 0.3rem; font-size: 0.9rem; }
-  .preset-card p { margin: 0 0 0.4rem; color: var(--text-dim); font-size: 0.8rem; }
-  .preset-card .agents { font-size: 0.76rem; color: var(--text-faint); }
+  .preset-grid { max-height: 420px; overflow-y: auto; margin-top: 0.8rem; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+  .preset-card { padding: 0.6rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--border-soft); transition: background 0.12s ease; }
+  .preset-card:last-child { border-bottom: none; }
+  .preset-card:hover { background: var(--surface-hover); }
+  .preset-card.selected { background: var(--accent-soft-bg); box-shadow: inset 3px 0 0 0 var(--accent); }
+  .preset-card h3 { margin: 0 0 0.15rem; font-size: 0.88rem; }
+  .preset-card p { margin: 0 0 0.25rem; color: var(--text-dim); font-size: 0.8rem; }
+  .preset-card .agents { font-size: 0.74rem; color: var(--text-faint); }
   .agent-list { list-style: none; padding: 0; margin: 0.5rem 0 0; }
   .agent-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border-soft); font-size: 0.88rem; }
   .agent-list .desc { color: var(--text-faint); font-size: 0.78rem; }
+  #library-agent-list { max-height: 480px; overflow-y: auto; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 0 0.9rem; }
+  #library-agent-list li:last-child { border-bottom: none; }
   .tag { display: inline-block; background: var(--surface-2); border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: var(--text-faint); margin-left: 0.4rem; }
   .tag.active { background: var(--success-bg); color: var(--success-text); }
   .division-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.7rem 0; }
   .division-chip { cursor: pointer; font-size: 0.78rem; padding: 0.25rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); color: var(--text-dim); transition: border-color 0.12s ease, background 0.12s ease; }
   .division-chip:hover { border-color: var(--border-strong); }
   .division-chip.active { background: var(--accent-gradient); border-color: transparent; color: #fff; font-weight: 500; }
+  .save-preset-bar { margin-top: 0.9rem; padding: 0.7rem 0.9rem; border: 1px solid var(--border-soft); border-radius: var(--radius-sm); background: var(--surface-2); }
 </style>
 </head>
 <body>
@@ -139,7 +143,9 @@
     <div class="preset-grid" id="preset-grid">
       {% for preset in stack_presets %}
       <div class="preset-card" id="preset-card-{{ preset.id }}" data-division="{{ preset.division or '' }}" onclick="selectPreset('{{ preset.id }}')">
-        <h3>{{ preset.name }}</h3>
+        <h3>{{ preset.name }}{% if preset.get('is_custom') %} <span class="tag">your preset</span>
+          <button type="button" class="btn btn-icon btn-danger" style="width:22px; height:22px; float:right;" title="Delete preset" aria-label="Delete preset" onclick="event.stopPropagation(); deleteCustomPreset('{{ preset.id }}', '{{ preset.name }}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+          {% endif %}</h3>
         <p>{{ preset.description }}</p>
         <div class="agents">{{ preset.agents | join(', ') }}</div>
       </div>
@@ -171,6 +177,15 @@
       </li>
       {% endfor %}
     </ul>
+
+    <div class="save-preset-bar">
+      <label style="margin-top:0;">Save the agents checked above as a new preset <span class="hint">(reusable from any stack afterward, same as the built-in ones)</span></label>
+      <div style="display:flex; gap:0.5rem;">
+        <input type="text" id="new-preset-name" placeholder="Preset name" style="flex:1;">
+        <button type="button" class="btn" onclick="saveCustomPreset()">Save preset</button>
+      </div>
+      <p class="hint" id="save-preset-status"></p>
+    </div>
     </section>
 
     {% if stack and not stack.get('is_global') %}
@@ -234,6 +249,42 @@ function selectPreset(id) {
 function clearPresetSelection() {
   document.getElementById('preset-id-field').value = '';
   document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
+}
+
+async function saveCustomPreset() {
+  const nameInput = document.getElementById('new-preset-name');
+  const statusEl = document.getElementById('save-preset-status');
+  const name = nameInput.value.trim();
+  const checked = Array.from(document.querySelectorAll('input[name="agent_ids"]:checked')).map(el => el.value);
+  if (!name) { statusEl.textContent = 'Name it first.'; return; }
+  if (checked.length === 0) { statusEl.textContent = 'Check at least one agent above first.'; return; }
+  statusEl.textContent = 'Saving...';
+  const body = new URLSearchParams();
+  body.set('csrf_token', '{{ csrf_token() }}');
+  body.set('name', name);
+  checked.forEach(id => body.append('agent_ids', id));
+  const res = await fetch("{{ url_for('save_custom_preset') }}", { method: 'POST', body });
+  const data = await res.json();
+  if (data.ok) {
+    // The new preset card showing up in the grid is the confirmation --
+    // reload right away rather than showing a status message that would
+    // just get wiped out by the reload a moment later anyway.
+    location.reload();
+  } else {
+    statusEl.textContent = data.error || "Couldn't save -- try again.";
+  }
+}
+
+async function deleteCustomPreset(presetId, name) {
+  if (!confirm('Delete preset "' + name + '"? Stacks that already used it keep whatever agents were activated -- this only removes it from the picker.')) return;
+  const body = new URLSearchParams();
+  body.set('csrf_token', '{{ csrf_token() }}');
+  const res = await fetch('/presets/' + presetId + '/delete', { method: 'POST', body });
+  if (res.ok) {
+    location.reload();
+  } else {
+    alert("Couldn't delete -- try again.");
+  }
 }
 
 // Two independent division filters on this page now (presets grid,
