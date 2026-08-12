@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -74,24 +75,52 @@ def _save_links(links: list[dict]) -> None:
     _GIT_LINKS_FILE.chmod(0o600)
 
 
-def _apply_credentials(workdir: str, token: str | None) -> None:
+def _strip_url_credentials(url: str) -> str:
+    parts = urlsplit(url)
+    netloc = parts.hostname or ""
+    if parts.port:
+        netloc += f":{parts.port}"
+    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+
+def authenticated_clone_url(clone_url: str, provider: str, token: str) -> str:
+    """Embeds the token as HTTP Basic auth in the URL. Confirmed via a
+    live test (2026-08-12) that git's own HTTPS transport rejects a raw
+    `Authorization: Bearer <token>` header outright ("invalid
+    credentials") -- unlike the REST API, which accepts Bearer for that
+    exact same token without issue. Basic auth via embedded userinfo is
+    the officially documented, universal way to authenticate git-over-
+    HTTPS: GitHub accepts the token alone as the username (any non-empty
+    username works, password can be blank); GitLab specifically documents
+    `oauth2` as the username for an OAuth access token
+    (docs.gitlab.com/ee/api/oauth2.html)."""
+    parts = urlsplit(_strip_url_credentials(clone_url))
+    userinfo = token if provider == "github" else f"oauth2:{token}"
+    netloc = f"{userinfo}@{parts.netloc}"
+    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+
+
+def _apply_credentials(workdir: str, provider: str, token: str | None) -> None:
     git_dir = Path(workdir) / ".git"
     if not git_dir.exists():
         return
+    result = subprocess.run(
+        ["git", "-C", workdir, "remote", "get-url", "origin"],
+        capture_output=True, text=True, timeout=10,
+    )
+    if result.returncode != 0:
+        return
+    plain_url = _strip_url_credentials(result.stdout.strip())
+    new_url = authenticated_clone_url(plain_url, provider, token) if token else plain_url
+    subprocess.run(
+        ["git", "-C", workdir, "remote", "set-url", "origin", new_url],
+        capture_output=True, text=True, timeout=10,
+    )
     if token:
-        subprocess.run(
-            ["git", "-C", workdir, "config", "http.extraheader", f"Authorization: Bearer {token}"],
-            capture_output=True, text=True, timeout=10,
-        )
         try:
             (git_dir / "config").chmod(0o600)
         except OSError:
             pass
-    else:
-        subprocess.run(
-            ["git", "-C", workdir, "config", "--unset", "http.extraheader"],
-            capture_output=True, text=True, timeout=10,
-        )
 
 
 def link_workdir(workdir: str, provider: str) -> None:
@@ -100,7 +129,7 @@ def link_workdir(workdir: str, provider: str) -> None:
     if not any(link["workdir"] == workdir and link["provider"] == provider for link in links):
         links.append({"workdir": workdir, "provider": provider})
         _save_links(links)
-    _apply_credentials(workdir, get_token(provider))
+    _apply_credentials(workdir, provider, get_token(provider))
 
 
 def relink_all(provider: str) -> None:
@@ -109,7 +138,7 @@ def relink_all(provider: str) -> None:
         if link["provider"] != provider:
             continue
         if Path(link["workdir"]).is_dir():
-            _apply_credentials(link["workdir"], token)
+            _apply_credentials(link["workdir"], provider, token)
 
 
 def detect_git_host(workdir: str) -> str | None:

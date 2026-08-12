@@ -1640,14 +1640,20 @@ def create_session():
             target_dir = projects_root / f"{git_hosts.slugify_repo_name(repo_full_name)}-{suffix}"
             suffix += 1
 
-        clone_cmd = [
-            "git", "clone",
-            "--config", f"http.extraheader=Authorization: Bearer {token}",
-            clone_url, str(target_dir),
-        ]
+        # Basic auth via an embedded URL, not a Bearer header -- confirmed
+        # live 2026-08-12 that git's own HTTPS transport rejects a raw
+        # Authorization: Bearer header ("invalid credentials"), unlike the
+        # REST API calls above, which accept Bearer for that same token
+        # fine. See git_hosts.authenticated_clone_url's docstring.
+        authenticated_url = git_hosts.authenticated_clone_url(clone_url, source, token)
+        clone_cmd = ["git", "clone", authenticated_url, str(target_dir)]
         result = subprocess.run(clone_cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            flash(f"Clone failed: {result.stderr.strip()[-300:]}", "error")
+            # git's own error output echoes the failing URL verbatim on
+            # some failures (confirmed live) -- redact the token before it
+            # can land in a flash message or anywhere else.
+            error_text = result.stderr.strip()[-300:].replace(token, "***")
+            flash(f"Clone failed: {error_text}", "error")
             return redirect(url_for("new_session_form"))
         workdir = str(target_dir)
         if not label:
