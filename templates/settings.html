@@ -410,6 +410,20 @@
     </table>
     <div id="connector-status" class="hint"></div>
 
+    <label>Public base URL <span class="hint">(optional -- only needed if you access Cadre from more than one address)</span></label>
+    <input name="public_base_url" value="{{ values.public_base_url }}" placeholder="http://192.168.1.50:7420">
+    <p class="hint">
+      GitHub/GitLab OAuth apps only accept ONE exact, registered callback
+      URL -- but the callback URL below is normally computed from whatever
+      address is in your browser's bar at the moment, which can easily
+      differ if you reach Cadre from more than one place (localhost, a
+      LAN IP, Tailscale...). That mismatch is exactly what produces
+      GitHub's "the redirect_uri is not associated with this application"
+      page. Set this to whichever single address you actually registered
+      with GitHub/GitLab to pin it, regardless of which address the click
+      came from. Leave blank to keep the old per-request behavior.
+    </p>
+
     <h2>GitHub</h2>
     <p class="hint">
       Register an OAuth App at

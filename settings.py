@@ -15,6 +15,7 @@ import config
 _DEFAULTS = {
     "github_client_id": "",
     "github_client_secret": "",
+    "public_base_url": "",
     "gitlab_base_url": "https://gitlab.com",
     "gitlab_client_id": "",
     "gitlab_client_secret": "",

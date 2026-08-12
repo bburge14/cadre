@@ -790,6 +790,26 @@ def _ensure_global_seeded() -> None:
     _ensure_existing_preset_agents_get_default_skills()
 
 
+def _oauth_redirect_uri(endpoint: str) -> str:
+    """url_for(..., _external=True) derives the redirect_uri from whatever
+    Host header the CURRENT request happened to arrive on -- fine for a
+    single fixed address, but Cadre is routinely reached from more than
+    one (localhost, a LAN IP, a Tailscale hostname...), and GitHub/GitLab
+    OAuth apps only ever accept ONE exact, byte-for-byte registered
+    callback URL. Whichever address you happened to be on differing from
+    the one actually registered produces GitHub's "the redirect_uri is
+    not associated with this application" page -- confirmed as the real
+    cause of a live report 2026-08-12. Settings > public_base_url lets
+    this be pinned to the one address that's actually registered,
+    independent of which address the click came from; falls back to the
+    old per-request behavior when unset (default, unchanged for anyone
+    who only ever uses one address anyway)."""
+    base = (settings.get("public_base_url") or "").rstrip("/")
+    if base:
+        return base + url_for(endpoint)
+    return url_for(endpoint, _external=True)
+
+
 def _resolve_stack(stack_id: str) -> dict | None:
     if stack_id == _GLOBAL_STACK_ID:
         _ensure_global_seeded()
@@ -1745,9 +1765,9 @@ def settings_form():
         "settings.html",
         values=values,
         secrets_set=secrets_set,
-        github_callback_url=url_for("github_oauth_callback", _external=True),
+        github_callback_url=_oauth_redirect_uri("github_oauth_callback"),
         github_connected=bool(git_hosts.get_token("github")),
-        gitlab_callback_url=url_for("gitlab_oauth_callback", _external=True),
+        gitlab_callback_url=_oauth_redirect_uri("gitlab_oauth_callback"),
         gitlab_connected=bool(git_hosts.get_token("gitlab")),
         claude_installed=providers.binary_found("claude"),
         claude_logged_in=providers.claude_logged_in(),
@@ -2086,6 +2106,7 @@ def save_settings():
 
     fields = {
         "github_client_id": request.form.get("github_client_id", ""),
+        "public_base_url": request.form.get("public_base_url", "").strip().rstrip("/"),
         "gitlab_base_url": request.form.get("gitlab_base_url", "").rstrip("/") or "https://gitlab.com",
         "gitlab_client_id": request.form.get("gitlab_client_id", ""),
         "projects_root": request.form.get("projects_root", ""),
@@ -2167,7 +2188,7 @@ def github_oauth_start():
         return redirect(url_for("settings_form"))
     state = secrets.token_urlsafe(32)
     session["github_oauth_state"] = state
-    redirect_uri = url_for("github_oauth_callback", _external=True)
+    redirect_uri = _oauth_redirect_uri("github_oauth_callback")
     return redirect(git_hosts.github_authorize_url(redirect_uri, state))
 
 
@@ -2185,7 +2206,7 @@ def github_oauth_callback():
         flash("GitHub didn't return an authorization code.", "error")
         return redirect(url_for("new_session_form"))
 
-    redirect_uri = url_for("github_oauth_callback", _external=True)
+    redirect_uri = _oauth_redirect_uri("github_oauth_callback")
     try:
         token = git_hosts.github_exchange_code(code, redirect_uri)
     except Exception as exc:
@@ -2218,7 +2239,7 @@ def gitlab_oauth_start():
         return redirect(url_for("settings_form"))
     state = secrets.token_urlsafe(32)
     session["gitlab_oauth_state"] = state
-    redirect_uri = url_for("gitlab_oauth_callback", _external=True)
+    redirect_uri = _oauth_redirect_uri("gitlab_oauth_callback")
     return redirect(git_hosts.gitlab_authorize_url(redirect_uri, state))
 
 
@@ -2236,7 +2257,7 @@ def gitlab_oauth_callback():
         flash("GitLab didn't return an authorization code.", "error")
         return redirect(url_for("new_session_form"))
 
-    redirect_uri = url_for("gitlab_oauth_callback", _external=True)
+    redirect_uri = _oauth_redirect_uri("gitlab_oauth_callback")
     try:
         token = git_hosts.gitlab_exchange_code(code, redirect_uri)
     except Exception as exc:
