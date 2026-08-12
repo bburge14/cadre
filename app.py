@@ -2188,6 +2188,17 @@ def save_account():
 # ---- Git host OAuth ----
 
 
+@app.post("/settings/git-hosts/<provider>/disconnect")
+@require_auth
+def disconnect_git_host(provider):
+    if provider not in ("github", "gitlab"):
+        flash("Unknown provider.", "error")
+        return redirect(url_for("settings_form"))
+    git_hosts.clear_token(provider)
+    flash(f"Disconnected {provider.title()}.", "success")
+    return redirect(url_for("settings_form", _anchor="githosts"))
+
+
 @app.get("/oauth/github/start")
 @require_auth
 def github_oauth_start():

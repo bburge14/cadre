@@ -249,7 +249,19 @@ def github_create_repo(token: str, name: str, private: bool = True) -> str:
         json={"name": name, "private": private},
         timeout=15,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # resp.raise_for_status() alone only says "422 Client Error" --
+        # GitHub's actual reason (most commonly "name already exists on
+        # this account") is in the response body, confirmed live 2026-08-12
+        # that the bare status code alone isn't actionable for a user.
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        detail = "; ".join(e.get("message", "") for e in body.get("errors", []) if e.get("message"))
+        detail = detail or body.get("message", "")
+        resp.reason = detail or resp.reason
+        resp.raise_for_status()
     return resp.json()["clone_url"]
 
 
@@ -261,7 +273,13 @@ def gitlab_authorize_url(redirect_uri: str, state: str) -> str:
         "client_id": settings.get("gitlab_client_id"),
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": "read_api read_repository",
+        # `api` (full read/write), not `read_api` -- confirmed live 2026-08-12
+        # that creating a project (POST /api/v4/projects) 403s on a
+        # read_api-scoped token, since that scope is read-only by design.
+        # A token already connected under the old read-only scope needs a
+        # fresh reconnect to pick this up; scopes are fixed at
+        # authorization time and can't be silently upgraded.
+        "scope": "api",
         "state": state,
     }
     query = "&".join(f"{k}={requests.utils.quote(v)}" for k, v in params.items())
@@ -346,5 +364,18 @@ def gitlab_create_repo(token: str, name: str, private: bool = True) -> str:
         json={"name": name, "visibility": "private" if private else "public"},
         timeout=15,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # Same reasoning as github_create_repo() -- GitLab's own error
+        # detail (e.g. "Forbidden" for an under-scoped token, or a name
+        # collision message) is in the response body, a bare "403 Client
+        # Error" isn't actionable on its own.
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        detail = body.get("message") or body.get("error_description") or ""
+        if isinstance(detail, (dict, list)):
+            detail = json.dumps(detail)
+        resp.reason = detail or resp.reason
+        resp.raise_for_status()
     return resp.json()["http_url_to_repo"]

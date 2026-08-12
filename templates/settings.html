@@ -10,6 +10,22 @@
 <script src="{{ url_for('static', filename='tabs.js') }}?v={{ asset_version }}"></script>
 <style>
   body { max-width: 620px; }
+  /* This page can scroll well past a save button click before the
+     banner it triggers would otherwise render (in-flow, at the very
+     top) -- confirmed as the real cause of a "pressing Save does
+     nothing" report: it *did* save, the confirmation just rendered
+     off-screen above a scrolled-down viewport and vanished 4s later
+     before anyone could scroll up to see it. Fixed position keeps it
+     visible regardless of scroll depth. */
+  #js-flash { position: fixed; top: 1rem; right: 1rem; z-index: 1000; max-width: 340px; }
+  #js-flash .flash { margin-bottom: 0; box-shadow: var(--shadow); }
+  .section-collapse { border: 1px solid var(--border-soft); border-radius: var(--radius-sm); margin: 1rem 0; overflow: hidden; }
+  .section-collapse > summary { list-style: none; cursor: pointer; padding: 0.7rem 0.9rem; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; background: var(--surface-2); }
+  .section-collapse > summary::-webkit-details-marker { display: none; }
+  .section-collapse > summary::before { content: "▸"; font-size: 0.75rem; color: var(--text-faint); transition: transform 0.12s ease; }
+  .section-collapse[open] > summary::before { transform: rotate(90deg); }
+  .section-collapse > summary:hover { background: var(--surface-hover); }
+  .section-collapse-body { padding: 0.2rem 0.9rem 0.9rem; }
   .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; max-width: 560px; }
   .theme-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem; cursor: pointer; text-align: center; transition: border-color 0.12s ease; }
   .theme-card:hover { border-color: var(--border-strong); }
@@ -424,20 +440,29 @@
       came from. Leave blank to keep the old per-request behavior.
     </p>
 
-    <h2>GitHub</h2>
+    <details class="section-collapse" {{ 'open' if github_connected else '' }}>
+      <summary>GitHub{% if github_connected %} <span class="status" id="github-connect-status" style="display:inline;margin:0;">&#10003; connected</span>{% endif %}</summary>
+      <div class="section-collapse-body">
     <p class="hint">
       Register an OAuth App at
       <a href="https://github.com/settings/developers" target="_blank">github.com/settings/developers</a>
       &rarr; New OAuth App. Set the <strong>Authorization callback URL</strong> to exactly:<br>
       <code>{{ github_callback_url }}</code>
     </p>
-    {% if github_connected %}<p class="status" id="github-connect-status">&#10003; Your GitHub account is connected.</p>{% endif %}
+    <div class="btn-group" style="margin:0.5rem 0;">
+      <a class="btn {{ '' if github_connected else 'btn-primary' }}" href="{{ url_for('github_oauth_start') }}">{{ 'Reconnect' if github_connected else 'Connect your GitHub account' }}</a>
+      {% if github_connected %}<button type="button" class="btn btn-danger" onclick="disconnectGitHost('github')">Disconnect</button>{% endif %}
+    </div>
     <label>Client ID</label>
     <input name="github_client_id" value="{{ values.github_client_id }}">
     <label>Client Secret</label>
     <input name="github_client_secret" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.github_client_secret else 'Not set' }}">
+      </div>
+    </details>
 
-    <h2>GitLab</h2>
+    <details class="section-collapse" {{ 'open' if gitlab_connected else '' }}>
+      <summary>GitLab{% if gitlab_connected %} <span class="status" id="gitlab-connect-status" style="display:inline;margin:0;">&#10003; connected</span>{% endif %}</summary>
+      <div class="section-collapse-body">
     <p class="hint">
       Click your avatar (top right) &rarr; <strong>Edit profile</strong>
       &rarr; <strong>Access</strong> (left sidebar) &rarr; Applications
@@ -445,18 +470,28 @@
       under your own profile -- not the admin area). Set the
       <strong>Redirect URI</strong> to exactly:<br>
       <code>{{ gitlab_callback_url }}</code><br>
-      Scopes needed: <code>read_api</code> and <code>read_repository</code>
+      Scope needed: <code>api</code> (full read/write -- <code>read_api</code>
+      alone can list/clone repos but 403s on creating one, since it's
+      read-only by design)
       (leave "Confidential" checked -- Cadre exchanges a client secret,
       it's not a public/browser-only client).
       Only change the base URL below if you're using self-hosted GitLab.
     </p>
-    {% if gitlab_connected %}<p class="status" id="gitlab-connect-status">&#10003; Your GitLab account is connected.</p>{% endif %}
+    {% if gitlab_connected %}
+    <p class="hint">Connected before 2026-08-12? That token was authorized with the old, narrower scope and can't create repos -- Reconnect below to pick up the new one.</p>
+    {% endif %}
+    <div class="btn-group" style="margin:0.5rem 0;">
+      <a class="btn {{ '' if gitlab_connected else 'btn-primary' }}" href="{{ url_for('gitlab_oauth_start') }}">{{ 'Reconnect' if gitlab_connected else 'Connect your GitLab account' }}</a>
+      {% if gitlab_connected %}<button type="button" class="btn btn-danger" onclick="disconnectGitHost('gitlab')">Disconnect</button>{% endif %}
+    </div>
     <label>GitLab base URL</label>
     <input name="gitlab_base_url" value="{{ values.gitlab_base_url }}">
     <label>Application ID</label>
     <input name="gitlab_client_id" value="{{ values.gitlab_client_id }}">
     <label>Secret</label>
     <input name="gitlab_client_secret" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.gitlab_client_secret else 'Not set' }}">
+      </div>
+    </details>
     </div>
 
     <div class="tab-panel" id="tab-panel-providers">
@@ -842,6 +877,18 @@ async function selectDashboardTheme(name) {
   // of the dashboard unchanged) until a separate, easy-to-miss click on
   // "Save" further down the page.
   await ajaxSaveForm(form, 'Theme saved.');
+}
+
+async function disconnectGitHost(provider) {
+  const label = provider === 'github' ? 'GitHub' : 'GitLab';
+  if (!confirm('Disconnect ' + label + '? You can reconnect any time -- this just clears the saved token.')) return;
+  await fetch('/settings/git-hosts/' + provider + '/disconnect', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'csrf_token=' + encodeURIComponent('{{ csrf_token() }}'),
+  });
+  location.hash = 'githosts';
+  location.reload();
 }
 
 async function connectMcpConnector(slug, label) {

@@ -139,7 +139,7 @@
     {% endif %}
 
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="btn btn-primary" type="submit">{{ 'Save' if session else 'Create & start' }}</button>
+    <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if session else 'Create & start' }}</button>
   </form>
 
   {% include '_dirbrowser_modal.html' %}
