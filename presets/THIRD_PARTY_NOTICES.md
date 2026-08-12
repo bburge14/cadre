@@ -1,21 +1,23 @@
 # Third-party notices
 
-The following preset agents in this directory were adapted from
+Every preset agent in this directory EXCEPT the following (Cadre's own,
+written from scratch) was adapted from
 [agency-agents](https://github.com/msitarzewski/agency-agents) by
 msitarzewski / AgentLand Contributors, used under the MIT License:
 
-- `sales-coach.md`
-- `sales-account-strategist.md`
-- `marketing-content-creator.md`
-- `marketing-seo-specialist.md`
-- `security-appsec-engineer.md`
-- `security-incident-responder.md`
-- `support-responder.md`
-- `support-analytics-reporter.md`
+- `analyst.md`, `ci-cd-engineer.md`, `data-analyst.md`, `data-engineer.md`,
+  `data-scientist.md`, `debug-qa.md`, `editor.md`, `frontend-engineer.md`,
+  `generalist-engineer.md`, `incident-responder.md`, `infra-engineer.md`,
+  `project-scribe.md`, `python-engineer.md`, `researcher.md`, `writer.md`
 
-They were rewritten to fit Cadre's own preset format and conventions
-(frontmatter shape, length, tone) rather than copied verbatim, but the
-underlying domain frameworks and structure originate from that project.
+The adapted ones (initially 8 across Sales/Marketing/Security/Support,
+later expanded to also cover Project Management, Finance, Product,
+Testing, Specialized, and a handful of IT-ops-flavored Engineering
+roles) were reformatted to fit Cadre's frontmatter conventions and had
+their original "Identity & Memory" roleplay sections removed, but the
+underlying domain frameworks, structure, and most of the body content
+originate from that project -- these were a larger, more mechanical
+batch than the first 8, not a full line-by-line rewrite.
 
 ```
 MIT License
