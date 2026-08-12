@@ -143,6 +143,38 @@ def load_divisions() -> dict:
     return json.loads(DIVISIONS_FILE.read_text())
 
 
+# Reputation-based, not independently verified end-to-end against a real
+# install the way Claude is (see README/docs.html's Gemini/Codex/Kimi
+# caveat) -- Codex is positioned specifically around coding, Gemini's
+# standout is its large context window (favors research/document-heavy
+# work), Claude covers everything else as the general-purpose default.
+# Purely a UI hint on an agent's own edit page ("primary AI for this
+# agent's actual work") -- never sets primary_provider itself, that stays
+# an explicit per-agent choice a person makes, same as the delegation
+# feature already worked before this existed.
+_DIVISION_RECOMMENDED_PROVIDER = {
+    "Engineering": "codex",
+    "Testing": "codex",
+    "Data": "gemini",
+}
+_AGENT_RECOMMENDED_PROVIDER_OVERRIDES = {
+    "researcher": "gemini",
+    "product-trend-researcher": "gemini",
+    "finance-investment-researcher": "gemini",
+    "legal-document-review": "gemini",
+    "specialized-document-generator": "gemini",
+    "data-consolidation-agent": "gemini",
+    "testing-evidence-collector": "gemini",
+}
+
+
+def recommended_provider(agent_name: str) -> str:
+    if agent_name in _AGENT_RECOMMENDED_PROVIDER_OVERRIDES:
+        return _AGENT_RECOMMENDED_PROVIDER_OVERRIDES[agent_name]
+    division = load_divisions().get(f"{agent_name}.md", "")
+    return _DIVISION_RECOMMENDED_PROVIDER.get(division, "claude")
+
+
 def list_library_agents() -> list[agents_store.AgentFile]:
     agents = []
     for path in sorted(PRESETS_DIR.glob("*.md")):

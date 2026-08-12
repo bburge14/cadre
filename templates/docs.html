@@ -493,6 +493,18 @@
     orchestrating — this doesn't reduce Claude usage, it's for when you
     specifically want a different model's output on a given agent's tasks.
   </p>
+  <p>
+    The provider dropdown there tags one option "Recommended" for any
+    agent that's part of the library/preset system — reputation-based
+    (Codex for coding/testing-heavy agents, Gemini for research/document-
+    heavy ones, Claude for everything else), not something Cadre has
+    independently verified end-to-end the way it has for Claude itself.
+    Purely a suggestion on that one page — it never sets
+    <code>primary_provider</code> on its own; nothing changes about how an
+    agent actually runs until you pick something yourself. A
+    from-scratch agent with no library/division match shows no
+    recommendation at all rather than guessing.
+  </p>
 
   <h2 id="git-hosts">Connecting GitHub / GitLab</h2>
   <p>

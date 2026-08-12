@@ -881,6 +881,7 @@ def _render_agent_form(agent, filename, agents_dir, back_url, back_label, save_a
         provider_usable={p.id: providers.usable(p.id) for p in providers.list_providers()},
         claude_models=providers.get("claude").models,
         gemini_models=providers.get("gemini").models,
+        recommended_provider=presets.recommended_provider(agent.name) if agent else None,
         back_url=back_url,
         back_label=back_label,
         save_action=save_action,

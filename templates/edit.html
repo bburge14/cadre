@@ -87,11 +87,14 @@
     <label>primary AI for this agent's actual work <span class="hint">(Claude always runs the agent container itself — picking another provider here makes its instructions delegate the real work to that provider via Bash and use its output as the answer)</span></label>
     <select name="primary_provider" id="primary-provider-select" onchange="updatePrimaryProviderNote(); updateModelFieldVisibility();">
       {% set current_provider = agent.frontmatter.get('primary_provider', 'claude') if agent else 'claude' %}
-      <option value="claude" {{ 'selected' if current_provider == 'claude' else '' }}>Claude (native, default)</option>
+      <option value="claude" {{ 'selected' if current_provider == 'claude' else '' }}>Claude (native, default){{ ' -- Recommended' if recommended_provider == 'claude' else '' }}</option>
       {% for provider in cli_providers %}
-      <option value="{{ provider.id }}" {{ 'selected' if current_provider == provider.id else '' }}>{{ provider.label }}</option>
+      <option value="{{ provider.id }}" {{ 'selected' if current_provider == provider.id else '' }}>{{ provider.label }}{{ ' -- Recommended' if recommended_provider == provider.id else '' }}</option>
       {% endfor %}
     </select>
+    {% if recommended_provider %}
+    <p class="hint" style="margin-top:0.3rem;">Recommended for this agent: <strong>{{ {'claude': 'Claude', 'gemini': 'Gemini', 'codex': 'Codex', 'kimi': 'Kimi'}.get(recommended_provider, recommended_provider) }}</strong> -- based on the provider's general reputation for this kind of work, not independently verified end-to-end by Cadre (see Docs).</p>
+    {% endif %}
     <p class="hint" id="primary-provider-note" style="margin-top:0.4rem;"></p>
 
     <div id="model-field-claude">
