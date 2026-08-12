@@ -34,6 +34,12 @@
   <p class="hint">Starts a brand-new session (no prior history) in the directory you pick, using whichever provider you choose below. Claude sessions also get Remote Control enabled automatically — it'll show up in claude.ai/code under this label. Uses the same global agent team as every other session in that directory.</p>
   {% endif %}
 
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, msg in messages %}
+      <div class="flash {{ category }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
   <form method="post" action="{{ url_for('edit_session', session_id=session.id) if session else url_for('create_session') }}">
     <label>label <span class="hint">(shown in claude.ai/code's session list)</span></label>
     <input name="label" id="session-label-field" value="{{ session.label if session else '' }}" oninput="updateFolderPreview()" {{ 'required' if session else '' }}>
