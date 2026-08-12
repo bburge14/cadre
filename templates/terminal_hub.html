@@ -29,10 +29,9 @@
     border-right: 1px solid var(--border-soft); overflow-y: auto;
   }
   .term-sidebar-header {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem;
     padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0;
   }
-  .term-sidebar-header span { font-size: 0.88rem; font-weight: 600; flex-basis: 100%; order: -1; }
+  .term-sidebar-header span { font-size: 0.88rem; font-weight: 600; }
   .term-stack-header {
     display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
     padding: 0.55rem 0.8rem; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);
@@ -79,6 +78,7 @@
   }
   .term-header .term-status { font-size: 0.76rem; color: var(--text-faint); flex-shrink: 0; }
   .term-header-actions { display: none; flex-shrink: 0; }
+  .term-header-right { display: flex; justify-content: flex-end; align-items: center; gap: 0.3rem; min-width: 0; overflow: hidden; }
   /* min-width:0 + overflow:hidden on both -- without them, a flex
      child defaults to never shrinking below its content's intrinsic
      width, and xterm.js sets its own inner canvas width in pixels
@@ -114,7 +114,6 @@
     {% from '_topbar.html' import nav_icons %}
     <div class="term-sidebar-header">
       <span>Sessions</span>
-      {{ nav_icons(active='terminal') }}
     </div>
     <div id="session-list">
       {% for group in stack_groups %}
@@ -156,6 +155,9 @@
         <span class="term-status" id="term-status"></span>
       </div>
       <span class="label" id="term-active-label">Pick a session</span>
+      <div class="term-header-right">
+        {{ nav_icons(active='terminal') }}
+      </div>
     </div>
     <div id="terminal-wrap"><div id="terminal"></div></div>
     <div id="term-not-running">
