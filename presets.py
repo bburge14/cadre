@@ -12,6 +12,7 @@ import skills_store
 
 PRESETS_DIR = config.BUNDLE_DIR / "presets"
 MANIFEST_FILE = PRESETS_DIR / "manifest.json"
+DIVISIONS_FILE = PRESETS_DIR / "divisions.json"
 
 # Which default skills each preset agent should start with, by name --
 # looked up against whatever's actually in the skills library at
@@ -128,6 +129,18 @@ def _read_template(path: Path) -> tuple[dict, str] | None:
     frontmatter = yaml.safe_load(match.group(1)) or {}
     body = match.group(2).lstrip("\n")
     return frontmatter, body
+
+
+def load_divisions() -> dict:
+    """filename -> division label (e.g. "Sales", "Security"), purely a
+    library-browsing/filter grouping -- deliberately NOT part of any
+    individual preset's own frontmatter, so activating an agent never
+    copies this UI-only metadata into the live agent file a CLI actually
+    reads. A preset missing from this file just isn't grouped (shows
+    under "Other" in the library filter) rather than erroring."""
+    if not DIVISIONS_FILE.exists():
+        return {}
+    return json.loads(DIVISIONS_FILE.read_text())
 
 
 def list_library_agents() -> list[agents_store.AgentFile]:

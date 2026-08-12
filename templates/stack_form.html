@@ -22,6 +22,10 @@
   .agent-list .desc { color: var(--text-faint); font-size: 0.78rem; }
   .tag { display: inline-block; background: var(--surface-2); border-radius: 4px; padding: 0.05rem 0.4rem; font-size: 0.72rem; color: var(--text-faint); margin-left: 0.4rem; }
   .tag.active { background: var(--success-bg); color: var(--success-text); }
+  .division-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.7rem 0; }
+  .division-chip { cursor: pointer; font-size: 0.78rem; padding: 0.25rem 0.7rem; border-radius: 999px; border: 1px solid var(--border); color: var(--text-dim); transition: border-color 0.12s ease, background 0.12s ease; }
+  .division-chip:hover { border-color: var(--border-strong); }
+  .division-chip.active { background: var(--accent-gradient); border-color: transparent; color: #fff; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -129,13 +133,23 @@
 
     <section>
     <h2 id="library">Or pick individual agents from the library</h2>
-    <ul class="agent-list">
+    {% set divisions = (library_divisions.values() | list) | unique | sort | list %}
+    {% if divisions %}
+    <div class="division-filter">
+      <span class="division-chip active" data-division="">All</span>
+      {% for division in divisions %}
+      <span class="division-chip" data-division="{{ division }}">{{ division }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <ul class="agent-list" id="library-agent-list">
       {% for agent in library %}
-      <li>
+      <li data-division="{{ library_divisions.get(agent.filename, '') }}">
         <input type="checkbox" name="agent_ids" value="{{ agent.filename[:-3] }}" id="lib-{{ agent.filename }}" onchange="clearPresetSelection()" style="width:auto;">
         <label for="lib-{{ agent.filename }}" style="margin:0;">
           <strong>{{ agent.name }}</strong>
           {% if agent.name in active_names %}<span class="tag active">active</span>{% endif %}
+          {% if library_divisions.get(agent.filename) %}<span class="tag">{{ library_divisions[agent.filename] }}</span>{% endif %}
           <div class="desc">{{ agent.frontmatter.get('description', '') }}</div>
         </label>
       </li>
@@ -205,6 +219,21 @@ function clearPresetSelection() {
   document.getElementById('preset-id-field').value = '';
   document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
 }
+
+document.querySelectorAll('.division-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.division-chip').forEach(el => el.classList.remove('active'));
+    chip.classList.add('active');
+    const division = chip.dataset.division;
+    document.querySelectorAll('#library-agent-list > li').forEach(li => {
+      // Empty data-division means "All" -- always show. Otherwise only
+      // show rows tagged with the exact division clicked; a checked box
+      // stays checked (and still submits) even while its row is hidden
+      // by a different filter, since filtering is display-only.
+      li.style.display = (!division || li.dataset.division === division) ? '' : 'none';
+    });
+  });
+});
 
 // Default the directory field from the name as you type, so "directory"
 // isn't a blank required field you have to think up a value for -- edit it
