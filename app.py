@@ -813,7 +813,14 @@ def _oauth_redirect_uri(endpoint: str) -> str:
 def _resolve_stack(stack_id: str) -> dict | None:
     if stack_id == _GLOBAL_STACK_ID:
         _ensure_global_seeded()
-        return {"id": _GLOBAL_STACK_ID, "name": "Global (default)", "workdir": None, "is_global": True}
+        return {
+            "id": _GLOBAL_STACK_ID, "name": "Global (default)", "workdir": None, "is_global": True,
+            # Every stack always has exactly one assigned provider now --
+            # Global reuses the existing Settings > AI providers default
+            # rather than needing its own separate field, since that's
+            # already the app-wide fallback this exact setting was for.
+            "default_provider": settings.get("default_provider"),
+        }
     return stacks_store.get(stack_id)
 
 

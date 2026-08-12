@@ -115,11 +115,10 @@
       {% endfor %}
     </datalist>
 
-    <label>default provider <span class="hint">(New Session skips asking which AI to use once this stack is picked -- leave as "Ask each time" if sessions here should stay mixed)</span></label>
+    <label>provider <span class="hint">(which AI runs sessions created under this stack -- New Session skips asking, it just uses this)</span></label>
     <select name="default_provider">
-      <option value="" {{ 'selected' if not stack or not stack.get('default_provider') else '' }}>Ask each time</option>
       {% for provider in cli_providers %}
-      <option value="{{ provider.id }}" {{ 'selected' if stack and stack.get('default_provider') == provider.id else '' }}>{{ provider.label }}</option>
+      <option value="{{ provider.id }}" {{ 'selected' if (stack.get('default_provider') if stack else 'claude') == provider.id else '' }}>{{ provider.label }}</option>
       {% endfor %}
     </select>
     </section>

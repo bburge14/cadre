@@ -58,10 +58,10 @@
       <div class="source-tab" data-source="gitlab" onclick="selectSource('gitlab')">GitLab repo</div>
     </div>
 
-    <label>agent stack <span class="hint">(picks or creates a folder automatically -- named after the label for a local directory, or the repo name for GitHub/GitLab. Also sets the provider below, unless the stack is "Ask each time". Only "Custom directory" needs a path typed/browsed yourself, and only for a local directory)</span></label>
+    <label>agent stack <span class="hint">(picks or creates a folder automatically -- named after the label for a local directory, or the repo name for GitHub/GitLab. Also picks the provider below -- every stack has one. Only "Custom directory" needs a path typed/browsed yourself, and shows the provider picker since there's no stack to set it)</span></label>
     <select name="stack_id" id="session-stack-select" onchange="applyStackSelection()">
       {% for stack in stacks %}
-      <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or default_base }}" data-provider="{{ stack.default_provider or '' }}">{{ stack.name }}</option>
+      <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or default_base }}" data-provider="{{ stack.default_provider or '' }}" data-is-global="{{ 'true' if stack.get('is_global') else '' }}">{{ stack.name }}</option>
       {% endfor %}
       <option value="" data-workdir="" data-provider="">Custom directory&hellip;</option>
     </select>
@@ -186,10 +186,12 @@ function applyStackSelection() {
     }
   }
 
-  // A stack with its own default provider picks the AI too -- no reason
-  // to ask twice for something the stack already answers. Falls back to
-  // the normal manual picker for Global/Custom directory/any stack left
-  // on "Ask each time", exactly like before this existed.
+  // Every stack (including Global, via the app-wide Settings > AI
+  // providers default) always has exactly one assigned provider now --
+  // no reason to ask twice for something the stack already answers. The
+  // manual picker only ever shows for "Custom directory" (data-provider
+  // is empty there, same as data-workdir), since that's the one case
+  // with no stack to answer it at all.
   const providerPicker = document.getElementById('provider-picker');
   const stackProviderNote = document.getElementById('stack-provider-note');
   const providerSelect = document.getElementById('provider-select');
@@ -198,7 +200,8 @@ function applyStackSelection() {
     providerSelect.value = stackProvider;
     providerPicker.style.display = 'none';
     stackProviderNote.style.display = 'block';
-    stackProviderNote.textContent = 'Provider: ' + providerSelect.selectedOptions[0].textContent + ' (' + opt.textContent + '’s default -- change it on the stack’s own page to use something else here)';
+    const changeWhere = opt.dataset.isGlobal ? 'Settings → AI providers' : "this stack's own page";
+    stackProviderNote.textContent = 'Provider: ' + providerSelect.selectedOptions[0].textContent + ' (' + opt.textContent + '’s default -- change it on ' + changeWhere + ' to use something else here)';
     updateProviderNote();
   } else {
     providerPicker.style.display = '';

@@ -23,7 +23,14 @@ def _load() -> list[dict]:
     stacks = json.loads(STORE_FILE.read_text())
     for s in stacks:
         s.setdefault("integration_ids", [])
-        s.setdefault("default_provider", "")
+        # Every stack always has exactly one assigned provider -- there's
+        # no "ask each time" state anymore (confirmed via direct feedback
+        # 2026-08-12: a stack should just always answer this, same as it
+        # already answers which directory/team to use; the manual picker
+        # on New Session is for when there's no stack at all, not for a
+        # stack that hasn't made up its mind). Any stack saved before this
+        # existed defaults to claude, same as everything already did.
+        s.setdefault("default_provider", "claude")
     return stacks
 
 
@@ -43,7 +50,7 @@ def get(stack_id: str) -> dict | None:
     return None
 
 
-def add(name: str, workdir: str, default_provider: str = "") -> dict:
+def add(name: str, workdir: str, default_provider: str = "claude") -> dict:
     stacks = _load()
     entry = {
         "id": str(uuid.uuid4()),
