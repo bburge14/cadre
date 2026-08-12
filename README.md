@@ -107,6 +107,70 @@ you have to remember to check on.
   `stack_id="global"` entry (`_resolve_stack()` in `app.py`) using the
   exact same routes/templates as any real stack, just without a directory
   to rename or delete.
+- **Agent library, presets, and custom presets**: `/stacks/<id>/edit`'s
+  "Presets & library" tab has 92 individual agents (`presets/*.md`) across
+  13 divisions (Engineering, Data, Content, Sales, Marketing, Security,
+  Support, Project Management, Finance, Product, Testing, Specialized,
+  plus IT-ops-flavored Engineering roles), filterable by a division-chip
+  UI — and 18 curated preset bundles (4-6 agents each) covering the same
+  ground, also filterable. Most of the library was adapted (not copied
+  verbatim) from the MIT-licensed
+  [agency-agents](https://github.com/msitarzewski/agency-agents) project
+  — attribution and license text in `presets/THIRD_PARTY_NOTICES.md`.
+  Beyond the built-in presets, checking any combination of agents from
+  the library and naming it ("Save preset") creates a **custom preset**
+  of your own (`custom_presets_store.py`, instance data — survives an
+  app update, unlike the bundled ones) — reusable from any stack from
+  then on, deletable independently of the built-ins.
+- **A stack can pick its own AI**: a stack's edit page has a "default
+  provider" field — every stack (including Global, which reuses the
+  existing Settings > AI providers default rather than a separate field)
+  always has exactly one. Selecting that stack on "+ New session"
+  auto-picks that provider and skips the manual picker entirely, which
+  only ever shows for "Custom directory" (no stack, nothing to answer
+  the question).
+- **Clone or create a GitHub/GitLab repo directly from "+ New session"**:
+  optional (Settings — OAuth App Client ID/Secret, no `.env` editing
+  needed). Once connected, the GitHub/GitLab tab offers both cloning an
+  existing repo (picked from a live list) and creating a brand-new one
+  (name it, public/private, Cadre creates it there then clones it) — and
+  the same stack/provider pickers above apply here too, so a cloned repo
+  lands under a specific stack's directory (inheriting its agent team)
+  instead of always a flat top-level folder. Authentication uses HTTP
+  Basic auth via an embedded URL (`git_hosts.authenticated_clone_url`) —
+  not a Bearer header, which git's own HTTPS transport rejects outright
+  even though the same token works fine for GitHub/GitLab's REST APIs —
+  and persists into the repo's own git config afterward, so `git push`/
+  `git pull` run later from inside the session (by you or an agent) stay
+  authenticated too, not just the initial clone. Settings shows live
+  verification ("Connected as `<username>`"), not just whether a token
+  happens to be saved, plus real Connect/Reconnect/Disconnect controls.
+- **Workflows**: a way to run an Agent Stack's task without a person
+  opening a session and typing a prompt each time — save a prompt once
+  against a stack, then either click "Run now" or set a schedule (a
+  cron preset, or raw cron for anything else; checked every 30s) and let
+  it fire on its own. Each run either starts a fresh session (the
+  default — right for almost everything, since a recurring task cares
+  about current reality, not chat history) or reuses one pinned session
+  for a genuinely cumulative task. Unattended mode (Claude-only, off by
+  default) runs with `--dangerously-skip-permissions` so a scheduled run
+  doesn't just stall at the first confirmation prompt with nobody there
+  to answer it — only for a task and directory you fully trust.
+- **Integrations**: a named credential (API key, token, webhook URL —
+  anything an agent's own scripts need a secret to reach, not tied to
+  any one service) that gets injected as an environment variable into a
+  session, opt-in per stack via a checklist on that stack's edit page.
+  Different from a provider's own API key (Cadre's own credential for
+  running a CLI) and from Connectors below (Anthropic's own account-level
+  OAuth) — this is for everything else.
+- **Connectors (Gmail, Google Calendar, Google Drive)**: Claude-only,
+  tied to whichever claude.ai account the `claude` CLI itself is logged
+  into, not something Cadre stores credentials for. Settings > Connectors
+  spins up (or reuses) a session, waits for it to be ready, and opens
+  Claude Code's own `/mcp` picker automatically, then hands you a direct
+  terminal link already sitting at that menu — the last few keystrokes
+  happen in a real terminal, since fully automating the rest of that menu
+  turned out not to be reliably scriptable after extensive testing.
 - **Interactive terminal**: every session's detail page can open a real
   xterm.js terminal over a token-authed WebSocket into that session's pty,
   not just a read-only output feed — the only way to interact with

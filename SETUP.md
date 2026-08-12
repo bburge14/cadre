@@ -110,12 +110,15 @@ useful:
    `.claude/agents/` team: pick a name, an absolute directory path (created
    automatically if it doesn't exist — "Browse…" next to the field opens a
    folder picker if you'd rather click through than type one), and either
-   click a preset
-   (Generalist, Coding, Content/Writing, Research/Analysis, DevOps/
-   Infrastructure, Data Science/Analytics) or check individual agents from
-   the library. Not sure which fits yet? Generalist is a reasonable
-   default — a bit of code, writing, research, and analysis, nothing
-   deeply specialized. Only sessions
+   click a preset (18 available, filterable by division — Engineering,
+   Data, Content, Sales, Marketing, Security, Support, Project Management,
+   Finance, Product, Testing, and general Business Operations/HR/Legal) or
+   check individual agents from the library (92 total, same filter). Not
+   sure which fits yet? Generalist is a reasonable default — a bit of
+   code, writing, research, and analysis, nothing deeply specialized.
+   Checking any combination from the library and naming it ("Save
+   preset") turns it into a preset of your own, reusable from any stack
+   afterward. Only sessions
    rooted in that directory (or a subdirectory of it) pick up this team —
    this is Claude Code's own native per-project agent override, not
    anything this app invents. Make as many stacks as you want, one per
@@ -192,14 +195,36 @@ the dashboard once logged in). It shows you the exact callback URL to
 register, and everything you paste in there (Client ID/Secret, GitLab base
 URL, where repos get cloned to) is saved immediately, no restart required:
 
-1. Register an OAuth App: github.com/settings/developers (GitHub) or your
-   GitLab instance's User Settings → Applications (GitLab). Use the
-   callback URL shown on the Settings page.
+1. Register an OAuth App: github.com/settings/developers (GitHub) or, on
+   GitLab, your avatar (top right) → **Edit profile** → **Access** (left
+   sidebar) → Applications → Add new application — on your own profile,
+   not the admin area. Use the callback URL shown on the Settings page,
+   check scope `read_api`/`read_repository` for GitHub's `repo` scope
+   equivalent — for GitLab specifically, use the single `api` scope
+   (full read/write; `read_api` alone 403s on creating a repo, since
+   it's read-only by design) — and leave "Confidential" checked.
 2. Paste the Client ID/Secret into Settings and save.
-3. Back on "+ New session," the GitHub/GitLab tab now shows a "Connect your
-   account" link — click it, authorize on their site, and you're taken back
-   here. From then on, picking a repo from a dropdown clones it and starts
-   a session there, same as pointing at a local directory.
+3. Back on "+ New session," the GitHub/GitLab tab now shows a "Connect
+   your account" link — click it, authorize on their site, and you're
+   taken back here. From then on that tab offers both cloning an
+   existing repo (picked from a live list) and creating a brand-new one
+   (name it, public/private — Cadre creates it there, then clones it).
+   The stack/provider pickers above the source tabs apply to both, so a
+   cloned/created repo can land under a specific stack's directory
+   (inheriting its agent team) instead of always a flat top-level folder.
+4. Settings shows live status ("Connected as `<username>`," not just
+   whether a token happens to be saved) plus Connect/Reconnect/Disconnect
+   controls — Reconnect re-authorizes from scratch, useful if you ever
+   change the app's registered scopes.
+
+**Reached from more than one address** (localhost, a LAN IP, Tailscale)?
+GitHub/GitLab OAuth apps only accept one exact, registered callback URL,
+but Cadre normally computes it from whatever address is in your browser's
+bar at the moment — which breaks (GitHub's "the redirect_uri is not
+associated with this application" page) the moment you click Connect from
+a different address than the one you registered. Settings > **Public base
+URL** pins it to one fixed address regardless of which address the click
+actually came from — set it to whichever one you registered.
 
 Skip this section entirely if you only ever plan to point sessions at
 directories already on this machine — nothing else depends on it.

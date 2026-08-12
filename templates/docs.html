@@ -521,6 +521,16 @@
     re-applies to every repo Cadre has linked so far — nothing needs
     re-cloning.
   </p>
+  <div class="note">
+    GitHub/GitLab OAuth apps only ever accept one exact, registered
+    callback URL — but Cadre normally computes that URL from whatever
+    address is in your browser's bar at the moment, which breaks (GitHub's
+    "the redirect_uri is not associated with this application" page) if
+    you reach Cadre from more than one address (localhost, a LAN IP,
+    Tailscale...). Settings &gt; <strong>Public base URL</strong> pins it
+    to one fixed address instead, regardless of which address the click
+    actually came from — set it to whichever one you registered.
+  </div>
 
   <h2 id="appearance">Dashboard appearance</h2>
   <p>
