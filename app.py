@@ -1716,7 +1716,13 @@ def create_session():
             except Exception as exc:
                 print(f"git_hosts existing-repo link check failed for {workdir}: {exc}")
 
-    provider_id = request.form.get("provider", "claude") if source == "local" else "claude"
+    # No reason a GitHub/GitLab-sourced session is Claude-only -- the
+    # clone step just populates a directory, same as any other; whatever
+    # CLI runs there afterward doesn't care how the directory got made.
+    # Confirmed real gap 2026-08-12: the provider field lived inside
+    # panel-local only, so it silently never reached the form (or this
+    # route) for the other two sources.
+    provider_id = request.form.get("provider", "claude")
     try:
         terminal_theme.apply_theme(workdir, provider_id, settings.get("terminal_theme"))
     except Exception as exc:

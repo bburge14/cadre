@@ -58,6 +58,14 @@
       <div class="source-tab" data-source="gitlab" onclick="selectSource('gitlab')">GitLab repo</div>
     </div>
 
+    <label>provider <span class="hint">(which CLI runs this session -- applies no matter which source tab above is picked)</span></label>
+    <select name="provider" id="provider-select" onchange="updateProviderNote()">
+      {% for provider in cli_providers %}
+      <option value="{{ provider.id }}" {{ 'selected' if provider.id == default_provider else '' }}>{{ provider.label }}</option>
+      {% endfor %}
+    </select>
+    <p class="hint" id="provider-remote-note"></p>
+
     <div class="source-panel active" id="panel-local">
       <label>agent stack <span class="hint">(picks or creates a folder for this session automatically, named after the label -- no path to type. Only "Custom directory" needs one typed/browsed yourself)</span></label>
       <select name="stack_id" id="session-stack-select" onchange="applyStackSelection()">
@@ -81,14 +89,6 @@
           {% endfor %}
         </datalist>
       </div>
-
-      <label>provider <span class="hint">(which CLI runs this session)</span></label>
-      <select name="provider" id="provider-select" onchange="updateProviderNote()">
-        {% for provider in cli_providers %}
-        <option value="{{ provider.id }}" {{ 'selected' if provider.id == default_provider else '' }}>{{ provider.label }}</option>
-        {% endfor %}
-      </select>
-      <p class="hint" id="provider-remote-note"></p>
     </div>
 
     <div class="source-panel" id="panel-github">
