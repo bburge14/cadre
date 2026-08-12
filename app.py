@@ -1160,6 +1160,7 @@ def new_stack_form():
         known_dirs=_known_directories(),
         prefill_name=request.args.get("name", ""),
         prefill_workdir=request.args.get("workdir", ""),
+        cli_providers=providers.list_providers(),
     )
 
 
@@ -1183,7 +1184,7 @@ def create_stack():
         flash(str(exc), "error")
         return redirect(url_for("new_stack_form"))
 
-    stacks_store.add(name, str(path))
+    stacks_store.add(name, str(path), default_provider=request.form.get("default_provider", "").strip())
     flash(f"Created stack '{name}' with {len(written)} agent(s).", "success")
     return redirect(url_for("index"))
 
@@ -1209,6 +1210,7 @@ def edit_stack_form(stack_id):
         default_base=str(settings.projects_root() / "agent-stacks"),
         known_dirs=_known_directories(),
         integrations=integrations_store.list_integrations(),
+        cli_providers=providers.list_providers(),
     )
 
 
@@ -1249,7 +1251,11 @@ def edit_stack(stack_id):
         flash(str(exc), "error")
         return redirect(url_for("edit_stack_form", stack_id=stack_id))
 
-    stacks_store.update(stack_id, name=name, workdir=str(path), integration_ids=request.form.getlist("integration_ids"))
+    default_provider = request.form.get("default_provider", "").strip()
+    stacks_store.update(
+        stack_id, name=name, workdir=str(path), integration_ids=request.form.getlist("integration_ids"),
+        default_provider=default_provider,
+    )
 
     if written:
         matching_session = next(
@@ -1635,11 +1641,21 @@ def create_session():
                 flash(f"Couldn't look up that repo: {exc}", "error")
                 return redirect(url_for("new_session_form"))
 
-        projects_root = settings.projects_root()
-        target_dir = projects_root / git_hosts.slugify_repo_name(repo_full_name)
+        # Same stack-picks-the-base-directory logic the local-directory
+        # branch below already has -- a real stack's own workdir, or
+        # Global/no-stack falling back to projects_root. Confirmed real
+        # gap 2026-08-12: this always used projects_root regardless of
+        # any stack selection, so a cloned/created repo could never land
+        # under a specific stack's directory (and inherit its agent
+        # team) the way a local-directory session already could.
+        stack_id = request.form.get("stack_id", "").strip()
+        stack = _resolve_stack(stack_id) if stack_id else None
+        base = Path(stack["workdir"]) if stack and stack.get("workdir") else settings.projects_root()
+        slug = git_hosts.slugify_repo_name(repo_full_name)
+        target_dir = base / slug
         suffix = 2
         while target_dir.exists():
-            target_dir = projects_root / f"{git_hosts.slugify_repo_name(repo_full_name)}-{suffix}"
+            target_dir = base / f"{slug}-{suffix}"
             suffix += 1
 
         # Basic auth via an embedded URL, not a Bearer header -- confirmed

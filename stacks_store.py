@@ -23,6 +23,7 @@ def _load() -> list[dict]:
     stacks = json.loads(STORE_FILE.read_text())
     for s in stacks:
         s.setdefault("integration_ids", [])
+        s.setdefault("default_provider", "")
     return stacks
 
 
@@ -42,12 +43,13 @@ def get(stack_id: str) -> dict | None:
     return None
 
 
-def add(name: str, workdir: str) -> dict:
+def add(name: str, workdir: str, default_provider: str = "") -> dict:
     stacks = _load()
     entry = {
         "id": str(uuid.uuid4()),
         "name": name,
         "workdir": workdir,
+        "default_provider": default_provider,
         "created_at": time.time(),
     }
     stacks.append(entry)

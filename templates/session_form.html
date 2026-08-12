@@ -58,25 +58,27 @@
       <div class="source-tab" data-source="gitlab" onclick="selectSource('gitlab')">GitLab repo</div>
     </div>
 
-    <label>provider <span class="hint">(which CLI runs this session -- applies no matter which source tab above is picked)</span></label>
-    <select name="provider" id="provider-select" onchange="updateProviderNote()">
-      {% for provider in cli_providers %}
-      <option value="{{ provider.id }}" {{ 'selected' if provider.id == default_provider else '' }}>{{ provider.label }}</option>
+    <label>agent stack <span class="hint">(picks or creates a folder automatically -- named after the label for a local directory, or the repo name for GitHub/GitLab. Also sets the provider below, unless the stack is "Ask each time". Only "Custom directory" needs a path typed/browsed yourself, and only for a local directory)</span></label>
+    <select name="stack_id" id="session-stack-select" onchange="applyStackSelection()">
+      {% for stack in stacks %}
+      <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or default_base }}" data-provider="{{ stack.default_provider or '' }}">{{ stack.name }}</option>
       {% endfor %}
+      <option value="" data-workdir="" data-provider="">Custom directory&hellip;</option>
     </select>
-    <p class="hint" id="provider-remote-note"></p>
+    <p class="hint" id="stack-folder-preview" style="display:none;"></p>
+
+    <div id="provider-picker">
+      <label>provider <span class="hint">(which CLI runs this session -- applies no matter which source tab below is picked)</span></label>
+      <select name="provider" id="provider-select" onchange="updateProviderNote()">
+        {% for provider in cli_providers %}
+        <option value="{{ provider.id }}" {{ 'selected' if provider.id == default_provider else '' }}>{{ provider.label }}</option>
+        {% endfor %}
+      </select>
+      <p class="hint" id="provider-remote-note"></p>
+    </div>
+    <p class="hint" id="stack-provider-note" style="display:none;"></p>
 
     <div class="source-panel active" id="panel-local">
-      <label>agent stack <span class="hint">(picks or creates a folder for this session automatically, named after the label -- no path to type. Only "Custom directory" needs one typed/browsed yourself)</span></label>
-      <select name="stack_id" id="session-stack-select" onchange="applyStackSelection()">
-        {% for stack in stacks %}
-        <option value="{{ stack.id }}" data-workdir="{{ stack.workdir or default_base }}">{{ stack.name }}</option>
-        {% endfor %}
-        <option value="" data-workdir="">Custom directory&hellip;</option>
-      </select>
-
-      <p class="hint" id="stack-folder-preview" style="display:none;"></p>
-
       <div id="manual-workdir-section">
         <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
         <div style="display:flex; gap:0.5rem;">
@@ -159,19 +161,48 @@ const PROVIDER_REMOTE_CONTROL = {
 {% endif %}
 function applyStackSelection() {
   const select = document.getElementById('session-stack-select');
-  const workdir = select.options[select.selectedIndex].dataset.workdir;
+  const opt = select.options[select.selectedIndex];
+  const workdir = opt.dataset.workdir;
+  const source = document.getElementById('source-field') ? document.getElementById('source-field').value : 'local';
   const manualSection = document.getElementById('manual-workdir-section');
   const preview = document.getElementById('stack-folder-preview');
-  if (workdir) {
-    // A real stack (Global/Custom both have an empty data-workdir) --
-    // the actual folder gets created server-side in create_session(),
-    // this is just a live preview of what that'll be.
-    manualSection.style.display = 'none';
-    preview.style.display = 'block';
-    updateFolderPreview();
+  if (manualSection) {
+    // Manual path only ever applies to a local directory -- GitHub/GitLab
+    // always place the clone under the stack's directory (or
+    // projects_root), same as picking no stack does today, there's
+    // nothing to type for those two regardless of stack choice.
+    if (source === 'local' && !workdir) {
+      manualSection.style.display = '';
+    } else {
+      manualSection.style.display = 'none';
+    }
+  }
+  if (preview) {
+    if (source === 'local' && workdir) {
+      preview.style.display = 'block';
+      updateFolderPreview();
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  // A stack with its own default provider picks the AI too -- no reason
+  // to ask twice for something the stack already answers. Falls back to
+  // the normal manual picker for Global/Custom directory/any stack left
+  // on "Ask each time", exactly like before this existed.
+  const providerPicker = document.getElementById('provider-picker');
+  const stackProviderNote = document.getElementById('stack-provider-note');
+  const providerSelect = document.getElementById('provider-select');
+  const stackProvider = opt.dataset.provider;
+  if (stackProvider) {
+    providerSelect.value = stackProvider;
+    providerPicker.style.display = 'none';
+    stackProviderNote.style.display = 'block';
+    stackProviderNote.textContent = 'Provider: ' + providerSelect.selectedOptions[0].textContent + ' (' + opt.textContent + '’s default -- change it on the stack’s own page to use something else here)';
+    updateProviderNote();
   } else {
-    manualSection.style.display = '';
-    preview.style.display = 'none';
+    providerPicker.style.display = '';
+    stackProviderNote.style.display = 'none';
   }
 }
 function updateFolderPreview() {
@@ -208,6 +239,7 @@ function selectSource(src) {
     panel.querySelectorAll('input, select, textarea').forEach(el => { el.disabled = !active; });
     if (active && (s === 'github' || s === 'gitlab')) applyRepoMode(s);
   });
+  applyStackSelection();
 }
 function selectRepoMode(provider, mode) {
   repoMode[provider] = mode;
