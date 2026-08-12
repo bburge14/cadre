@@ -194,6 +194,25 @@ def github_clone_url_for(full_name: str, repos: list[dict]) -> str:
     raise ValueError(f"Unknown repo: {full_name}")
 
 
+def github_verify_token(token: str) -> dict | None:
+    """A stored token is just a string on disk -- it says nothing about
+    whether GitHub still honors it (revoked access, expired, app
+    deauthorized). Hits the API for real instead of trusting presence
+    alone; returns the authenticated username on success so Settings can
+    show *who* it's connected as, not just a bare checkmark."""
+    try:
+        resp = requests.get(
+            "https://api.github.com/user",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return None
+    if resp.status_code != 200:
+        return None
+    return {"login": resp.json().get("login")}
+
+
 def github_create_repo(token: str, name: str, private: bool = True) -> str:
     resp = requests.post(
         "https://api.github.com/user/repos",
@@ -273,6 +292,21 @@ def gitlab_clone_url_for(full_name: str, repos: list[dict]) -> str:
         if repo["full_name"] == full_name:
             return repo["clone_url"]
     raise ValueError(f"Unknown repo: {full_name}")
+
+
+def gitlab_verify_token(token: str) -> dict | None:
+    try:
+        base = settings.get("gitlab_base_url")
+        resp = requests.get(
+            f"{base}/api/v4/user",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return None
+    if resp.status_code != 200:
+        return None
+    return {"login": resp.json().get("username")}
 
 
 def gitlab_create_repo(token: str, name: str, private: bool = True) -> str:

@@ -1111,6 +1111,7 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
 .flash.error { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
 
 .status { font-size: 0.82rem; color: var(--success-text); margin-top: 0.5rem; }
+.status-warn { font-size: 0.82rem; color: var(--warning-text); margin-top: 0.5rem; }
 .note { background: var(--accent-soft-bg); border: 1px solid var(--accent-border); border-radius: var(--radius-sm); padding: 0.65rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0; }
 
 /* ---- Forms ---- */

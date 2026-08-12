@@ -1838,6 +1838,29 @@ def refresh_mcp_connector_status():
     return {"ok": True, "connector_status": providers.claude_mcp_connectors()}
 
 
+@app.get("/settings/git-hosts/<provider>/verify")
+@require_auth
+def verify_git_host(provider):
+    # A stored token only proves *something* was saved once -- not that
+    # the account is still actually reachable with it (revoked access,
+    # an expired/rotated secret, or -- the concrete case that prompted
+    # this -- an OAuth authorize attempt that never actually completed
+    # because the callback URL registered on GitHub/GitLab's side didn't
+    # exactly match the one Cadre sent, so no token ever landed at all).
+    # Hits the real API so Settings can show what's actually true instead
+    # of what's merely on disk.
+    if provider not in ("github", "gitlab"):
+        return {"ok": False, "error": "unknown provider"}, 404
+    token = git_hosts.get_token(provider)
+    if not token:
+        return {"ok": True, "connected": False}
+    verify = git_hosts.github_verify_token if provider == "github" else git_hosts.gitlab_verify_token
+    result = verify(token)
+    if result is None:
+        return {"ok": True, "connected": False, "token_present": True}
+    return {"ok": True, "connected": True, "login": result.get("login")}
+
+
 @app.get("/settings/check-update")
 @require_auth
 def check_update():

@@ -417,7 +417,7 @@
       &rarr; New OAuth App. Set the <strong>Authorization callback URL</strong> to exactly:<br>
       <code>{{ github_callback_url }}</code>
     </p>
-    {% if github_connected %}<p class="status">&#10003; Your GitHub account is connected.</p>{% endif %}
+    {% if github_connected %}<p class="status" id="github-connect-status">&#10003; Your GitHub account is connected.</p>{% endif %}
     <label>Client ID</label>
     <input name="github_client_id" value="{{ values.github_client_id }}">
     <label>Client Secret</label>
@@ -432,7 +432,7 @@
       Scopes needed: <code>read_api</code> and <code>read_repository</code>.
       Only change the base URL below if you're using self-hosted GitLab.
     </p>
-    {% if gitlab_connected %}<p class="status">&#10003; Your GitLab account is connected.</p>{% endif %}
+    {% if gitlab_connected %}<p class="status" id="gitlab-connect-status">&#10003; Your GitLab account is connected.</p>{% endif %}
     <label>GitLab base URL</label>
     <input name="gitlab_base_url" value="{{ values.gitlab_base_url }}">
     <label>Application ID</label>
@@ -997,6 +997,26 @@ async function waitForRestart() {
   }
   status.textContent = "Didn't come back within 30s -- check it manually.";
 }
+
+async function verifyGitHost(provider) {
+  const el = document.getElementById(provider + '-connect-status');
+  if (!el) return; // not connected (no token) -- nothing to verify
+  try {
+    const res = await fetch("/settings/git-hosts/" + provider + "/verify");
+    const data = await res.json();
+    if (data.connected) {
+      el.className = 'status';
+      el.textContent = '✓ Connected' + (data.login ? ' as ' + data.login : '') + '.';
+    } else {
+      el.className = 'status-warn';
+      const providerName = provider === 'github' ? 'GitHub' : 'GitLab';
+      el.textContent = '⚠ A token is saved but ' + providerName
+        + " isn't accepting it (revoked, expired, or the app was deauthorized) -- reconnect below.";
+    }
+  } catch (e) { /* offline or blocked -- leave the static label as-is */ }
+}
+{% if github_connected %}verifyGitHost('github');{% endif %}
+{% if gitlab_connected %}verifyGitHost('gitlab');{% endif %}
 </script>
 </body>
 </html>
