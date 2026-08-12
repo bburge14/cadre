@@ -439,11 +439,15 @@
 
     <h2>GitLab</h2>
     <p class="hint">
-      User Settings &rarr; Applications on your GitLab instance (or
-      admin-wide if self-hosted). Set the <strong>Redirect URI</strong> to
-      exactly:<br>
+      Click your avatar (top right) &rarr; <strong>Edit profile</strong>
+      &rarr; <strong>Access</strong> (left sidebar) &rarr; Applications
+      &rarr; Add new application (same path on a self-hosted instance,
+      under your own profile -- not the admin area). Set the
+      <strong>Redirect URI</strong> to exactly:<br>
       <code>{{ gitlab_callback_url }}</code><br>
-      Scopes needed: <code>read_api</code> and <code>read_repository</code>.
+      Scopes needed: <code>read_api</code> and <code>read_repository</code>
+      (leave "Confidential" checked -- Cadre exchanges a client secret,
+      it's not a public/browser-only client).
       Only change the base URL below if you're using self-hosted GitLab.
     </p>
     {% if gitlab_connected %}<p class="status" id="gitlab-connect-status">&#10003; Your GitLab account is connected.</p>{% endif %}
