@@ -127,9 +127,18 @@
     <section>
     <h2 id="preset" style="{{ 'margin-top:0;' if stack and stack.get('is_global') else '' }}">{{ 'Add agents from a preset' if stack else 'Start from a preset' }}</h2>
     <p class="hint">Click a preset to select it (or leave none selected and just check individual agents below).</p>
-    <div class="preset-grid">
+    {% set preset_divisions = (stack_presets | map(attribute='division') | select | list) | unique | sort | list %}
+    {% if preset_divisions %}
+    <div class="division-filter" id="preset-division-filter">
+      <span class="division-chip active" data-division="">All</span>
+      {% for division in preset_divisions %}
+      <span class="division-chip" data-division="{{ division }}">{{ division }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="preset-grid" id="preset-grid">
       {% for preset in stack_presets %}
-      <div class="preset-card" id="preset-card-{{ preset.id }}" onclick="selectPreset('{{ preset.id }}')">
+      <div class="preset-card" id="preset-card-{{ preset.id }}" data-division="{{ preset.division or '' }}" onclick="selectPreset('{{ preset.id }}')">
         <h3>{{ preset.name }}</h3>
         <p>{{ preset.description }}</p>
         <div class="agents">{{ preset.agents | join(', ') }}</div>
@@ -142,7 +151,7 @@
     <h2 id="library">Or pick individual agents from the library</h2>
     {% set divisions = (library_divisions.values() | list) | unique | sort | list %}
     {% if divisions %}
-    <div class="division-filter">
+    <div class="division-filter" id="library-division-filter">
       <span class="division-chip active" data-division="">All</span>
       {% for division in divisions %}
       <span class="division-chip" data-division="{{ division }}">{{ division }}</span>
@@ -227,20 +236,29 @@ function clearPresetSelection() {
   document.querySelectorAll('.preset-card').forEach(el => el.classList.remove('selected'));
 }
 
-document.querySelectorAll('.division-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.division-chip').forEach(el => el.classList.remove('active'));
-    chip.classList.add('active');
-    const division = chip.dataset.division;
-    document.querySelectorAll('#library-agent-list > li').forEach(li => {
-      // Empty data-division means "All" -- always show. Otherwise only
-      // show rows tagged with the exact division clicked; a checked box
-      // stays checked (and still submits) even while its row is hidden
-      // by a different filter, since filtering is display-only.
-      li.style.display = (!division || li.dataset.division === division) ? '' : 'none';
+// Two independent division filters on this page now (presets grid,
+// library list) -- each setup call is scoped to its own filter/target
+// pair so clicking one never touches the other's chips or rows.
+function setupDivisionFilter(filterEl, targetSelector, itemSelector) {
+  if (!filterEl) return;
+  filterEl.querySelectorAll('.division-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterEl.querySelectorAll('.division-chip').forEach(el => el.classList.remove('active'));
+      chip.classList.add('active');
+      const division = chip.dataset.division;
+      document.querySelectorAll(targetSelector + ' > ' + itemSelector).forEach(item => {
+        // Empty data-division means "All" -- always show. Otherwise only
+        // show items tagged with the exact division clicked; a checked
+        // box stays checked (and still submits/selects) even while its
+        // row is hidden by a different filter, since filtering here is
+        // display-only.
+        item.style.display = (!division || item.dataset.division === division) ? '' : 'none';
+      });
     });
   });
-});
+}
+setupDivisionFilter(document.getElementById('preset-division-filter'), '#preset-grid', '.preset-card');
+setupDivisionFilter(document.getElementById('library-division-filter'), '#library-agent-list', 'li');
 
 // Default the directory field from the name as you type, so "directory"
 // isn't a blank required field you have to think up a value for -- edit it

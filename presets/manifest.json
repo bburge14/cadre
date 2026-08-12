@@ -9,30 +9,119 @@
     "id": "coding",
     "name": "Coding",
     "description": "Python, frontend (HTML/CSS/JS/TS), everything-else language work, debug/QA, and research.",
-    "agents": ["python-engineer", "frontend-engineer", "generalist-engineer", "debug-qa", "researcher", "project-scribe"]
+    "agents": ["python-engineer", "frontend-engineer", "generalist-engineer", "debug-qa", "researcher", "project-scribe"],
+    "division": "Engineering"
   },
   {
     "id": "content-writing",
     "name": "Content/Writing",
     "description": "Draft, edit, and fact-check articles, posts, or copy.",
-    "agents": ["writer", "editor", "researcher", "project-scribe"]
+    "agents": ["writer", "editor", "researcher", "project-scribe"],
+    "division": "Content"
   },
   {
     "id": "research-analysis",
     "name": "Research/Analysis",
     "description": "Dig into a topic, structure the findings, and produce a written report.",
-    "agents": ["analyst", "writer", "researcher", "project-scribe"]
+    "agents": ["analyst", "writer", "researcher", "project-scribe"],
+    "division": "Content"
   },
   {
     "id": "devops-infrastructure",
     "name": "DevOps/Infrastructure",
     "description": "Infrastructure-as-code, CI/CD pipelines, and production incident response.",
-    "agents": ["infra-engineer", "ci-cd-engineer", "incident-responder", "researcher", "project-scribe"]
+    "agents": ["infra-engineer", "ci-cd-engineer", "incident-responder", "researcher", "project-scribe"],
+    "division": "Engineering"
   },
   {
     "id": "data-science-analytics",
     "name": "Data Science/Analytics",
     "description": "Data pipelines, modeling/ML, and dashboards/insights.",
-    "agents": ["data-engineer", "data-scientist", "data-analyst", "researcher", "project-scribe"]
+    "agents": ["data-engineer", "data-scientist", "data-analyst", "researcher", "project-scribe"],
+    "division": "Data"
+  },
+  {
+    "id": "sales",
+    "name": "Sales",
+    "description": "Rep coaching, pipeline reviews, account expansion, and outbound.",
+    "agents": ["sales-coach", "sales-account-strategist", "sales-outreach", "researcher", "project-scribe"],
+    "division": "Sales"
+  },
+  {
+    "id": "marketing",
+    "name": "Marketing",
+    "description": "Content strategy/copy across channels, plus technical and content SEO.",
+    "agents": ["marketing-content-creator", "marketing-seo-specialist", "researcher", "project-scribe"],
+    "division": "Marketing"
+  },
+  {
+    "id": "security",
+    "name": "Security",
+    "description": "Secure code review/threat modeling, plus incident response and forensics.",
+    "agents": ["security-appsec-engineer", "security-incident-responder", "researcher", "project-scribe"],
+    "division": "Security"
+  },
+  {
+    "id": "customer-support",
+    "name": "Customer Support",
+    "description": "Ticket/issue resolution and support analytics.",
+    "agents": ["support-responder", "support-analytics-reporter", "researcher", "project-scribe"],
+    "division": "Support"
+  },
+  {
+    "id": "project-management",
+    "name": "Project Management",
+    "description": "Planning, tracking, meeting notes, and workflow/ticket hygiene.",
+    "agents": ["project-manager-senior", "project-management-project-shepherd", "project-management-meeting-notes-specialist", "project-management-jira-workflow-steward", "project-scribe"],
+    "division": "Project Management"
+  },
+  {
+    "id": "finance",
+    "name": "Finance",
+    "description": "Bookkeeping/close, financial analysis, FP&A, and tax strategy.",
+    "agents": ["finance-bookkeeper-controller", "finance-financial-analyst", "finance-fpa-analyst", "finance-tax-strategist", "project-scribe"],
+    "division": "Finance"
+  },
+  {
+    "id": "product",
+    "name": "Product",
+    "description": "Roadmap/prioritization, user feedback synthesis, and market/trend research.",
+    "agents": ["product-manager", "product-sprint-prioritizer", "product-feedback-synthesizer", "product-trend-researcher", "project-scribe"],
+    "division": "Product"
+  },
+  {
+    "id": "qa-testing",
+    "name": "QA/Testing",
+    "description": "Test automation, API testing, and accessibility auditing.",
+    "agents": ["testing-test-automation-engineer", "testing-api-tester", "testing-accessibility-auditor", "debug-qa", "project-scribe"],
+    "division": "Testing"
+  },
+  {
+    "id": "business-operations",
+    "name": "Business Operations",
+    "description": "Ops management, business strategy, chief-of-staff-style coordination, and change management.",
+    "agents": ["operations-manager", "business-strategist", "specialized-chief-of-staff", "change-management-consultant", "project-scribe"],
+    "division": "Specialized"
+  },
+  {
+    "id": "it-operations",
+    "name": "IT Operations",
+    "description": "SRE, DevOps automation, incident response, networking, and IT service management -- the ops side of running infrastructure, not writing application code.",
+    "agents": ["engineering-sre", "engineering-devops-automator", "engineering-incident-response-commander", "engineering-network-engineer", "engineering-it-service-manager", "project-scribe"],
+    "division": "Engineering"
+  },
+  {
+    "id": "hr-people",
+    "name": "HR & People",
+    "description": "Onboarding, recruiting, org psychology, and training design.",
+    "agents": ["hr-onboarding", "recruitment-specialist", "organizational-psychologist", "corporate-training-designer", "project-scribe"],
+    "division": "Specialized"
+  },
+  {
+    "id": "legal-compliance",
+    "name": "Legal & Compliance",
+    "description": "Client intake, document review, billing/time tracking, and data privacy.",
+    "agents": ["legal-client-intake", "legal-document-review", "legal-billing-time-tracking", "data-privacy-officer", "project-scribe"],
+    "division": "Specialized"
   }
 ]
