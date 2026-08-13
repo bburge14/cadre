@@ -111,7 +111,7 @@
 </head>
 <body>
   <div class="term-sidebar">
-    {% from '_topbar.html' import nav_icons %}
+    {% from '_topbar.html' import nav_icons, ai_status_widget %}
     <div class="term-sidebar-header">
       <span>Sessions</span>
     </div>
@@ -156,6 +156,7 @@
       </div>
       <span class="label" id="term-active-label">Pick a session</span>
       <div class="term-header-right">
+        {{ ai_status_widget() }}
         {{ nav_icons(active='terminal') }}
       </div>
     </div>

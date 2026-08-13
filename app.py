@@ -342,19 +342,6 @@ def _stacks_with_agent_counts() -> list[dict]:
     return stacks
 
 
-def _tracked_providers() -> list[dict]:
-    # Cheap by design -- just which providers have the Settings > AI
-    # providers "track usage" checkbox on. The actual connected/not-
-    # connected check (a real API call per provider) happens client-side
-    # via the existing /settings/providers/<id>/heartbeat endpoint, same
-    # as Settings' own heartbeat badges -- keeps this off the dashboard's
-    # synchronous render path (see the Settings page load-time fix).
-    all_providers = [{"id": "claude", "label": "Claude"}] + [
-        {"id": p.id, "label": p.label} for p in providers.list_providers() if p.id != "claude"
-    ]
-    return [p for p in all_providers if settings.get(f"track_usage_{p['id']}")]
-
-
 @app.get("/")
 @require_auth
 def index():
@@ -362,7 +349,6 @@ def index():
         "index.html",
         stacks=_stacks_with_agent_counts(),
         sessions=_sessions_with_status(),
-        tracked_providers=_tracked_providers(),
     )
 
 

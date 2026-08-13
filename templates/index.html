@@ -11,7 +11,6 @@
 <body>
   {% from '_topbar.html' import topbar %}
   {% from '_agent_avatar.html' import agent_avatar with context %}
-  {% from '_provider_badge.html' import provider_badge %}
   {{ topbar(active='index') }}
 
   <div class="sub">Your own AI cadre. No more juggling a dozen terminal tabs.</div>
@@ -21,30 +20,6 @@
       <div class="flash {{ category }}">{{ msg }}</div>
     {% endfor %}
   {% endwith %}
-
-  <div class="section-head">
-    <h2>AI Status
-      <details class="help"><summary></summary><div class="help-body">
-        <p>Live connection status for each provider with usage tracking on (Settings &rarr; AI providers). Hover an icon for its status.</p>
-        <p>Claude's token/cost numbers (last 7 days, needs its admin API key set) show up in the top bar instead of here, since Claude runs this app's own Agent Stacks.</p>
-      </div></details>
-    </h2>
-  </div>
-  <div class="ai-status-card">
-    {% if tracked_providers %}
-    <div class="ai-status-row">
-      {% for p in tracked_providers %}
-      <span class="ai-status-icon" id="ai-status-{{ p.id }}">
-        {{ provider_badge(p.id) }}
-        <span class="ai-status-dot" id="ai-status-dot-{{ p.id }}"></span>
-        <span class="ai-status-tip" id="ai-status-tip-{{ p.id }}">checking&hellip;</span>
-      </span>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="hint">No provider has usage tracking on yet. Turn it on per-provider from <a href="{{ url_for('settings_form') }}#providers">Settings &rarr; AI providers</a>.</p>
-    {% endif %}
-  </div>
 
   <div class="section-head">
     <h2>Sessions</h2>
@@ -125,34 +100,5 @@
   </table>
   </div>
 
-{% if tracked_providers %}
-<script>
-async function checkAiStatus(providerId, label) {
-  const dot = document.getElementById('ai-status-dot-' + providerId);
-  const tip = document.getElementById('ai-status-tip-' + providerId);
-  if (!dot || !tip) return;
-  try {
-    const res = await fetch('/settings/providers/' + providerId + '/heartbeat');
-    const data = await res.json();
-    if (data.connected) {
-      dot.className = 'ai-status-dot ok';
-      tip.className = 'ai-status-tip ok';
-      tip.textContent = label + ': connected';
-    } else if (data.reason === 'no_key') {
-      dot.className = 'ai-status-dot err';
-      tip.className = 'ai-status-tip err';
-      tip.textContent = label + ': no key yet';
-    } else {
-      dot.className = 'ai-status-dot err';
-      tip.className = 'ai-status-tip err';
-      tip.textContent = label + ': key not accepted';
-    }
-  } catch (e) { /* leave as checking..., not fatal */ }
-}
-{% for p in tracked_providers %}
-checkAiStatus('{{ p.id }}', {{ p.label | tojson }});
-{% endfor %}
-</script>
-{% endif %}
 </body>
 </html>

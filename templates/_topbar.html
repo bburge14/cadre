@@ -7,33 +7,90 @@
   {% if 'logout' != skip %}<a class="btn btn-icon" href="{{ url_for('logout') }}" title="Log out" aria-label="Log out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></a>{% endif %}
 {% endmacro %}
 
-{% macro topbar(active='') %}
+{% macro ai_status_widget() %}
   {% from '_provider_badge.html' import provider_badge %}
+  <div class="ai-status-row">
+    {% for pid in ['claude', 'gemini', 'codex', 'kimi'] %}
+    <span class="ai-status-icon {{ 'has-tracker' if pid in ('claude', 'codex') else '' }}" id="ai-status-{{ pid }}" style="display:none;" onclick="toggleProviderTracker('{{ pid }}')">
+      {{ provider_badge(pid) }}
+      <span class="ai-status-dot" id="ai-status-dot-{{ pid }}"></span>
+      <span class="ai-status-tip" id="ai-status-tip-{{ pid }}">checking&hellip;</span>
+    </span>
+    {% if pid in ('claude', 'codex') %}
+    <span class="provider-usage-pill" id="provider-usage-pill-{{ pid }}" style="display:none;" title="{{ 'Claude' if pid == 'claude' else 'Codex' }} usage, last 7 days">
+      <span id="provider-usage-pill-text-{{ pid }}"></span>
+    </span>
+    {% endif %}
+    {% endfor %}
+  </div>
+  <script>
+  (function() {
+    var PROVIDER_LABELS = {claude: 'Claude', gemini: 'Gemini', codex: 'Codex', kimi: 'Kimi'};
+    var TRACKED_PROVIDERS = ['claude', 'codex'];
+
+    window.toggleProviderTracker = function(providerId) {
+      var pill = document.getElementById('provider-usage-pill-' + providerId);
+      if (!pill) return; // no tracker for this provider (Gemini/Kimi)
+      var open = pill.style.display === 'none';
+      pill.style.display = open ? 'inline-flex' : 'none';
+      try { localStorage.setItem('cadreTrackerOpen_' + providerId, open ? '1' : '0'); } catch (e) { /* private mode etc, not fatal */ }
+    };
+
+    TRACKED_PROVIDERS.forEach(function(pid) {
+      try {
+        if (localStorage.getItem('cadreTrackerOpen_' + pid) === '1') {
+          var pill = document.getElementById('provider-usage-pill-' + pid);
+          if (pill) pill.style.display = 'inline-flex';
+        }
+      } catch (e) { /* not fatal, just starts collapsed */ }
+    });
+
+    function checkAiStatus(providerId) {
+      var icon = document.getElementById('ai-status-' + providerId);
+      var dot = document.getElementById('ai-status-dot-' + providerId);
+      var tip = document.getElementById('ai-status-tip-' + providerId);
+      if (!icon) return;
+      fetch('/settings/providers/' + providerId + '/heartbeat').then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.enabled) { icon.style.display = 'none'; return; }
+        icon.style.display = '';
+        var label = PROVIDER_LABELS[providerId] || providerId;
+        if (data.connected) {
+          dot.className = 'ai-status-dot ok'; tip.className = 'ai-status-tip ok'; tip.textContent = label + ': connected';
+        } else if (data.reason === 'no_key') {
+          dot.className = 'ai-status-dot err'; tip.className = 'ai-status-tip err'; tip.textContent = label + ': no key yet';
+        } else {
+          dot.className = 'ai-status-dot err'; tip.className = 'ai-status-tip err'; tip.textContent = label + ': key not accepted';
+        }
+      }).catch(function() { /* leave as checking..., not fatal */ });
+    }
+    ['claude', 'gemini', 'codex', 'kimi'].forEach(checkAiStatus);
+
+    function checkProviderUsage(providerId) {
+      var pill = document.getElementById('provider-usage-pill-' + providerId);
+      var text = document.getElementById('provider-usage-pill-text-' + providerId);
+      if (!pill) return;
+      fetch('/settings/providers/' + providerId + '/usage').then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.available) return;
+        var tokens = data.tokens;
+        var tokenLabel = tokens >= 1000000 ? (tokens / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+          : tokens >= 1000 ? (tokens / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+          : String(tokens);
+        text.textContent = tokenLabel + ' tok · $' + data.cost_usd.toFixed(2) + ' (' + data.days + 'd)';
+      }).catch(function() { /* leave empty, not fatal */ });
+    }
+    TRACKED_PROVIDERS.forEach(checkProviderUsage);
+  })();
+  </script>
+{% endmacro %}
+
+{% macro topbar(active='') %}
   <div class="topbar">
     <h1 class="brand"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="40" height="40">Cadre</h1>
     <div class="topbar-right">
-      <span class="claude-usage-pill" id="claude-usage-pill" style="display:none;" title="Claude usage, last 7 days">
-        {{ provider_badge('claude') }}
-        <span id="claude-usage-pill-text"></span>
-      </span>
+      {{ ai_status_widget() }}
       <div class="topbar-nav">
         {{ nav_icons(active) }}
       </div>
     </div>
   </div>
-  <script>
-  (function() {
-    fetch('/settings/providers/claude/usage').then(function(r) { return r.json(); }).then(function(data) {
-      if (!data.available) return;
-      var pill = document.getElementById('claude-usage-pill');
-      var text = document.getElementById('claude-usage-pill-text');
-      var tokens = data.tokens;
-      var tokenLabel = tokens >= 1000000 ? (tokens / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-        : tokens >= 1000 ? (tokens / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-        : String(tokens);
-      text.textContent = tokenLabel + ' tok · $' + data.cost_usd.toFixed(2) + ' (' + data.days + 'd)';
-      pill.style.display = '';
-    }).catch(function() { /* not fatal, pill just stays hidden */ });
-  })();
-  </script>
 {% endmacro %}
