@@ -1137,13 +1137,14 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
 /* ---- Dashboard usage-tracking tiles ---- */
 .usage-tracker-grid { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1.1rem; }
 .usage-tracker-tile {
-  display: flex; align-items: center; gap: 0.7rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.7rem;
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 0.8rem 1.1rem; min-width: 210px;
 }
 .usage-tracker-tile .provider-badge { width: 28px; height: 28px; }
 .usage-tracker-tile .provider-badge svg { width: 15px; height: 15px; }
 .usage-tracker-label { font-weight: 600; margin-right: auto; }
+.usage-tracker-numbers { flex-basis: 100%; }
 
 /* ---- Session icon picker (session_form.html + session_detail.html) ---- */
 .icon-picker { display: inline-flex; align-items: center; gap: 0.5rem; position: relative; margin-top: 0.3rem; }

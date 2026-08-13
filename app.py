@@ -1879,6 +1879,7 @@ def create_session():
 SECRET_SETTINGS = {
     "github_client_secret", "gitlab_client_secret",
     "gemini_api_key", "codex_api_key", "kimi_api_key", "claude_console_api_key",
+    "claude_admin_api_key", "codex_admin_api_key",
 }
 
 GITHUB_REPO = "bburge14/cadre"
@@ -2036,6 +2037,27 @@ def provider_heartbeat(provider_id):
         return {"ok": True, "enabled": True, "connected": False, "reason": "no_key"}
     connected = providers.verify_provider_key(provider_id, key)
     return {"ok": True, "enabled": True, "connected": connected}
+
+
+@app.get("/settings/providers/<provider_id>/usage")
+@require_auth
+def provider_usage(provider_id):
+    # Real token/cost numbers, separate from the heartbeat above -- only
+    # possible for Claude and Codex, and only with a separate ADMIN-scoped
+    # key (see providers.fetch_usage_cost's docstring comment). Fetched on
+    # its own, async, same reason the heartbeat check is async: a live
+    # multi-request paginated API call has no business blocking a page
+    # render.
+    if provider_id not in ("claude", "codex"):
+        return {"ok": True, "available": False, "reason": "unsupported"}
+    admin_key = settings.get(f"{provider_id}_admin_api_key")
+    if not admin_key:
+        return {"ok": True, "available": False, "reason": "no_admin_key"}
+    try:
+        result = providers.fetch_usage_cost(provider_id, admin_key, days=7)
+    except requests.RequestException as exc:
+        return {"ok": True, "available": False, "reason": "error", "detail": str(exc)[:200]}
+    return {"ok": True, "available": True, **result}
 
 
 @app.get("/settings/git-hosts/<provider>/verify")

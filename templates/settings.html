@@ -571,6 +571,23 @@
           <input name="claude_console_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set.claude_console_api_key else 'Not set' }}">
         </div>
         {% endif %}
+        {% if p.id in ('claude', 'codex') %}
+        <div id="{{ p.id }}-admin-key-field" style="{{ '' if values['track_usage_' ~ p.id] else 'display:none;' }} margin-top:0.7rem;">
+          <label>{{ 'Anthropic' if p.id == 'claude' else 'OpenAI' }} admin API key
+            <span class="hint">(optional -- unlocks real token/cost numbers instead of just connected/not)</span>
+            <details class="help"><summary></summary><div class="help-body">
+              {% if p.id == 'claude' %}
+              <p>A separate <strong>Admin</strong> API key (starts <code>sk-ant-admin01-</code>), not the Console key above and not your Claude Code login. Create one at <a href="https://console.anthropic.com/settings/admin-keys" target="_blank">console.anthropic.com &rarr; Settings &rarr; Admin keys</a>.</p>
+              <p>Only available on an organization account: Anthropic doesn't offer Admin API keys for individual accounts at all.</p>
+              {% else %}
+              <p>A separate <strong>Admin</strong> API key, not the project key above used to run Codex sessions. Create one at <a href="https://platform.openai.com/settings/organization/admin-keys" target="_blank">platform.openai.com &rarr; Settings &rarr; Admin keys</a>.</p>
+              {% endif %}
+              <p>Without this, the dashboard's usage tile just shows connected/not connected. With it, it shows real tokens and cost for the last 7 days.</p>
+            </div></details>
+          </label>
+          <input name="{{ p.id }}_admin_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set[p.id ~ '_admin_api_key'] else 'Not set' }}">
+        </div>
+        {% endif %}
       </div>
     </details>
     {% endfor %}
@@ -1116,10 +1133,12 @@ async function verifyGitHost(provider) {
 {% if gitlab_connected %}verifyGitHost('gitlab');{% endif %}
 
 function toggleUsageTracking(providerId) {
-  if (providerId !== 'claude') return;
-  const field = document.getElementById('claude-console-key-field');
-  const checked = document.getElementById('track-usage-claude').checked;
-  field.style.display = checked ? '' : 'none';
+  const checked = document.getElementById('track-usage-' + providerId).checked;
+  if (providerId === 'claude') {
+    document.getElementById('claude-console-key-field').style.display = checked ? '' : 'none';
+  }
+  const adminField = document.getElementById(providerId + '-admin-key-field');
+  if (adminField) adminField.style.display = checked ? '' : 'none';
 }
 
 async function checkProviderHeartbeat(providerId) {

@@ -105,7 +105,7 @@
     <h2>Usage tracking
       <details class="help"><summary></summary><div class="help-body">
         <p>Live connection status for each provider's usage-tracking key (Settings &rarr; AI providers), refreshed the same way as the badges there.</p>
-        <p>This is connection status, not a token/cost graph yet: Anthropic and OpenAI restrict real cost reporting to a separate admin-scoped key beyond what's stored here, and Gemini's billing lives entirely in Google Cloud's own billing system. Real usage numbers are a planned follow-up, not something this card can show today.</p>
+        <p>Claude and Codex show real tokens/cost for the last 7 days if their admin API key is set (Settings &rarr; AI providers &rarr; that provider, under "Track usage") -- a separate key from the one that runs sessions, needed because both providers restrict real cost reporting to an admin-scoped key. Without it, or for Gemini/Kimi (no admin-key path exists for either), the tile just shows connection status.</p>
       </div></details>
     </h2>
   </div>
@@ -117,6 +117,9 @@
         {{ provider_badge(p.id) }}
         <span class="usage-tracker-label">{{ p.label }}</span>
         <span class="badge badge-off" id="dash-heartbeat-{{ p.id }}"><span class="badge-dot"></span><span class="heartbeat-text">checking...</span></span>
+        {% if p.id in ('claude', 'codex') %}
+        <span class="hint usage-tracker-numbers" id="dash-usage-{{ p.id }}" style="display:none;"></span>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -146,8 +149,29 @@ async function checkDashboardHeartbeat(providerId) {
     }
   } catch (e) { /* leave as checking..., not fatal */ }
 }
+
+function formatTokenCount(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return String(n);
+}
+
+async function checkDashboardUsage(providerId) {
+  const el = document.getElementById('dash-usage-' + providerId);
+  if (!el) return;
+  try {
+    const res = await fetch('/settings/providers/' + providerId + '/usage');
+    const data = await res.json();
+    if (!data.available) return;
+    el.textContent = formatTokenCount(data.tokens) + ' tokens · $' + data.cost_usd.toFixed(2) + ' (' + data.days + 'd)';
+    el.style.display = '';
+  } catch (e) { /* leave hidden, not fatal */ }
+}
 {% for p in tracked_providers %}
 checkDashboardHeartbeat('{{ p.id }}');
+{% if p.id in ('claude', 'codex') %}
+checkDashboardUsage('{{ p.id }}');
+{% endif %}
 {% endfor %}
 </script>
 {% endif %}

@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -272,6 +273,114 @@ _KEY_VERIFIERS = {
 def verify_provider_key(provider_id: str, key: str) -> bool:
     verifier = _KEY_VERIFIERS.get(provider_id)
     return verifier(key) if verifier else False
+
+
+# ---- Real usage/cost numbers (Claude + Codex only) ----
+#
+# Confirmed via Anthropic's and OpenAI's own docs (2026-08-13): neither the
+# Console key above nor the regular key that runs Codex sessions can pull
+# real usage/cost data -- both require a separate ADMIN-scoped key
+# (sk-ant-admin01-... / an OpenAI org admin key), which is what
+# claude_admin_api_key/codex_admin_api_key are for. Not available at all
+# for Gemini (billing lives entirely in Google Cloud's own billing system,
+# unreachable from an AI Studio key) or Kimi (no public usage API found).
+# Anthropic's Admin API is also flatly unavailable on individual (non-org)
+# accounts -- surfaced in Settings, not something this code can work
+# around.
+_USAGE_PAGE_LIMIT = 10  # hard cap on pagination loops; a runaway/malicious
+# next_page token can't spin this forever even against a well-behaved API.
+
+
+def fetch_claude_usage_cost(admin_key: str, days: int = 7) -> dict:
+    starting_at = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT00:00:00Z")
+    headers = {"anthropic-version": "2023-06-01", "x-api-key": admin_key}
+
+    total_cost_cents = 0.0
+    page = None
+    for _ in range(_USAGE_PAGE_LIMIT):
+        params = {"starting_at": starting_at}
+        if page:
+            params["page"] = page
+        resp = requests.get("https://api.anthropic.com/v1/organizations/cost_report", params=params, headers=headers, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        for bucket in data.get("data", []):
+            for r in bucket.get("results", []):
+                total_cost_cents += float(r["amount"])
+        if not data.get("has_more"):
+            break
+        page = data.get("next_page")
+
+    total_tokens = 0
+    page = None
+    for _ in range(_USAGE_PAGE_LIMIT):
+        params = {"starting_at": starting_at, "bucket_width": "1d"}
+        if page:
+            params["page"] = page
+        resp = requests.get("https://api.anthropic.com/v1/organizations/usage_report/messages", params=params, headers=headers, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        for bucket in data.get("data", []):
+            for r in bucket.get("results", []):
+                total_tokens += (r.get("uncached_input_tokens") or 0) + (r.get("output_tokens") or 0)
+                total_tokens += r.get("cache_read_input_tokens") or 0
+                cache_creation = r.get("cache_creation") or {}
+                total_tokens += (cache_creation.get("ephemeral_1h_input_tokens") or 0) + (cache_creation.get("ephemeral_5m_input_tokens") or 0)
+        if not data.get("has_more"):
+            break
+        page = data.get("next_page")
+
+    return {"tokens": total_tokens, "cost_usd": round(total_cost_cents / 100, 2), "days": days}
+
+
+def fetch_codex_usage_cost(admin_key: str, days: int = 7) -> dict:
+    start_time = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+    headers = {"Authorization": f"Bearer {admin_key}"}
+
+    total_tokens = 0
+    page = None
+    for _ in range(_USAGE_PAGE_LIMIT):
+        params = {"start_time": start_time, "bucket_width": "1d", "limit": 31}
+        if page:
+            params["page"] = page
+        resp = requests.get("https://api.openai.com/v1/organization/usage/completions", params=params, headers=headers, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        for bucket in data.get("data", []):
+            for r in bucket.get("results", []):
+                total_tokens += (r.get("input_tokens") or 0) + (r.get("output_tokens") or 0)
+        if not data.get("has_more"):
+            break
+        page = data.get("next_page")
+
+    total_cost = 0.0
+    page = None
+    for _ in range(_USAGE_PAGE_LIMIT):
+        params = {"start_time": start_time, "limit": 31}
+        if page:
+            params["page"] = page
+        resp = requests.get("https://api.openai.com/v1/organization/costs", params=params, headers=headers, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        for bucket in data.get("data", []):
+            for r in bucket.get("results", []):
+                total_cost += (r.get("amount") or {}).get("value") or 0
+        if not data.get("has_more"):
+            break
+        page = data.get("next_page")
+
+    return {"tokens": total_tokens, "cost_usd": round(total_cost, 2), "days": days}
+
+
+_USAGE_FETCHERS = {
+    "claude": fetch_claude_usage_cost,
+    "codex": fetch_codex_usage_cost,
+}
+
+
+def fetch_usage_cost(provider_id: str, admin_key: str, days: int = 7) -> dict | None:
+    fetcher = _USAGE_FETCHERS.get(provider_id)
+    return fetcher(admin_key, days=days) if fetcher else None
 
 
 # The three Anthropic-hosted connectors confirmed reachable via `claude mcp

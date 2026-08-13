@@ -24,6 +24,8 @@ _DEFAULTS = {
     "codex_api_key": "",
     "kimi_api_key": "",
     "claude_console_api_key": "",
+    "claude_admin_api_key": "",
+    "codex_admin_api_key": "",
     "track_usage_claude": False,
     "track_usage_gemini": False,
     "track_usage_codex": False,

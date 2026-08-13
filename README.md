@@ -88,14 +88,22 @@ you have to remember to check on.
 - **Per-provider usage tracking**: each of the four has a "Track usage"
   checkbox in Settings (`providers.verify_provider_key`), separate from
   the auth that runs sessions, plus a live heartbeat badge once enabled
-  (connected / no key yet / key not accepted). Gemini/Codex/Kimi reuse
-  the API key already running their sessions. Claude needs a separate
-  Anthropic Console API key: OAuth (the Claude Code CLI's own login)
-  is banned for third-party use as of Anthropic's 2026 policy
-  enforcement, so there's no equivalent of the GitHub/GitLab OAuth flow
-  available for pulling Claude usage data. The graphs/dashboards
-  themselves are a planned follow-up, not shipped yet, this is the
-  connection layer.
+  (connected / no key yet / key not accepted), also shown as a dashboard
+  widget. Gemini/Codex/Kimi reuse the API key already running their
+  sessions. Claude needs a separate Anthropic Console API key: OAuth
+  (the Claude Code CLI's own login) is banned for third-party use as of
+  Anthropic's 2026 policy enforcement, so there's no equivalent of the
+  GitHub/GitLab OAuth flow available for pulling Claude usage data.
+- **Real usage/cost numbers for Claude and Codex** (`providers.fetch_usage_cost`):
+  an optional separate admin-scoped API key (Anthropic Admin key,
+  OpenAI org admin key) unlocks real tokens + cost for the last 7 days
+  on the dashboard's usage tile, instead of just connection status.
+  Neither provider's regular API key (the one that runs sessions, or
+  Claude's Console key above) can pull this, by their own design. Not
+  available for Gemini (billing lives entirely in Google Cloud's own
+  billing system, unreachable from an AI Studio key) or Kimi (no public
+  usage API found). Anthropic's Admin API is also unavailable on
+  individual (non-org) accounts.
 - **Agent Stacks on other providers**: Codex CLI, Gemini CLI, and Kimi
   Code CLI have each since shipped their own native subagent-delegation
   mechanism — conceptually the same idea as Claude Code's
