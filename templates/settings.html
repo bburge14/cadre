@@ -414,18 +414,9 @@
       {% for slug, label in [('gmail', 'Gmail'), ('calendar', 'Google Calendar'), ('drive', 'Google Drive')] %}
       <tr id="connector-row-{{ slug }}">
         <td>{{ label }}</td>
+        <td><span class="hint">checking...</span></td>
         <td>
-          {% set state = connector_status.get(slug) %}
-          {% if state is true %}
-          <span class="badge badge-on"><span class="badge-dot"></span>connected</span>
-          {% elif state is false %}
-          <span class="badge badge-off"><span class="badge-dot"></span>not connected</span>
-          {% else %}
-          <span class="hint">unknown</span>
-          {% endif %}
-        </td>
-        <td>
-          <button type="button" class="btn" onclick="connectMcpConnector('{{ slug }}', '{{ label }}')">{{ 'Reconnect' if state else 'Connect' }}</button>
+          <button type="button" class="btn" onclick="connectMcpConnector('{{ slug }}', '{{ label }}')">Connect</button>
         </td>
       </tr>
       {% endfor %}
@@ -974,6 +965,32 @@ async function pollMcpConnectorResult(slug, sessionId, label, attempt) {
   row.querySelectorAll('button').forEach(b => b.disabled = false);
 }
 
+function applyConnectorStatus(status) {
+  for (const slug of Object.keys(status)) {
+    const row = document.getElementById('connector-row-' + slug);
+    if (!row) continue;
+    const cell = row.children[1];
+    const btn = row.querySelector('button');
+    if (status[slug] === true) {
+      cell.innerHTML = '<span class="badge badge-on"><span class="badge-dot"></span>connected</span>';
+      if (btn) btn.textContent = 'Reconnect';
+    } else if (status[slug] === false) {
+      cell.innerHTML = '<span class="badge badge-off"><span class="badge-dot"></span>not connected</span>';
+      if (btn) btn.textContent = 'Connect';
+    } else {
+      cell.innerHTML = '<span class="hint">unknown</span>';
+    }
+  }
+}
+
+async function loadInitialConnectorStatus() {
+  try {
+    const data = await (await fetch('/settings/connectors/status')).json();
+    applyConnectorStatus(data.connector_status || {});
+  } catch (e) { /* leave as "checking...", not fatal */ }
+}
+loadInitialConnectorStatus();
+
 async function refreshMcpConnectorStatus() {
   const statusEl = document.getElementById('connector-status');
   statusEl.textContent = 'Checking connector status...';
@@ -983,17 +1000,7 @@ async function refreshMcpConnectorStatus() {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'csrf_token=' + encodeURIComponent('{{ csrf_token() }}'),
     })).json();
-    const status = data.connector_status || {};
-    for (const slug of Object.keys(status)) {
-      const row = document.getElementById('connector-row-' + slug);
-      if (!row) continue;
-      const cell = row.children[1];
-      if (status[slug] === true) {
-        cell.innerHTML = '<span class="badge badge-on"><span class="badge-dot"></span>connected</span>';
-      } else if (status[slug] === false) {
-        cell.innerHTML = '<span class="badge badge-off"><span class="badge-dot"></span>not connected</span>';
-      }
-    }
+    applyConnectorStatus(data.connector_status || {});
     statusEl.textContent = 'Status refreshed.';
   } catch (e) {
     statusEl.textContent = "Couldn't refresh status: " + e;

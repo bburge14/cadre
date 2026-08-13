@@ -1908,7 +1908,6 @@ def settings_form():
         has_security_question=auth.has_security_question(),
         current_host=config.HOST,
         tailscale=network_info.tailscale_status(),
-        connector_status=providers.claude_mcp_connectors(),
     )
 
 
@@ -1976,6 +1975,21 @@ def poll_mcp_connector_result():
     if not data.get("pending") and data.get("result", {}).get("ok"):
         data["terminal_url"] = url_for("session_terminal", session_id=session_id)
     return data
+
+
+@app.get("/settings/connectors/status")
+@require_auth
+def get_mcp_connector_status():
+    # Read-only: no session teardown. `claude mcp list` is genuinely slow
+    # (confirmed live, ~2s -- it checks each connector over the network),
+    # which used to sit directly in the Settings page's own render and
+    # made every page load pay for it. This fetches asynchronously after
+    # the page has already rendered instead. The POST version below stays
+    # separate specifically because it unconditionally discards the
+    # internal connector session (correct right after finishing a
+    # connect flow) -- reusing it here would silently kill a connector
+    # session still open in another tab just from loading this page.
+    return {"ok": True, "connector_status": providers.claude_mcp_connectors()}
 
 
 @app.post("/settings/connectors/status")
