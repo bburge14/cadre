@@ -7,9 +7,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ asset_version }}">
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
-<style>
-  body { max-width: 760px; }
-</style>
 </head>
 <body>
   {% from '_topbar.html' import topbar %}

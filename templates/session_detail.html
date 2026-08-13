@@ -8,7 +8,6 @@
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <style>
-  body { max-width: 760px; }
   .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
   .status-on { background: var(--success-text); animation: pulse-dot 2s ease-in-out infinite; }
   .status-off { background: var(--text-faint); }

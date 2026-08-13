@@ -8,7 +8,6 @@
 <script>window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });</script>
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <style>
-  body { max-width: 620px; }
   .source-tabs { display: flex; gap: 0.5rem; margin-top: 1rem; }
   .source-tab { flex: 1; text-align: center; padding: 0.55rem; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem; transition: border-color 0.12s ease, background 0.12s ease; }
   .source-tab:hover { border-color: var(--border-strong); }
