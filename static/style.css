@@ -1104,6 +1104,25 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
   box-shadow: 0 1px 6px rgba(76, 139, 240, 0.3);
 }
 
+/* ---- Agent avatars ----
+   Deterministic per agent name (agents_store.avatar_for), not tied to
+   the active dashboard theme -- semi-transparent so the same 8 colors
+   read fine against both a dark and light surface without per-theme
+   overrides. */
+.agent-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%; font-size: 0.85rem;
+  line-height: 1; flex-shrink: 0;
+}
+.agent-avatar-blue { background: rgba(59, 130, 246, 0.25); }
+.agent-avatar-green { background: rgba(34, 197, 94, 0.25); }
+.agent-avatar-orange { background: rgba(249, 115, 22, 0.25); }
+.agent-avatar-teal { background: rgba(20, 184, 166, 0.25); }
+.agent-avatar-purple { background: rgba(168, 85, 247, 0.25); }
+.agent-avatar-amber { background: rgba(245, 158, 11, 0.25); }
+.agent-avatar-pink { background: rgba(236, 72, 153, 0.25); }
+.agent-avatar-red { background: rgba(239, 68, 68, 0.25); }
+
 /* ---- Flash messages ---- */
 
 .flash { padding: 0.65rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.2rem; font-size: 0.86rem; border: 1px solid transparent; }

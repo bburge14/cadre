@@ -34,6 +34,7 @@
 </head>
 <body>
   {% from '_provider_badge.html' import provider_badge %}
+  {% from '_agent_avatar.html' import agent_avatar with context %}
   {% from '_topbar.html' import topbar %}
   {{ topbar() }}
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back to dashboard</a></p>
@@ -72,7 +73,7 @@
     <tr><th>Name</th><th>Description</th><th>Model</th><th></th></tr>
     {% for agent in stack_agents %}
     <tr>
-      <td><span style="display:inline-flex; align-items:center; gap:0.5rem;">{{ provider_badge(agent.frontmatter.get('primary_provider', 'claude')) }}{{ agent.name }}</span></td>
+      <td><span style="display:inline-flex; align-items:center; gap:0.5rem;">{{ agent_avatar(agent.name) }}{{ provider_badge(agent.frontmatter.get('primary_provider', 'claude')) }}{{ agent.name }}</span></td>
       <td style="color:var(--text-dim);">{{ agent.frontmatter.get('description', '') }}</td>
       <td>{{ agent.frontmatter.get('model', 'inherit') }}</td>
       <td>
@@ -169,9 +170,12 @@
       <li data-division="{{ library_divisions.get(agent.filename, '') }}">
         <input type="checkbox" name="agent_ids" value="{{ agent.filename[:-3] }}" id="lib-{{ agent.filename }}" onchange="clearPresetSelection()" style="width:auto;">
         <label for="lib-{{ agent.filename }}" style="margin:0;">
-          <strong>{{ agent.name }}</strong>
-          {% if agent.name in active_names %}<span class="tag active">active</span>{% endif %}
-          {% if library_divisions.get(agent.filename) %}<span class="tag">{{ library_divisions[agent.filename] }}</span>{% endif %}
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            {{ agent_avatar(agent.name) }}
+            <strong>{{ agent.name }}</strong>
+            {% if agent.name in active_names %}<span class="tag active">active</span>{% endif %}
+            {% if library_divisions.get(agent.filename) %}<span class="tag">{{ library_divisions[agent.filename] }}</span>{% endif %}
+          </div>
           <div class="desc">{{ agent.frontmatter.get('description', '') }}</div>
         </label>
       </li>

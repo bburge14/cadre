@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,6 +13,33 @@ AGENTS_DIR = config.CLAUDE_AGENTS_DIR
 NAME_RE = re.compile(r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$")
 
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n?(.*)\Z", re.DOTALL)
+
+
+# Deterministic, not truly random -- a name always lands on the same
+# emoji/color every time (a stable visual identity across page loads,
+# not a fresh roll each render), while still looking arbitrary from a
+# user's perspective since there's no visible logic tying an agent's
+# role to its icon. zlib.crc32 instead of Python's built-in hash()
+# specifically because str hashing is randomized per-process by default
+# (PYTHONHASHSEED) -- the exact same agent name would get a different
+# avatar after every single restart otherwise.
+_AVATAR_EMOJI = [
+    "🦊", "🐙", "🦉", "🐢", "🦈", "🐝", "🦋", "🐧", "🦔", "🐨",
+    "🦁", "🐯", "🦓", "🦒", "🐳", "🦑", "🐬", "🦩", "🦚", "🦜",
+    "🐺", "🦌", "🐿️", "🦇", "🐍", "🦎", "🐸", "🦂", "🦀", "🐡",
+    "🐠", "🦞", "🦐", "🐌", "🦗", "🐞", "🦟", "🐜", "🦕", "🦖",
+    "🐲", "🐉", "🌵", "🍄", "🌙", "⭐", "🔮", "🎲", "🧩", "🎯",
+    "🪁", "⚡", "🔥", "🌊", "🌀", "🦥", "🦦", "🦨", "🦡", "🐾",
+]
+_AVATAR_COLORS = ["blue", "green", "orange", "teal", "purple", "amber", "pink", "red"]
+
+
+def avatar_for(name: str) -> dict:
+    h = zlib.crc32(name.encode())
+    return {
+        "emoji": _AVATAR_EMOJI[h % len(_AVATAR_EMOJI)],
+        "color": _AVATAR_COLORS[(h // len(_AVATAR_EMOJI)) % len(_AVATAR_COLORS)],
+    }
 
 
 @dataclass

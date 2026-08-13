@@ -1,0 +1,4 @@
+{% macro agent_avatar(name) %}
+{% set a = agent_avatar_data(name) %}
+<span class="agent-avatar agent-avatar-{{ a.color }}" title="{{ name }}" aria-hidden="true">{{ a.emoji }}</span>
+{% endmacro %}

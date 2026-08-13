@@ -77,6 +77,14 @@ def inject_dashboard_theme():
     return {"dashboard_theme": settings.get("dashboard_theme")}
 
 
+@app.context_processor
+def inject_agent_avatar():
+    # Named _data to avoid colliding with the agent_avatar() macro in
+    # _agent_avatar.html, which templates actually call -- this raw
+    # function is what that macro calls internally.
+    return {"agent_avatar_data": agents_store.avatar_for}
+
+
 # (value, label) -- value must match a key in static/terminal.js's
 # XTERM_THEMES and, for "auto", the special-cased branch in
 # resolveXtermTheme(). Kept here (not just inline in the two templates
