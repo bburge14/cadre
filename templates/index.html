@@ -11,6 +11,7 @@
 <body>
   {% from '_topbar.html' import topbar %}
   {% from '_agent_avatar.html' import agent_avatar with context %}
+  {% from '_provider_badge.html' import provider_badge %}
   {{ topbar(active='index') }}
 
   <div class="sub">Your own AI cadre. No more juggling a dozen terminal tabs.</div>
@@ -99,5 +100,56 @@
     {% endfor %}
   </table>
   </div>
+
+  <div class="section-head">
+    <h2>Usage tracking
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Live connection status for each provider's usage-tracking key (Settings &rarr; AI providers), refreshed the same way as the badges there.</p>
+        <p>This is connection status, not a token/cost graph yet: Anthropic and OpenAI restrict real cost reporting to a separate admin-scoped key beyond what's stored here, and Gemini's billing lives entirely in Google Cloud's own billing system. Real usage numbers are a planned follow-up, not something this card can show today.</p>
+      </div></details>
+    </h2>
+  </div>
+  <div class="card">
+    {% if tracked_providers %}
+    <div class="usage-tracker-grid">
+      {% for p in tracked_providers %}
+      <div class="usage-tracker-tile">
+        {{ provider_badge(p.id) }}
+        <span class="usage-tracker-label">{{ p.label }}</span>
+        <span class="badge badge-off" id="dash-heartbeat-{{ p.id }}"><span class="badge-dot"></span><span class="heartbeat-text">checking...</span></span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="hint" style="padding:1rem;">No provider has usage tracking on yet. Turn it on per-provider from <a href="{{ url_for('settings_form') }}#providers">Settings &rarr; AI providers</a>.</p>
+    {% endif %}
+  </div>
+
+{% if tracked_providers %}
+<script>
+async function checkDashboardHeartbeat(providerId) {
+  const badge = document.getElementById('dash-heartbeat-' + providerId);
+  if (!badge) return;
+  try {
+    const res = await fetch('/settings/providers/' + providerId + '/heartbeat');
+    const data = await res.json();
+    const textEl = badge.querySelector('.heartbeat-text');
+    if (data.connected) {
+      badge.className = 'badge badge-on';
+      textEl.textContent = 'connected';
+    } else if (data.reason === 'no_key') {
+      badge.className = 'badge badge-warn';
+      textEl.textContent = 'no key yet';
+    } else {
+      badge.className = 'badge badge-warn';
+      textEl.textContent = 'key not accepted';
+    }
+  } catch (e) { /* leave as checking..., not fatal */ }
+}
+{% for p in tracked_providers %}
+checkDashboardHeartbeat('{{ p.id }}');
+{% endfor %}
+</script>
+{% endif %}
 </body>
 </html>
