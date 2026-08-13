@@ -513,20 +513,22 @@
     <p class="hint" style="color:var(--danger-text);">No provider currently qualifies as a default. Connect one via <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
     {% endif %}
 
-    <h2>AI providers</h2>
-    <p class="hint">
-      Every session runs one of these four. "Track usage" is separate from
-      whether a provider can run a session at all: it's for pulling
-      cost/token graphs from that provider's own API. Claude's own login
-      (what runs sessions) can't be used for that. Anthropic blocks
-      third-party apps from using the Claude subscription login for
-      anything beyond running Claude Code itself, so Claude usage tracking
-      needs a separate Console API key
-      (<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>,
-      billed separately from your Claude Code subscription). Gemini/Codex/
-      Kimi reuse the same API key already used to run their sessions,
-      nothing extra needed.
-    </p>
+    <h2>AI providers
+      <details class="help"><summary></summary><div class="help-body">
+        <p>"Track usage" is separate from whether a provider can run a
+        session at all: it's for pulling cost/token graphs from that
+        provider's own API.</p>
+        <p>Claude's own login (what runs sessions) can't be used for
+        that. Anthropic blocks third-party apps from using the Claude
+        subscription login for anything beyond running Claude Code
+        itself, so Claude usage tracking needs a separate Console API
+        key (<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>,
+        billed separately from your Claude Code subscription).</p>
+        <p>Gemini/Codex/Kimi reuse the same API key already used to run
+        their sessions, nothing extra needed.</p>
+      </div></details>
+    </h2>
+    <p class="hint">Every session runs one of these four.</p>
 
     {% set all_providers = [{'id': 'claude', 'label': 'Claude'}] + cli_providers %}
     {% for p in all_providers %}
