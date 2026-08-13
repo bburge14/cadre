@@ -1152,7 +1152,7 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
 .icon-picker-current:hover { border-color: var(--accent); }
 .icon-picker-grid { display: none; position: absolute; top: calc(100% + 0.4rem); left: 0; z-index: 30; grid-template-columns: repeat(8, 1fr); gap: 0.3rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem; box-shadow: var(--shadow); width: 280px; }
 .icon-picker-grid.open { display: grid; }
-.icon-picker-option { width: 30px; height: 30px; border-radius: 50%; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; cursor: pointer; padding: 0; }
+.icon-picker-option { width: 100%; aspect-ratio: 1; border-radius: 50%; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; cursor: pointer; padding: 0; }
 .icon-picker-option:hover { background: var(--surface-2); border-color: var(--border); }
 .icon-picker-clear { color: var(--text-dim); }
 
