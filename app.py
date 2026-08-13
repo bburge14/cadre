@@ -2039,6 +2039,10 @@ def provider_heartbeat(provider_id):
     return {"ok": True, "enabled": True, "connected": connected}
 
 
+_USAGE_CACHE: dict[str, tuple[float, dict]] = {}
+_USAGE_CACHE_TTL_SECONDS = 60
+
+
 @app.get("/settings/providers/<provider_id>/usage")
 @require_auth
 def provider_usage(provider_id):
@@ -2053,11 +2057,21 @@ def provider_usage(provider_id):
     admin_key = settings.get(f"{provider_id}_admin_api_key")
     if not admin_key:
         return {"ok": True, "available": False, "reason": "no_admin_key"}
+    # Cached -- the topbar's Claude usage pill hits this on every single
+    # page load app-wide (not just the dashboard), and Anthropic's own docs
+    # say "polling once per minute" is the supported cadence, so there's no
+    # reason to re-run a live multi-request paginated fetch more often than
+    # that just because someone clicked between two pages.
+    cached = _USAGE_CACHE.get(provider_id)
+    if cached and time.time() - cached[0] < _USAGE_CACHE_TTL_SECONDS:
+        return cached[1]
     try:
         result = providers.fetch_usage_cost(provider_id, admin_key, days=7)
     except requests.RequestException as exc:
         return {"ok": True, "available": False, "reason": "error", "detail": str(exc)[:200]}
-    return {"ok": True, "available": True, **result}
+    response = {"ok": True, "available": True, **result}
+    _USAGE_CACHE[provider_id] = (time.time(), response)
+    return response
 
 
 @app.get("/settings/git-hosts/<provider>/verify")

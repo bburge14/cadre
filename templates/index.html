@@ -23,6 +23,30 @@
   {% endwith %}
 
   <div class="section-head">
+    <h2>AI Status
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Live connection status for each provider with usage tracking on (Settings &rarr; AI providers). Hover an icon for its status.</p>
+        <p>Claude's token/cost numbers (last 7 days, needs its admin API key set) show up in the top bar instead of here, since Claude runs this app's own Agent Stacks.</p>
+      </div></details>
+    </h2>
+  </div>
+  <div class="ai-status-card">
+    {% if tracked_providers %}
+    <div class="ai-status-row">
+      {% for p in tracked_providers %}
+      <span class="ai-status-icon" id="ai-status-{{ p.id }}">
+        {{ provider_badge(p.id) }}
+        <span class="ai-status-dot" id="ai-status-dot-{{ p.id }}"></span>
+        <span class="ai-status-tip" id="ai-status-tip-{{ p.id }}">checking&hellip;</span>
+      </span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="hint">No provider has usage tracking on yet. Turn it on per-provider from <a href="{{ url_for('settings_form') }}#providers">Settings &rarr; AI providers</a>.</p>
+    {% endif %}
+  </div>
+
+  <div class="section-head">
     <h2>Sessions</h2>
     <a class="btn btn-primary" href="{{ url_for('new_session_form') }}">+ New session</a>
   </div>
@@ -101,77 +125,32 @@
   </table>
   </div>
 
-  <div class="section-head">
-    <h2>Usage tracking
-      <details class="help"><summary></summary><div class="help-body">
-        <p>Live connection status for each provider's usage-tracking key (Settings &rarr; AI providers), refreshed the same way as the badges there.</p>
-        <p>Claude and Codex show real tokens/cost for the last 7 days if their admin API key is set (Settings &rarr; AI providers &rarr; that provider, under "Track usage") -- a separate key from the one that runs sessions, needed because both providers restrict real cost reporting to an admin-scoped key. Without it, or for Gemini/Kimi (no admin-key path exists for either), the tile just shows connection status.</p>
-      </div></details>
-    </h2>
-  </div>
-  <div class="card">
-    {% if tracked_providers %}
-    <div class="usage-tracker-grid">
-      {% for p in tracked_providers %}
-      <div class="usage-tracker-tile">
-        {{ provider_badge(p.id) }}
-        <span class="usage-tracker-label">{{ p.label }}</span>
-        <span class="badge badge-off" id="dash-heartbeat-{{ p.id }}"><span class="badge-dot"></span><span class="heartbeat-text">checking...</span></span>
-        {% if p.id in ('claude', 'codex') %}
-        <span class="hint usage-tracker-numbers" id="dash-usage-{{ p.id }}" style="display:none;"></span>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="hint" style="padding:1rem;">No provider has usage tracking on yet. Turn it on per-provider from <a href="{{ url_for('settings_form') }}#providers">Settings &rarr; AI providers</a>.</p>
-    {% endif %}
-  </div>
-
 {% if tracked_providers %}
 <script>
-async function checkDashboardHeartbeat(providerId) {
-  const badge = document.getElementById('dash-heartbeat-' + providerId);
-  if (!badge) return;
+async function checkAiStatus(providerId, label) {
+  const dot = document.getElementById('ai-status-dot-' + providerId);
+  const tip = document.getElementById('ai-status-tip-' + providerId);
+  if (!dot || !tip) return;
   try {
     const res = await fetch('/settings/providers/' + providerId + '/heartbeat');
     const data = await res.json();
-    const textEl = badge.querySelector('.heartbeat-text');
     if (data.connected) {
-      badge.className = 'badge badge-on';
-      textEl.textContent = 'connected';
+      dot.className = 'ai-status-dot ok';
+      tip.className = 'ai-status-tip ok';
+      tip.textContent = label + ': connected';
     } else if (data.reason === 'no_key') {
-      badge.className = 'badge badge-warn';
-      textEl.textContent = 'no key yet';
+      dot.className = 'ai-status-dot err';
+      tip.className = 'ai-status-tip err';
+      tip.textContent = label + ': no key yet';
     } else {
-      badge.className = 'badge badge-warn';
-      textEl.textContent = 'key not accepted';
+      dot.className = 'ai-status-dot err';
+      tip.className = 'ai-status-tip err';
+      tip.textContent = label + ': key not accepted';
     }
   } catch (e) { /* leave as checking..., not fatal */ }
 }
-
-function formatTokenCount(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
-  return String(n);
-}
-
-async function checkDashboardUsage(providerId) {
-  const el = document.getElementById('dash-usage-' + providerId);
-  if (!el) return;
-  try {
-    const res = await fetch('/settings/providers/' + providerId + '/usage');
-    const data = await res.json();
-    if (!data.available) return;
-    el.textContent = formatTokenCount(data.tokens) + ' tokens · $' + data.cost_usd.toFixed(2) + ' (' + data.days + 'd)';
-    el.style.display = '';
-  } catch (e) { /* leave hidden, not fatal */ }
-}
 {% for p in tracked_providers %}
-checkDashboardHeartbeat('{{ p.id }}');
-{% if p.id in ('claude', 'codex') %}
-checkDashboardUsage('{{ p.id }}');
-{% endif %}
+checkAiStatus('{{ p.id }}', {{ p.label | tojson }});
 {% endfor %}
 </script>
 {% endif %}

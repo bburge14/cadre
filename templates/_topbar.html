@@ -8,10 +8,32 @@
 {% endmacro %}
 
 {% macro topbar(active='') %}
+  {% from '_provider_badge.html' import provider_badge %}
   <div class="topbar">
     <h1 class="brand"><img src="{{ url_for('static', filename='cadre-logo.png') }}" alt="" width="40" height="40">Cadre</h1>
-    <div class="topbar-nav">
-      {{ nav_icons(active) }}
+    <div class="topbar-right">
+      <span class="claude-usage-pill" id="claude-usage-pill" style="display:none;" title="Claude usage, last 7 days">
+        {{ provider_badge('claude') }}
+        <span id="claude-usage-pill-text"></span>
+      </span>
+      <div class="topbar-nav">
+        {{ nav_icons(active) }}
+      </div>
     </div>
   </div>
+  <script>
+  (function() {
+    fetch('/settings/providers/claude/usage').then(function(r) { return r.json(); }).then(function(data) {
+      if (!data.available) return;
+      var pill = document.getElementById('claude-usage-pill');
+      var text = document.getElementById('claude-usage-pill-text');
+      var tokens = data.tokens;
+      var tokenLabel = tokens >= 1000000 ? (tokens / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+        : tokens >= 1000 ? (tokens / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+        : String(tokens);
+      text.textContent = tokenLabel + ' tok · $' + data.cost_usd.toFixed(2) + ' (' + data.days + 'd)';
+      pill.style.display = '';
+    }).catch(function() { /* not fatal, pill just stays hidden */ });
+  })();
+  </script>
 {% endmacro %}

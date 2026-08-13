@@ -962,7 +962,18 @@ code {
 }
 .brand img { display: block; border-radius: 6px; filter: drop-shadow(0 0 10px rgba(76, 139, 240, 0.35)); }
 
+.topbar-right { display: flex; align-items: center; gap: 0.8rem; }
 .topbar-nav { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
+
+.claude-usage-pill {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 0.28rem 0.75rem 0.28rem 0.32rem;
+  font-size: 0.78rem; color: var(--text-dim);
+  font-family: ui-monospace, monospace; cursor: default;
+}
+.claude-usage-pill .provider-badge { width: 18px; height: 18px; }
+.claude-usage-pill .provider-badge svg { width: 10px; height: 10px; }
 
 .sub { color: var(--text-dim); font-size: 0.86rem; margin-bottom: 1.75rem; max-width: 68ch; }
 .hint { color: var(--text-faint); font-size: 0.79rem; }
@@ -1134,17 +1145,33 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
   font-size: 0.62rem; font-weight: 700; color: var(--text-dim); flex-shrink: 0;
 }
 
-/* ---- Dashboard usage-tracking tiles ---- */
-.usage-tracker-grid { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1.1rem; }
-.usage-tracker-tile {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.7rem;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 0.8rem 1.1rem; min-width: 210px;
+/* ---- Dashboard AI Status row (compact icon + status dot) ---- */
+/* Not .card: .card sets overflow:hidden, which clips the hover tooltip
+   below each icon (confirmed live -- the tooltip rendered but was
+   invisible, cut off at the container's own edge). Same look, visible
+   overflow instead. */
+.ai-status-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 1rem 1.2rem; margin-bottom: 1.75rem;
 }
-.usage-tracker-tile .provider-badge { width: 28px; height: 28px; }
-.usage-tracker-tile .provider-badge svg { width: 15px; height: 15px; }
-.usage-tracker-label { font-weight: 600; margin-right: auto; }
-.usage-tracker-numbers { flex-basis: 100%; }
+.ai-status-row { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+.ai-status-icon { position: relative; display: inline-flex; cursor: default; }
+.ai-status-dot {
+  position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px;
+  border-radius: 50%; border: 2px solid var(--surface); background: var(--text-faint);
+}
+.ai-status-dot.ok { background: var(--success-text); }
+.ai-status-dot.err { background: var(--danger-text); }
+.ai-status-tip {
+  display: none; position: absolute; top: calc(100% + 0.5rem); left: 50%;
+  transform: translateX(-50%); z-index: 30; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem; font-size: 0.76rem; white-space: nowrap;
+  box-shadow: var(--shadow); color: var(--text-dim);
+}
+.ai-status-icon:hover .ai-status-tip { display: block; }
+.ai-status-tip.ok { color: var(--success-text); }
+.ai-status-tip.err { color: var(--danger-text); }
 
 /* ---- Session icon picker (session_form.html + session_detail.html) ---- */
 .icon-picker { display: inline-flex; align-items: center; gap: 0.5rem; position: relative; margin-top: 0.3rem; }
