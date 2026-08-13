@@ -16,7 +16,7 @@
     <a class="btn btn-primary" href="{{ url_for('new_skill_form') }}">+ New skill</a>
   </div>
   <div class="sub">
-    One list, shared by every agent in every stack — attach one to a
+    One list, shared by every agent in every stack. Attach one to a
     specific agent from that agent's own edit page. Lives at
     <code>~/.claude/skills/</code>.
   </div>
@@ -46,7 +46,7 @@
       </td>
     </tr>
     {% else %}
-    <tr><td class="empty" colspan="3">No skills yet — "+ New skill" to create one.</td></tr>
+    <tr><td class="empty" colspan="3">No skills yet. "+ New skill" to create one.</td></tr>
     {% endfor %}
   </table>
   </div>

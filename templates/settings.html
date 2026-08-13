@@ -26,6 +26,7 @@
   .section-collapse[open] > summary::before { transform: rotate(90deg); }
   .section-collapse > summary:hover { background: var(--surface-hover); }
   .section-collapse-body { padding: 0.2rem 0.9rem 0.9rem; }
+  .section-collapse > summary .badge { margin-left: auto; }
   .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.8rem; margin-top: 0.8rem; max-width: 560px; }
   .theme-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem; cursor: pointer; text-align: center; transition: border-color 0.12s ease; }
   .theme-card:hover { border-color: var(--border-strong); }
@@ -495,37 +496,11 @@
     </div>
 
     <div class="tab-panel" id="tab-panel-providers">
-    <h2 style="margin-top:1.1rem;">Claude <span class="hint">(required — everything in this app runs on top of it)</span></h2>
-    {% if not claude_installed %}
-    <p class="hint" style="color:var(--danger-text);">
-      The <code>claude</code> command-line tool isn't installed on this
-      machine yet. Having a Claude/Anthropic account isn't enough by
-      itself — the CLI is a separate one-time install, and this app can't
-      do that step for you (it needs a terminal on this machine, once).
-      Install it, then reload this page:
-    </p>
-    <p class="hint"><code>npm install -g @anthropic-ai/claude-code</code><br>
-      (see <a href="https://docs.claude.com/en/docs/claude-code/setup" target="_blank">docs.claude.com</a> if you don't have Node/npm yet)</p>
-    {% elif not claude_logged_in %}
-    <p class="hint">
-      <code>claude</code> is installed but doesn't look logged in yet on
-      this machine. There's no login field here on purpose — Claude's
-      login is a normal part of using the <code>claude</code> CLI itself,
-      the same account/profile you already have. Easiest path:
-      <a href="{{ url_for('new_session_form') }}">create a session</a>,
-      open its terminal, and run <code>/login</code> — it'll give you a
-      browser link to approve with your Claude account. Once that's done
-      this message goes away and the session is ready to keep using.
-    </p>
-    {% else %}
-    <p class="status">&#10003; <code>claude</code> is installed and logged in on this machine.</p>
-    {% endif %}
-
-    <h2>Default AI</h2>
+    <h2 style="margin-top:1.1rem;">Default AI</h2>
     <p class="hint">
       Pre-fills new sessions and, for a provider capable of it, runs your
       Agent Stacks. Restricted to providers that are both connected and
-      able to run a stack — <a href="{{ url_for('wizard_form') }}">the setup wizard</a>
+      able to run a stack: <a href="{{ url_for('wizard_form') }}">the setup wizard</a>
       walks through connecting one step by step.
     </p>
     {% if orchestration_candidates %}
@@ -535,28 +510,83 @@
       {% endfor %}
     </select>
     {% else %}
-    <p class="hint" style="color:var(--danger-text);">No provider currently qualifies as a default — connect one via <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
+    <p class="hint" style="color:var(--danger-text);">No provider currently qualifies as a default. Connect one via <a href="{{ url_for('wizard_form') }}">the setup wizard</a>.</p>
     {% endif %}
 
-    <h2>AI CLI providers</h2>
+    <h2>AI providers</h2>
     <p class="hint">
-      API keys only — Gemini/Codex/Kimi's own account-login flows are
-      baked into each CLI binary itself (unlike GitHub/GitLab, there's no
-      OAuth app a third party can register for this), so an API key is the
-      only auth method this dashboard can offer for them.
+      Every session runs one of these four. "Track usage" is separate from
+      whether a provider can run a session at all: it's for pulling
+      cost/token graphs from that provider's own API. Claude's own login
+      (what runs sessions) can't be used for that. Anthropic blocks
+      third-party apps from using the Claude subscription login for
+      anything beyond running Claude Code itself, so Claude usage tracking
+      needs a separate Console API key
+      (<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>,
+      billed separately from your Claude Code subscription). Gemini/Codex/
+      Kimi reuse the same API key already used to run their sessions,
+      nothing extra needed.
     </p>
-    {% for p in cli_providers %}
-    <label>{{ p.label }} API key
-      {% if not provider_binaries[p.id] %}
-      <span class="hint" style="color:var(--danger-text);">— {{ p.binary }} CLI not found on PATH</span>
-      <details class="help"><summary></summary><div class="help-body">
-        <p>Install it, then reload this page:</p>
-        <p><code>{{ p.install_hint }}</code></p>
-        <p>Docs: <a href="{{ p.install_docs_url }}" target="_blank">{{ p.install_docs_url }}</a></p>
-      </div></details>
-      {% endif %}
-    </label>
-    <input name="{{ p.id }}_api_key" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set[p.id ~ '_api_key'] else 'Not set' }}">
+
+    {% set all_providers = [{'id': 'claude', 'label': 'Claude'}] + cli_providers %}
+    {% for p in all_providers %}
+    <details class="section-collapse" {{ 'open' if p.id == 'claude' and not claude_logged_in else '' }}>
+      <summary>{{ p.label }}
+        <span class="badge" id="heartbeat-{{ p.id }}" style="display:none;"><span class="badge-dot"></span><span class="heartbeat-text"></span></span>
+      </summary>
+      <div class="section-collapse-body">
+        {% if p.id == 'claude' %}
+          {% if not claude_installed %}
+          <p class="hint" style="color:var(--danger-text);">
+            The <code>claude</code> command-line tool isn't installed on this
+            machine yet. Having a Claude/Anthropic account isn't enough by
+            itself: the CLI is a separate one-time install, and this app
+            can't do that step for you (it needs a terminal on this
+            machine, once). Install it, then reload this page:
+          </p>
+          <p class="hint"><code>npm install -g @anthropic-ai/claude-code</code><br>
+            (see <a href="https://docs.claude.com/en/docs/claude-code/setup" target="_blank">docs.claude.com</a> if you don't have Node/npm yet)</p>
+          {% elif not claude_logged_in %}
+          <p class="hint">
+            <code>claude</code> is installed but doesn't look logged in yet
+            on this machine. There's no login field here on purpose:
+            Claude's login is a normal part of using the <code>claude</code>
+            CLI itself, the same account/profile you already have. Easiest
+            path: <a href="{{ url_for('new_session_form') }}">create a session</a>,
+            open its terminal, and run <code>/login</code>. It'll give you
+            a browser link to approve with your Claude account. Once
+            that's done this message goes away and the session is ready to
+            keep using.
+          </p>
+          {% else %}
+          <p class="status">&#10003; <code>claude</code> is installed and logged in on this machine.</p>
+          {% endif %}
+        {% else %}
+          <label>{{ p.label }} API key
+            {% if not provider_binaries[p.id] %}
+            <span class="hint" style="color:var(--danger-text);">({{ p.binary }} CLI not found on PATH)</span>
+            <details class="help"><summary></summary><div class="help-body">
+              <p>Install it, then reload this page:</p>
+              <p><code>{{ p.install_hint }}</code></p>
+              <p>Docs: <a href="{{ p.install_docs_url }}" target="_blank">{{ p.install_docs_url }}</a></p>
+            </div></details>
+            {% endif %}
+          </label>
+          <input name="{{ p.id }}_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set[p.id ~ '_api_key'] else 'Not set' }}">
+        {% endif %}
+
+        <label class="checkbox-label" style="margin-top:0.7rem;">
+          <input type="checkbox" name="track_usage_{{ p.id }}" id="track-usage-{{ p.id }}" {{ 'checked' if values['track_usage_' ~ p.id] else '' }} onchange="toggleUsageTracking('{{ p.id }}')">
+          Track usage (cost/token graphs)
+        </label>
+        {% if p.id == 'claude' %}
+        <div id="claude-console-key-field" style="{{ '' if values.track_usage_claude else 'display:none;' }} margin-top:0.5rem;">
+          <label>Anthropic Console API key <span class="hint">(separate from your Claude Code login, billed separately)</span></label>
+          <input name="claude_console_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set.claude_console_api_key else 'Not set' }}">
+        </div>
+        {% endif %}
+      </div>
+    </details>
     {% endfor %}
     </div>
 
@@ -1065,7 +1095,7 @@ async function waitForRestart() {
 
 async function verifyGitHost(provider) {
   const el = document.getElementById(provider + '-connect-status');
-  if (!el) return; // not connected (no token) -- nothing to verify
+  if (!el) return; // not connected (no token), nothing to verify
   try {
     const res = await fetch("/settings/git-hosts/" + provider + "/verify");
     const data = await res.json();
@@ -1076,12 +1106,47 @@ async function verifyGitHost(provider) {
       el.className = 'status-warn';
       const providerName = provider === 'github' ? 'GitHub' : 'GitLab';
       el.textContent = '⚠ A token is saved but ' + providerName
-        + " isn't accepting it (revoked, expired, or the app was deauthorized) -- reconnect below.";
+        + " isn't accepting it (revoked, expired, or the app was deauthorized). Reconnect below.";
     }
-  } catch (e) { /* offline or blocked -- leave the static label as-is */ }
+  } catch (e) { /* offline or blocked, leave the static label as-is */ }
 }
 {% if github_connected %}verifyGitHost('github');{% endif %}
 {% if gitlab_connected %}verifyGitHost('gitlab');{% endif %}
+
+function toggleUsageTracking(providerId) {
+  if (providerId !== 'claude') return;
+  const field = document.getElementById('claude-console-key-field');
+  const checked = document.getElementById('track-usage-claude').checked;
+  field.style.display = checked ? '' : 'none';
+}
+
+async function checkProviderHeartbeat(providerId) {
+  const badge = document.getElementById('heartbeat-' + providerId);
+  if (!badge) return;
+  try {
+    const res = await fetch('/settings/providers/' + providerId + '/heartbeat');
+    const data = await res.json();
+    const textEl = badge.querySelector('.heartbeat-text');
+    if (!data.enabled) {
+      badge.style.display = 'none';
+      return;
+    }
+    badge.style.display = '';
+    if (data.connected) {
+      badge.className = 'badge badge-on';
+      textEl.textContent = 'tracking connected';
+    } else if (data.reason === 'no_key') {
+      badge.className = 'badge badge-warn';
+      textEl.textContent = 'tracking on, no key yet';
+    } else {
+      badge.className = 'badge badge-warn';
+      textEl.textContent = 'tracking on, key not accepted';
+    }
+  } catch (e) { /* offline or blocked, leave hidden */ }
+}
+{% for p in ['claude', 'gemini', 'codex', 'kimi'] %}
+checkProviderHeartbeat('{{ p }}');
+{% endfor %}
 </script>
 </body>
 </html>

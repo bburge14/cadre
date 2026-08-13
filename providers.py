@@ -18,6 +18,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import requests
+
 import settings
 
 
@@ -196,6 +198,80 @@ def claude_logged_in() -> bool:
     here after `/login` succeeds. Presence isn't a live validity check (the
     token could be expired/revoked), just "you've logged in before"."""
     return (Path.home() / ".claude" / ".credentials.json").exists()
+
+
+# ---- Usage-tracking key verification ----
+#
+# Separate from whether a session can actually run (that's binary_found() +
+# either claude_logged_in() or the api_key_env_var above). These are live
+# checks against each provider's own real API, confirming a key that's
+# meant for pulling usage/cost data actually works right now, not just that
+# something is saved. Anthropic specifically: OAuth (the claude CLI's own
+# login) is banned for third-party use as of policy enforcement in 2026, so
+# usage tracking for Claude needs a separate Console API key
+# (console.anthropic.com), not the CLI's own login -- there is no
+# equivalent of the GitHub/GitLab OAuth flow available for this.
+
+
+def verify_anthropic_console_key(key: str) -> bool:
+    try:
+        resp = requests.get(
+            "https://api.anthropic.com/v1/models",
+            headers={"x-api-key": key, "anthropic-version": "2026-01-01"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return False
+    return resp.status_code == 200
+
+
+def verify_gemini_key(key: str) -> bool:
+    try:
+        resp = requests.get(
+            "https://generativelanguage.googleapis.com/v1beta/models",
+            params={"key": key},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return False
+    return resp.status_code == 200
+
+
+def verify_openai_key(key: str) -> bool:
+    try:
+        resp = requests.get(
+            "https://api.openai.com/v1/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return False
+    return resp.status_code == 200
+
+
+def verify_moonshot_key(key: str) -> bool:
+    try:
+        resp = requests.get(
+            "https://api.moonshot.ai/v1/models",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=10,
+        )
+    except requests.RequestException:
+        return False
+    return resp.status_code == 200
+
+
+_KEY_VERIFIERS = {
+    "claude": verify_anthropic_console_key,
+    "gemini": verify_gemini_key,
+    "codex": verify_openai_key,
+    "kimi": verify_moonshot_key,
+}
+
+
+def verify_provider_key(provider_id: str, key: str) -> bool:
+    verifier = _KEY_VERIFIERS.get(provider_id)
+    return verifier(key) if verifier else False
 
 
 # The three Anthropic-hosted connectors confirmed reachable via `claude mcp

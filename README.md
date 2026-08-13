@@ -71,20 +71,31 @@ you have to remember to check on.
   (`providers.py`). Claude uses its own account login via the CLI itself;
   the other three are API-key only (Settings). Any agent can also
   "delegate" its actual work to one of these via an auto-generated
-  instruction block, regardless of which provider its own session runs —
-  see "AI CLI providers" in `SETUP.md`. Small colored badges (not real
-  brand logos — this app fetches no external assets) show which provider
+  instruction block, regardless of which provider its own session runs.
+  See "AI CLI providers" in `SETUP.md`. Small colored badges (not real
+  brand logos, this app fetches no external assets) show which provider
   each agent actually uses, in a stack's agent table and its diagram.
 - **Setup wizard & default AI**: `/wizard` (shown once right after
   creating your admin account, or reachable anytime from Settings) walks
   through picking a provider, connecting it, and setting it as your
-  default — pre-fills new sessions and is meant to be the one that runs
+  default. Pre-fills new sessions and is meant to be the one that runs
   your Agent Stacks. The default picker only ever offers a provider that's
   both actually connected *and* capable of running a stack at all. Claude
   is the only one confirmed end-to-end (`orchestration_verified` in
   `providers.py`); Gemini/Codex/Kimi are offered too now that Agent Stacks
   translation exists for them (below), flagged "unverified" until someone
   actually confirms one working.
+- **Per-provider usage tracking**: each of the four has a "Track usage"
+  checkbox in Settings (`providers.verify_provider_key`), separate from
+  the auth that runs sessions, plus a live heartbeat badge once enabled
+  (connected / no key yet / key not accepted). Gemini/Codex/Kimi reuse
+  the API key already running their sessions. Claude needs a separate
+  Anthropic Console API key: OAuth (the Claude Code CLI's own login)
+  is banned for third-party use as of Anthropic's 2026 policy
+  enforcement, so there's no equivalent of the GitHub/GitLab OAuth flow
+  available for pulling Claude usage data. The graphs/dashboards
+  themselves are a planned follow-up, not shipped yet, this is the
+  connection layer.
 - **Agent Stacks on other providers**: Codex CLI, Gemini CLI, and Kimi
   Code CLI have each since shipped their own native subagent-delegation
   mechanism — conceptually the same idea as Claude Code's

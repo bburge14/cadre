@@ -1817,7 +1817,7 @@ def create_session():
 
 SECRET_SETTINGS = {
     "github_client_secret", "gitlab_client_secret",
-    "gemini_api_key", "codex_api_key", "kimi_api_key",
+    "gemini_api_key", "codex_api_key", "kimi_api_key", "claude_console_api_key",
 }
 
 GITHUB_REPO = "bburge14/cadre"
@@ -1941,6 +1941,26 @@ def poll_mcp_connector_result():
 def refresh_mcp_connector_status():
     _discard_internal_connector_sessions()
     return {"ok": True, "connector_status": providers.claude_mcp_connectors()}
+
+
+@app.get("/settings/providers/<provider_id>/heartbeat")
+@require_auth
+def provider_heartbeat(provider_id):
+    # Usage-tracking connection status, separate from whether a session
+    # can actually run (that's the CLI-install/login check for Claude, or
+    # the api_key_env_var wiring for the other three) -- this hits each
+    # provider's own real API with whichever key tracking would actually
+    # use, so the checkbox's live status reflects reality instead of just
+    # "a key is saved somewhere."
+    if provider_id not in ("claude", "gemini", "codex", "kimi"):
+        return {"ok": False, "error": "unknown provider"}, 404
+    if not settings.get(f"track_usage_{provider_id}"):
+        return {"ok": True, "enabled": False}
+    key = settings.get("claude_console_api_key" if provider_id == "claude" else f"{provider_id}_api_key")
+    if not key:
+        return {"ok": True, "enabled": True, "connected": False, "reason": "no_key"}
+    connected = providers.verify_provider_key(provider_id, key)
+    return {"ok": True, "enabled": True, "connected": connected}
 
 
 @app.get("/settings/git-hosts/<provider>/verify")
@@ -2206,11 +2226,16 @@ def save_settings():
         value = request.form.get(key, "").strip()
         if value:
             fields[key] = value
+    # Checkboxes only ever submit when checked, so absence means "off,"
+    # not "leave as-is" -- every one of these needs an explicit True/False
+    # every save, unlike the secret fields above.
+    for provider_id in ("claude", "gemini", "codex", "kimi"):
+        fields[f"track_usage_{provider_id}"] = request.form.get(f"track_usage_{provider_id}") == "on"
 
     default_provider = request.form.get("default_provider", "")
     if default_provider:
         if default_provider not in {p.id for p in providers.orchestration_candidates()}:
-            flash("That provider can't be set as the default -- it isn't connected, or can't run Agent Stacks.", "error")
+            flash("That provider can't be set as the default: it isn't connected, or can't run Agent Stacks.", "error")
             return redirect(url_for("settings_form", _anchor=anchor))
         fields["default_provider"] = default_provider
 

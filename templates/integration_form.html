@@ -18,7 +18,7 @@
   <h1>{{ 'Edit ' + integration.name if integration else 'New integration' }}</h1>
   <p class="hint">See <a href="{{ url_for('docs_page') }}#integrations">the docs</a> for a full walkthrough.</p>
   {% if not integration %}
-  <p class="hint">Example: name "Slack Bot Token", environment variable <code>SLACK_BOT_TOKEN</code>, value the actual token -- an agent in any stack you attach this to can then read <code>$SLACK_BOT_TOKEN</code> from its environment. After saving, go attach it to a stack from that stack's own edit page -- creating it here doesn't give any stack access yet.</p>
+  <p class="hint">Example: name "Slack Bot Token", environment variable <code>SLACK_BOT_TOKEN</code>, value the actual token. An agent in any stack you attach this to can then read <code>$SLACK_BOT_TOKEN</code> from its environment. After saving, go attach it to a stack from that stack's own edit page; creating it here doesn't give any stack access yet.</p>
   {% endif %}
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -30,14 +30,14 @@
   <form method="post" action="{{ url_for('edit_integration', integration_id=integration.id) if integration else url_for('create_integration') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <label>name <span class="hint">(just a label for you -- shown in the integrations list and the stack-attach checklist)</span></label>
+    <label>name <span class="hint">(just a label for you, shown in the integrations list and the stack-attach checklist)</span></label>
     <input name="name" value="{{ integration.name if integration else '' }}" placeholder="e.g. Slack Bot Token" required>
 
-    <label>environment variable <span class="hint">(what an agent sees, e.g. echo $THIS -- letters/numbers/underscores, not starting with a number)</span></label>
+    <label>environment variable <span class="hint">(what an agent sees, e.g. echo $THIS; letters/numbers/underscores, not starting with a number)</span></label>
     <input name="env_var" value="{{ integration.env_var if integration else '' }}" placeholder="e.g. SLACK_BOT_TOKEN" required>
 
-    <label>value <span class="hint">{{ '(already set -- leave blank to keep it, type a new value to replace it)' if integration else '(the actual secret -- API key, token, webhook URL, etc.)' }}</span></label>
-    <input name="value" type="password" placeholder="{{ 'Already set — leave blank to keep' if integration else '' }}" {{ '' if integration else 'required' }}>
+    <label>value <span class="hint">{{ '(already set, leave blank to keep it, type a new value to replace it)' if integration else '(the actual secret: API key, token, webhook URL, etc.)' }}</span></label>
+    <input name="value" type="password" placeholder="{{ 'Already set, leave blank to keep' if integration else '' }}" {{ '' if integration else 'required' }}>
 
     <button class="btn btn-primary" type="submit" style="margin-top:1.2rem;">{{ 'Save' if integration else 'Create integration' }}</button>
   </form>

@@ -381,22 +381,23 @@
   <h2 id="providers">AI providers</h2>
   <p>
     Every agent in every stack is still a <strong>Claude Code
-    subagent</strong> — that's not optional, and it's why Settings has no
-    "Claude" API-key field. What you're logged into is the <code>claude</code>
-    CLI itself. Settings shows your actual state instead of a login form:
+    subagent</strong>. That's not optional, and it's why Settings has no
+    "Claude" API-key field for running sessions. What you're logged into
+    is the <code>claude</code> CLI itself. Settings shows your actual
+    state instead of a login form:
   </p>
   <ul>
-    <li><strong><code>claude</code> not found</strong> — you have an
+    <li><strong><code>claude</code> not found</strong>: you have an
       Anthropic account but not the CLI installed; that's a one-time
       terminal step Cadre can't do for you
       (<code>npm install -g @anthropic-ai/claude-code</code>).</li>
-    <li><strong>Installed but not logged in</strong> — create a session,
+    <li><strong>Installed but not logged in</strong>: create a session,
       open its terminal, run <code>/login</code> there.</li>
-    <li><strong>Installed and logged in</strong> — nothing to do.</li>
+    <li><strong>Installed and logged in</strong>: nothing to do.</li>
   </ul>
   <p>
-    Gemini, Codex, and Kimi are optional and <strong>API-key only</strong> —
-    paste a key for whichever you use in Settings. Settings also flags
+    Gemini, Codex, and Kimi are optional and <strong>API-key only</strong>.
+    Paste a key for whichever you use in Settings. Settings also flags
     whether each CLI is even found on your <code>PATH</code>.
   </p>
   <h3>Setup wizard and "Default AI"</h3>
@@ -404,16 +405,32 @@
     <a href="{{ url_for('wizard_form') }}">The setup wizard</a> (shown once
     right after creating your admin account, or reachable anytime from
     Settings) walks through picking a provider, connecting it, and setting
-    it as your <strong>default AI</strong> — this pre-fills the provider on
+    it as your <strong>default AI</strong>. This pre-fills the provider on
     "+ New session" and is the one used to run your Agent Stacks. The
     default picker only ever offers providers that are both actually
     connected <em>and</em> capable of running a stack at all. Claude is the
     only one confirmed end-to-end; Gemini, Codex, and Kimi have each since
     shipped their own native subagent mechanism and Cadre now translates
     your agents into each one's format automatically, but none of the
-    three has been run against a real install by anyone yet — expect
+    three has been run against a real install by anyone yet. Expect
     rough edges if you're the first to actually try one (see "Agent Stacks
     on other providers" below).
+  </p>
+  <h3>Usage tracking</h3>
+  <p>
+    Each of the four providers has a "Track usage" checkbox in Settings,
+    separate from the auth that runs sessions: it's about pulling
+    cost/token data from that provider's own API. For Gemini, Codex, and
+    Kimi that reuses the same API key already used to run sessions, so
+    there's nothing extra to set up. Claude is different: Anthropic blocks
+    third-party apps from using the Claude Code subscription login for
+    anything beyond running Claude Code itself, so tracking Claude usage
+    needs a separate Console API key
+    (<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>,
+    billed independently from your Claude Code subscription), which only
+    appears once that checkbox is checked. Each provider's card shows a
+    live status badge once tracking is on: connected, "no key yet," or
+    "key not accepted" if the stored key doesn't actually work.
   </p>
 
   <h2 id="connectors">Connectors (Gmail, Google Calendar, Google Drive)</h2>

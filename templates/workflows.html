@@ -13,7 +13,7 @@
   {{ topbar(active='workflows') }}
 
   <div class="sub">
-    A workflow is a saved prompt sent to an Agent Stack, either when you click "Run now" or on its own once a schedule is set — e.g. a workflow named "Morning inbox triage" pointed at your email stack, prompt "check the inbox and draft replies to anything new," scheduled daily at 8am.
+    A workflow is a saved prompt sent to an Agent Stack, either when you click "Run now" or on its own once a schedule is set. Example: a workflow named "Morning inbox triage" pointed at your email stack, prompt "check the inbox and draft replies to anything new," scheduled daily at 8am.
     New to this? <a href="{{ url_for('docs_page') }}#workflows">the Workflows section of the docs</a> walks through creating one, trigger types, session modes, and unattended mode.
   </div>
 
@@ -42,7 +42,7 @@
           {% if next_run %}
           <div class="hint next-run" data-epoch="{{ next_run }}">next run: &hellip;</div>
           {% elif not w.enabled %}
-          <div class="hint">disabled -- won't fire</div>
+          <div class="hint">disabled, won't fire</div>
           {% endif %}
         {% else %}
           <span class="badge badge-info">manual</span>
@@ -72,7 +72,7 @@
     </tr>
     {% else %}
     <tr><td class="empty" colspan="5">
-      No workflows yet. "+ New workflow" to create one — pick a stack, write a prompt (e.g. "check the inbox and draft replies to anything new"), and either run it on demand or set a schedule.
+      No workflows yet. "+ New workflow" to create one: pick a stack, write a prompt (e.g. "check the inbox and draft replies to anything new"), and either run it on demand or set a schedule.
     </td></tr>
     {% endfor %}
   </table>
