@@ -291,8 +291,13 @@
 <body>
   {% from '_topbar.html' import topbar %}
   {{ topbar(active='settings') }}
-  <h1>Settings</h1>
-  <p class="hint">Nothing here needs a config file or a restart — save, and it takes effect immediately. Secret fields below never show their current value (not even masked) — leave one blank to keep what's already saved, or type a new value to replace it.</p>
+  <h1>Settings
+    <details class="help"><summary></summary><div class="help-body">
+      <p>Nothing here needs a config file or a restart: save, and it takes effect immediately.</p>
+      <p>Secret fields below never show their current value, not even masked. Leave one blank to keep what's already saved, or type a new value to replace it.</p>
+    </div></details>
+  </h1>
+  <p class="hint">Changes save immediately, no restart needed.</p>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
@@ -337,15 +342,13 @@
   </div>
 
   <div class="tab-panel" id="tab-panel-version">
-  <h2 style="margin-top:1.1rem;">Version</h2>
-  <p class="hint">
-    Running <code>v{{ current_version }}</code>. "Update now" pulls the
-    latest code (<code>git pull</code> for a git-clone install, or
-    downloads and applies the latest release ZIP otherwise), reinstalls
-    dependencies, and restarts the dashboard automatically if it's running
-    as a registered service — the session daemon is never touched, so
-    live sessions aren't affected.
-  </p>
+  <h2 style="margin-top:1.1rem;">Version
+    <details class="help"><summary></summary><div class="help-body">
+      <p>"Update now" pulls the latest code (<code>git pull</code> for a git-clone install, or downloads and applies the latest release ZIP otherwise), reinstalls dependencies, and restarts the dashboard automatically if it's running as a registered service.</p>
+      <p>The session daemon is never touched, so live sessions aren't affected.</p>
+    </div></details>
+  </h2>
+  <p class="hint">Running <code>v{{ current_version }}</code>.</p>
   <button class="btn" type="button" id="check-update-btn" onclick="checkForUpdate()">Check for updates</button>
   <button class="btn btn-primary" type="button" id="apply-update-btn" onclick="applyUpdate()" style="display:none;">Update now</button>
   <div id="update-status" class="hint" style="margin-top:0.5rem;"></div>
@@ -399,11 +402,13 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="tab-panel" id="tab-panel-githosts">
-    <h2 style="margin-top:1.1rem;">AI connectors</h2>
-    <p class="hint">
-      Gmail, Google Calendar, and Google Drive access for Claude Code sessions -- these are Anthropic's own connectors tied to your <code>claude</code> CLI login, not something Cadre stores credentials for itself. Claude-only: no equivalent exists yet for Gemini/Codex/Kimi.
-      "Connect" drives Claude Code's own connector setup for you (opens its authorization page in a new tab) instead of needing a terminal.
-    </p>
+    <h2 style="margin-top:1.1rem;">AI connectors
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Gmail, Google Calendar, and Google Drive access for Claude Code sessions: these are Anthropic's own connectors tied to your <code>claude</code> CLI login, not something Cadre stores credentials for itself. Claude-only, no equivalent exists yet for Gemini/Codex/Kimi.</p>
+        <p>"Connect" drives Claude Code's own connector setup for you (opens its authorization page in a new tab) instead of needing a terminal.</p>
+      </div></details>
+    </h2>
+    <p class="hint">Gmail, Calendar, and Drive access for Claude Code sessions.</p>
     <table class="list" style="margin-bottom:1rem;">
       <tr><th>Connector</th><th>Status</th><th></th></tr>
       {% for slug, label in [('gmail', 'Gmail'), ('calendar', 'Google Calendar'), ('drive', 'Google Drive')] %}
@@ -427,19 +432,13 @@
     </table>
     <div id="connector-status" class="hint"></div>
 
-    <label>Public base URL <span class="hint">(optional -- only needed if you access Cadre from more than one address)</span></label>
+    <label>Public base URL <span class="hint">(optional, only needed if you access Cadre from more than one address)</span>
+      <details class="help"><summary></summary><div class="help-body">
+        <p>GitHub/GitLab OAuth apps only accept ONE exact, registered callback URL, but the callback URL below is normally computed from whatever address is in your browser's bar at the moment, which can easily differ if you reach Cadre from more than one place (localhost, a LAN IP, Tailscale...). That mismatch is exactly what produces GitHub's "the redirect_uri is not associated with this application" page.</p>
+        <p>Set this to whichever single address you actually registered with GitHub/GitLab to pin it, regardless of which address the click came from. Leave blank to keep the old per-request behavior.</p>
+      </div></details>
+    </label>
     <input name="public_base_url" value="{{ values.public_base_url }}" placeholder="http://192.168.1.50:7420">
-    <p class="hint">
-      GitHub/GitLab OAuth apps only accept ONE exact, registered callback
-      URL -- but the callback URL below is normally computed from whatever
-      address is in your browser's bar at the moment, which can easily
-      differ if you reach Cadre from more than one place (localhost, a
-      LAN IP, Tailscale...). That mismatch is exactly what produces
-      GitHub's "the redirect_uri is not associated with this application"
-      page. Set this to whichever single address you actually registered
-      with GitHub/GitLab to pin it, regardless of which address the click
-      came from. Leave blank to keep the old per-request behavior.
-    </p>
 
     <details class="section-collapse" {{ 'open' if github_connected else '' }}>
       <summary>GitHub{% if github_connected %} <span class="status" id="github-connect-status" style="display:inline;margin:0;">&#10003; connected</span>{% endif %}</summary>
@@ -465,18 +464,13 @@
       <summary>GitLab{% if gitlab_connected %} <span class="status" id="gitlab-connect-status" style="display:inline;margin:0;">&#10003; connected</span>{% endif %}</summary>
       <div class="section-collapse-body">
     <p class="hint">
-      Click your avatar (top right) &rarr; <strong>Edit profile</strong>
-      &rarr; <strong>Access</strong> (left sidebar) &rarr; Applications
-      &rarr; Add new application (same path on a self-hosted instance,
-      under your own profile -- not the admin area). Set the
-      <strong>Redirect URI</strong> to exactly:<br>
-      <code>{{ gitlab_callback_url }}</code><br>
-      Scope needed: <code>api</code> (full read/write -- <code>read_api</code>
-      alone can list/clone repos but 403s on creating one, since it's
-      read-only by design)
-      (leave "Confidential" checked -- Cadre exchanges a client secret,
-      it's not a public/browser-only client).
-      Only change the base URL below if you're using self-hosted GitLab.
+      Set the <strong>Redirect URI</strong> to exactly:<br>
+      <code>{{ gitlab_callback_url }}</code>
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Click your avatar (top right) &rarr; <strong>Edit profile</strong> &rarr; <strong>Access</strong> (left sidebar) &rarr; Applications &rarr; Add new application (same path on a self-hosted instance, under your own profile, not the admin area).</p>
+        <p>Scope needed: <code>api</code> (full read/write; <code>read_api</code> alone can list/clone repos but 403s on creating one, since it's read-only by design). Leave "Confidential" checked, Cadre exchanges a client secret, it's not a public/browser-only client.</p>
+        <p>Only change the base URL below if you're using self-hosted GitLab.</p>
+      </div></details>
     </p>
     {% if gitlab_connected %}
     <p class="hint">Connected before 2026-08-12? That token was authorized with the old, narrower scope and can't create repos -- Reconnect below to pick up the new one.</p>
@@ -496,13 +490,12 @@
     </div>
 
     <div class="tab-panel" id="tab-panel-providers">
-    <h2 style="margin-top:1.1rem;">Default AI</h2>
-    <p class="hint">
-      Pre-fills new sessions and, for a provider capable of it, runs your
-      Agent Stacks. Restricted to providers that are both connected and
-      able to run a stack: <a href="{{ url_for('wizard_form') }}">the setup wizard</a>
-      walks through connecting one step by step.
-    </p>
+    <h2 style="margin-top:1.1rem;">Default AI
+      <details class="help"><summary></summary><div class="help-body">
+        <p>Pre-fills new sessions and, for a provider capable of it, runs your Agent Stacks. Restricted to providers that are both connected and able to run a stack.</p>
+      </div></details>
+    </h2>
+    <p class="hint">Which provider new sessions default to. <a href="{{ url_for('wizard_form') }}">The setup wizard</a> walks through connecting one.</p>
     {% if orchestration_candidates %}
     <select name="default_provider">
       {% for p in orchestration_candidates %}

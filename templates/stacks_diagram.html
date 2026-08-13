@@ -25,6 +25,7 @@
 </head>
 <body>
   {% from '_provider_badge.html' import provider_badge %}
+  {% from '_agent_avatar.html' import agent_avatar with context %}
   {% from '_topbar.html' import topbar %}
   {{ topbar() }}
   <p><a class="btn" href="{{ back_url }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; {{ back_label }}</a></p>
@@ -51,7 +52,7 @@
     <div class="agent-row">
       {% for n in nodes %}
       <div>
-        <div class="node" id="node-{{ n.name }}" onclick="togglePanel('{{ n.name }}')">{{ provider_badge(n.primary_provider) }}{{ n.name }}</div>
+        <div class="node" id="node-{{ n.name }}" onclick="togglePanel('{{ n.name }}')">{{ agent_avatar(n.name) }}{{ provider_badge(n.primary_provider) }}{{ n.name }}</div>
         <div class="panel" id="panel-{{ n.name }}">
           <form method="post" action="{{ save_action }}">
             <input type="hidden" name="agent_filename" value="{{ n.filename }}">
