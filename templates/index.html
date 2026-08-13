@@ -12,7 +12,7 @@
   {% from '_topbar.html' import topbar %}
   {{ topbar(active='index') }}
 
-  <div class="sub">Manage AI coding sessions (Claude, Gemini, Codex, or Kimi) and your agent stacks — each stack is its own directory-scoped team of agents and skills, usable by whichever provider a session runs. Claude sessions are also remotely reachable via claude.ai/code. "Global (default)" below is the one team every session falls back to when no more specific stack covers its directory.</div>
+  <div class="sub">Your own AI cadre — no more juggling a dozen terminal tabs.</div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, msg in messages %}
