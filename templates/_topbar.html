@@ -12,15 +12,15 @@
   <div class="ai-status-row">
     {% for pid in ['claude', 'gemini', 'codex', 'kimi'] %}
     <span class="ai-status-icon {{ 'has-tracker' if pid in ('claude', 'codex') else '' }}" id="ai-status-{{ pid }}" onclick="toggleProviderTracker('{{ pid }}')">
-      {{ provider_badge(pid) }}
-      <span class="ai-status-dot" id="ai-status-dot-{{ pid }}"></span>
+      <span class="ai-status-badge-wrap">
+        {{ provider_badge(pid) }}
+        <span class="ai-status-dot" id="ai-status-dot-{{ pid }}"></span>
+      </span>
       <span class="ai-status-tip" id="ai-status-tip-{{ pid }}">checking&hellip;</span>
+      {% if pid in ('claude', 'codex') %}
+      <span class="provider-usage-text" id="provider-usage-pill-text-{{ pid }}" style="display:none;"></span>
+      {% endif %}
     </span>
-    {% if pid in ('claude', 'codex') %}
-    <span class="provider-usage-pill" id="provider-usage-pill-{{ pid }}" style="display:none;" title="{{ 'Claude' if pid == 'claude' else 'Codex' }} usage, last 7 days">
-      <span id="provider-usage-pill-text-{{ pid }}"></span>
-    </span>
-    {% endif %}
     {% endfor %}
   </div>
   <script>
@@ -29,21 +29,32 @@
     var TRACKED_PROVIDERS = ['claude', 'codex'];
 
     window.toggleProviderTracker = function(providerId) {
-      var pill = document.getElementById('provider-usage-pill-' + providerId);
-      if (!pill) return; // no tracker for this provider (Gemini/Kimi)
-      var open = pill.style.display === 'none';
-      pill.style.display = open ? 'inline-flex' : 'none';
+      var icon = document.getElementById('ai-status-' + providerId);
+      var text = document.getElementById('provider-usage-pill-text-' + providerId);
+      if (!icon || !text) return; // no tracker for this provider (Gemini/Kimi)
+      var open = text.style.display === 'none';
+      icon.classList.toggle('tracker-open', open);
+      text.style.display = open ? '' : 'none';
       try { localStorage.setItem('cadreTrackerOpen_' + providerId, open ? '1' : '0'); } catch (e) { /* private mode etc, not fatal */ }
     };
 
     TRACKED_PROVIDERS.forEach(function(pid) {
       try {
         if (localStorage.getItem('cadreTrackerOpen_' + pid) === '1') {
-          var pill = document.getElementById('provider-usage-pill-' + pid);
-          if (pill) pill.style.display = 'inline-flex';
+          var icon = document.getElementById('ai-status-' + pid);
+          var text = document.getElementById('provider-usage-pill-text-' + pid);
+          if (icon && text) { icon.classList.add('tracker-open'); text.style.display = ''; }
         }
       } catch (e) { /* not fatal, just starts collapsed */ }
     });
+
+    function closeTracker(providerId) {
+      var icon = document.getElementById('ai-status-' + providerId);
+      var text = document.getElementById('provider-usage-pill-text-' + providerId);
+      if (icon) icon.classList.remove('tracker-open');
+      if (text) text.style.display = 'none';
+      try { localStorage.setItem('cadreTrackerOpen_' + providerId, '0'); } catch (e) { /* not fatal */ }
+    }
 
     function checkAiStatus(providerId) {
       var icon = document.getElementById('ai-status-' + providerId);
@@ -66,17 +77,15 @@
     ['claude', 'gemini', 'codex', 'kimi'].forEach(checkAiStatus);
 
     function checkProviderUsage(providerId) {
-      var pill = document.getElementById('provider-usage-pill-' + providerId);
       var text = document.getElementById('provider-usage-pill-text-' + providerId);
-      if (!pill) return;
+      if (!text) return;
       fetch('/settings/providers/' + providerId + '/usage').then(function(r) { return r.json(); }).then(function(data) {
         if (!data.available) {
           // Genuinely nothing to show (error, no admin key, etc.) --
-          // hide it even if it was left open from a previous, working
-          // load. An empty pill sitting open looks stuck/broken, not
+          // close it even if it was left open from a previous, working
+          // load. An empty capsule sitting open looks stuck/broken, not
           // "no data yet".
-          pill.style.display = 'none';
-          try { localStorage.setItem('cadreTrackerOpen_' + providerId, '0'); } catch (e) { /* not fatal */ }
+          closeTracker(providerId);
           return;
         }
         var tokens = data.tokens;
@@ -88,14 +97,17 @@
         var parts = metric === 'tokens' ? [tokenLabel + ' tok']
           : metric === 'cost' ? [costLabel]
           : [tokenLabel + ' tok', costLabel];
-        text.textContent = parts.join(' · ') + ' (' + data.days + 'd)';
-        pill.title = (PROVIDER_LABELS[providerId] || providerId) + ' usage, last ' + data.days + ' day' + (data.days === 1 ? '' : 's');
+        text.textContent = parts.join(' · ');
+        // Native title, scoped to just the number itself (not the whole
+        // capsule) so it doesn't compete with .ai-status-tip's custom
+        // hover popover, which covers the whole capsule for connection
+        // status.
+        text.title = (PROVIDER_LABELS[providerId] || providerId) + ' usage, last ' + data.days + ' day' + (data.days === 1 ? '' : 's');
       }).catch(function() {
         // Network failure, or a non-JSON error response (a real 500 page
         // isn't valid JSON) -- same reasoning as the !data.available
-        // branch above: don't leave a stuck, empty pill open.
-        pill.style.display = 'none';
-        try { localStorage.setItem('cadreTrackerOpen_' + providerId, '0'); } catch (e) { /* not fatal */ }
+        // branch above: don't leave a stuck, empty capsule open.
+        closeTracker(providerId);
       });
     }
     TRACKED_PROVIDERS.forEach(checkProviderUsage);

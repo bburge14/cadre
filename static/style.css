@@ -967,18 +967,19 @@ code {
 
 /* ---- Topbar AI status: every provider's connection icon always
    visible. Providers with a usage tracker (Claude, Codex -- see
-   providers._USAGE_FETCHERS) get a pointer cursor and a click toggles
-   their usage pill inline next to the icon. Expand state persists per
-   provider across reloads via localStorage (see _topbar.html's own
-   script -- client-side UI preference, not app state, so it doesn't
-   belong in settings.json). ---- */
+   providers._USAGE_FETCHERS) get a pointer cursor; clicking one grows
+   its own capsule into an oval that encloses both the icon and its
+   usage text, rather than a separate pill floating next to a plain
+   icon. Expand state persists per provider across reloads via
+   localStorage (see _topbar.html's own script -- client-side UI
+   preference, not app state, so it doesn't belong in settings.json). ---- */
 .ai-status-icon.has-tracker { cursor: pointer; }
-
-.provider-usage-pill {
-  display: none; align-items: center; gap: 0.45rem; flex-shrink: 0; white-space: nowrap;
+.ai-status-icon.tracker-open {
   background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 999px; padding: 0.28rem 0.75rem;
-  font-size: 0.78rem; color: var(--text-dim);
+  border-radius: 999px; padding: 0.14rem 0.75rem 0.14rem 0.14rem; gap: 0.45rem;
+}
+.provider-usage-text {
+  font-size: 0.78rem; color: var(--text-dim); white-space: nowrap;
   font-family: ui-monospace, monospace; cursor: default;
 }
 
@@ -1152,9 +1153,14 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
   font-size: 0.62rem; font-weight: 700; color: var(--text-dim); flex-shrink: 0;
 }
 
-/* ---- Topbar AI status row (compact icon + status dot per provider) ---- */
+/* ---- Topbar AI status row (icon capsule + status dot per provider) ---- */
 .ai-status-row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
-.ai-status-icon { position: relative; display: inline-flex; flex-shrink: 0; cursor: default; }
+.ai-status-icon {
+  position: relative; display: inline-flex; align-items: center;
+  flex-shrink: 0; cursor: default; border-radius: 999px;
+  transition: background 0.12s ease, padding 0.12s ease, gap 0.12s ease;
+}
+.ai-status-badge-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
 .ai-status-icon .provider-badge { width: 30px; height: 30px; }
 .ai-status-icon .provider-badge svg { width: 16px; height: 16px; }
 .ai-status-dot {
