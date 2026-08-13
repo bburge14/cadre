@@ -394,7 +394,10 @@ def fetch_codex_usage_cost(admin_key: str, days: int = 7) -> dict:
         data = resp.json()
         for bucket in data.get("data", []):
             for r in bucket.get("results", []):
-                total_cost += (r.get("amount") or {}).get("value") or 0
+                # OpenAI's real response sends this as a string, not the
+                # bare float the cookbook example implied -- confirmed live
+                # 2026-08-13 via a real 500 (TypeError: += float and str).
+                total_cost += float((r.get("amount") or {}).get("value") or 0)
         if not data.get("has_more"):
             break
         page = data.get("next_page")
