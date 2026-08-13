@@ -2493,7 +2493,20 @@ def session_detail(session_id):
         session=entry,
         status=session_manager.status(session_id),
         matching_stack=matching_stack,
+        icon_choices=sessions_store.ICON_CHOICES,
+        default_icon=sessions_store.default_icon_for(session_id),
     )
+
+
+@app.post("/sessions/<session_id>/icon")
+@require_auth
+def set_session_icon(session_id):
+    entry = sessions_store.get(session_id)
+    if entry is None:
+        return {"ok": False, "error": "unknown session"}, 404
+    icon = request.form.get("icon", "").strip()
+    sessions_store.update(session_id, icon=icon)
+    return {"ok": True, "icon": icon or sessions_store.default_icon_for(session_id)}
 
 
 def _sessions_grouped_by_stack() -> list[dict]:

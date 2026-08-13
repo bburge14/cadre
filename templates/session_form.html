@@ -23,15 +23,6 @@
   .repo-mode-panel.active { display: block; }
   .checkbox-label { display: flex; align-items: center; gap: 0.4rem; font-weight: normal; margin-top: 0.5rem; }
   .checkbox-label input { width: auto; accent-color: var(--accent); }
-  .icon-picker { display: inline-flex; align-items: center; gap: 0.5rem; position: relative; margin-top: 0.3rem; }
-  .icon-picker-current { width: 40px; height: 40px; border-radius: 50%; font-size: 1.3rem; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; padding: 0; }
-  .icon-picker-current.is-auto { opacity: 0.55; }
-  .icon-picker-current:hover { border-color: var(--accent); }
-  .icon-picker-grid { display: none; position: absolute; top: calc(100% + 0.4rem); left: 0; z-index: 5; grid-template-columns: repeat(8, 1fr); gap: 0.3rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem; box-shadow: var(--shadow); width: 280px; }
-  .icon-picker-grid.open { display: grid; }
-  .icon-picker-option { width: 30px; height: 30px; border-radius: 50%; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; cursor: pointer; padding: 0; }
-  .icon-picker-option:hover { background: var(--surface-2); border-color: var(--border); }
-  .icon-picker-clear { color: var(--text-dim); }
 </style>
 </head>
 <body>

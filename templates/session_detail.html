@@ -22,7 +22,18 @@
   {% from '_topbar.html' import topbar %}
   {{ topbar() }}
   <p style="margin-top:1.5rem;"><a class="btn" href="{{ url_for('index') }}" onclick="if (history.length > 1) { history.back(); return false; }">&larr; back</a></p>
-  <h1 style="font-size:1.2rem; margin-bottom:0.1rem;">{{ session.label }}</h1>
+  <h1 style="font-size:1.2rem; margin-bottom:0.1rem; display:flex; align-items:center; gap:0.6rem;">
+    <span class="icon-picker" style="margin-top:0;">
+      <button type="button" class="icon-picker-current {{ '' if session.icon else 'is-auto' }}" id="icon-picker-current" onclick="toggleIconPicker()" title="Change icon">{{ session.icon or default_icon }}</button>
+      <div class="icon-picker-grid" id="icon-picker-grid">
+        <button type="button" class="icon-picker-option icon-picker-clear" onclick="selectIcon('')" title="Automatic">&#8635;</button>
+        {% for emoji in icon_choices %}
+        <button type="button" class="icon-picker-option" onclick="selectIcon('{{ emoji }}')">{{ emoji }}</button>
+        {% endfor %}
+      </div>
+    </span>
+    {{ session.label }}
+  </h1>
   <p class="workdir">{{ session.workdir }}</p>
   <p style="font-size:0.85rem;">
     <span class="status-dot {{ 'status-on' if status.running else 'status-off' }}" id="dot"></span>
@@ -81,6 +92,28 @@
   </div>
 
 <script>
+function toggleIconPicker() {
+  document.getElementById('icon-picker-grid').classList.toggle('open');
+}
+async function selectIcon(emoji) {
+  const current = document.getElementById('icon-picker-current');
+  current.textContent = emoji || '{{ default_icon }}';
+  current.classList.toggle('is-auto', !emoji);
+  document.getElementById('icon-picker-grid').classList.remove('open');
+  const body = new URLSearchParams();
+  body.set('csrf_token', '{{ csrf_token() }}');
+  body.set('icon', emoji);
+  try {
+    await fetch("{{ url_for('set_session_icon', session_id=session.id) }}", { method: 'POST', body });
+  } catch (e) { /* best effort -- shows locally either way, re-syncs next load */ }
+}
+document.addEventListener('click', (e) => {
+  const grid = document.getElementById('icon-picker-grid');
+  if (grid.classList.contains('open') && !e.target.closest('.icon-picker')) {
+    grid.classList.remove('open');
+  }
+});
+
 let wasLimitHit = {{ 'true' if status.limit_hit else 'false' }};
 if ("Notification" in window && Notification.permission === "default") {
   Notification.requestPermission();
