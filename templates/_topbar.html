@@ -11,7 +11,7 @@
   {% from '_provider_badge.html' import provider_badge %}
   <div class="ai-status-row">
     {% for pid in ['claude', 'gemini', 'codex', 'kimi'] %}
-    <span class="ai-status-icon {{ 'has-tracker' if pid in ('claude', 'codex') else '' }}" id="ai-status-{{ pid }}" style="display:none;" onclick="toggleProviderTracker('{{ pid }}')">
+    <span class="ai-status-icon {{ 'has-tracker' if pid in ('claude', 'codex') else '' }}" id="ai-status-{{ pid }}" onclick="toggleProviderTracker('{{ pid }}')">
       {{ provider_badge(pid) }}
       <span class="ai-status-dot" id="ai-status-dot-{{ pid }}"></span>
       <span class="ai-status-tip" id="ai-status-tip-{{ pid }}">checking&hellip;</span>
@@ -75,7 +75,13 @@
         var tokenLabel = tokens >= 1000000 ? (tokens / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
           : tokens >= 1000 ? (tokens / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
           : String(tokens);
-        text.textContent = tokenLabel + ' tok · $' + data.cost_usd.toFixed(2) + ' (' + data.days + 'd)';
+        var costLabel = '$' + data.cost_usd.toFixed(2);
+        var metric = data.metric || 'both';
+        var parts = metric === 'tokens' ? [tokenLabel + ' tok']
+          : metric === 'cost' ? [costLabel]
+          : [tokenLabel + ' tok', costLabel];
+        text.textContent = parts.join(' · ') + ' (' + data.days + 'd)';
+        pill.title = (PROVIDER_LABELS[providerId] || providerId) + ' usage, last ' + data.days + ' day' + (data.days === 1 ? '' : 's');
       }).catch(function() { /* leave empty, not fatal */ });
     }
     TRACKED_PROVIDERS.forEach(checkProviderUsage);

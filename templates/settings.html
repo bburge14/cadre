@@ -590,10 +590,29 @@
               {% else %}
               <p>A separate <strong>Admin</strong> API key, not the project key above used to run Codex sessions. Create one at <a href="https://platform.openai.com/settings/organization/admin-keys" target="_blank">platform.openai.com &rarr; Settings &rarr; Admin keys</a>.</p>
               {% endif %}
-              <p>Without this, the dashboard's usage tile just shows connected/not connected. With it, it shows real tokens and cost for the last 7 days.</p>
+              <p>Without this, the dashboard's usage tile just shows connected/not connected. With it, it shows real tokens/cost for whichever window you pick below.</p>
             </div></details>
           </label>
           {{ secret_input(p.id ~ '_admin_api_key', secrets_set[p.id ~ '_admin_api_key']) }}
+          <div style="display:flex; gap:0.6rem; margin-top:0.6rem;">
+            <div style="flex:1;">
+              <label>Tracker shows</label>
+              <select name="{{ p.id }}_tracker_metric">
+                <option value="both" {{ 'selected' if values[p.id ~ '_tracker_metric'] == 'both' else '' }}>Tokens + cost</option>
+                <option value="tokens" {{ 'selected' if values[p.id ~ '_tracker_metric'] == 'tokens' else '' }}>Tokens only</option>
+                <option value="cost" {{ 'selected' if values[p.id ~ '_tracker_metric'] == 'cost' else '' }}>Cost only</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label>Time frame</label>
+              <select name="{{ p.id }}_tracker_days">
+                <option value="1" {{ 'selected' if values[p.id ~ '_tracker_days'] == 1 else '' }}>Today</option>
+                <option value="7" {{ 'selected' if values[p.id ~ '_tracker_days'] == 7 else '' }}>Last 7 days</option>
+                <option value="14" {{ 'selected' if values[p.id ~ '_tracker_days'] == 14 else '' }}>Last 14 days</option>
+                <option value="30" {{ 'selected' if values[p.id ~ '_tracker_days'] == 30 else '' }}>Last 30 days</option>
+              </select>
+            </div>
+          </div>
         </div>
         {% endif %}
       </div>

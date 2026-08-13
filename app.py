@@ -2042,7 +2042,7 @@ def provider_heartbeat(provider_id):
     return {"ok": True, "enabled": True, "connected": connected}
 
 
-_USAGE_CACHE: dict[str, tuple[float, dict]] = {}
+_USAGE_CACHE: dict[tuple[str, int], tuple[float, dict]] = {}
 _USAGE_CACHE_TTL_SECONDS = 60
 
 
@@ -2060,20 +2060,26 @@ def provider_usage(provider_id):
     admin_key = settings.get(f"{provider_id}_admin_api_key")
     if not admin_key:
         return {"ok": True, "available": False, "reason": "no_admin_key"}
+    metric = settings.get(f"{provider_id}_tracker_metric") or "both"
+    days = settings.get(f"{provider_id}_tracker_days") or 7
     # Cached -- the topbar's Claude usage pill hits this on every single
     # page load app-wide (not just the dashboard), and Anthropic's own docs
     # say "polling once per minute" is the supported cadence, so there's no
     # reason to re-run a live multi-request paginated fetch more often than
-    # that just because someone clicked between two pages.
-    cached = _USAGE_CACHE.get(provider_id)
+    # that just because someone clicked between two pages. Keyed on days
+    # too (not just provider_id) so changing the time frame in Settings
+    # takes effect immediately instead of serving a stale window's numbers
+    # for up to a minute.
+    cache_key = (provider_id, days)
+    cached = _USAGE_CACHE.get(cache_key)
     if cached and time.time() - cached[0] < _USAGE_CACHE_TTL_SECONDS:
         return cached[1]
     try:
-        result = providers.fetch_usage_cost(provider_id, admin_key, days=7)
+        result = providers.fetch_usage_cost(provider_id, admin_key, days=days)
     except requests.RequestException as exc:
         return {"ok": True, "available": False, "reason": "error", "detail": str(exc)[:200]}
-    response = {"ok": True, "available": True, **result}
-    _USAGE_CACHE[provider_id] = (time.time(), response)
+    response = {"ok": True, "available": True, "metric": metric, **result}
+    _USAGE_CACHE[cache_key] = (time.time(), response)
     return response
 
 
@@ -2357,6 +2363,17 @@ def save_settings():
     # every save, unlike the secret fields above.
     for provider_id in ("claude", "gemini", "codex", "kimi"):
         fields[f"track_usage_{provider_id}"] = request.form.get(f"track_usage_{provider_id}") == "on"
+    # Tracker display preferences -- only meaningful for the two providers
+    # that can have real usage data (see providers._USAGE_FETCHERS).
+    # Validated against a fixed set rather than trusted verbatim, same
+    # reasoning as dashboard_theme_choice above.
+    for provider_id in ("claude", "codex"):
+        metric = request.form.get(f"{provider_id}_tracker_metric", "")
+        if metric in ("tokens", "cost", "both"):
+            fields[f"{provider_id}_tracker_metric"] = metric
+        days = request.form.get(f"{provider_id}_tracker_days", "")
+        if days.isdigit() and int(days) in (1, 7, 14, 30):
+            fields[f"{provider_id}_tracker_days"] = int(days)
 
     default_provider = request.form.get("default_provider", "")
     if default_provider:
