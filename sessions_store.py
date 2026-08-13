@@ -4,9 +4,27 @@ import json
 import time
 import uuid
 
+import zlib
+
 import config
 
 STORE_FILE = config.SESSIONS_FILE
+
+# Same idea as agents_store.avatar_for: deterministic (crc32, not the
+# randomized-per-process hash()) so a session without a custom icon still
+# looks visually distinct and stays on the same icon across restarts,
+# without needing anything stored. A custom pick (session.icon) always
+# wins over this -- see default_icon_for's callers.
+ICON_CHOICES = [
+    "🚀", "💻", "🎮", "🛠️", "📊", "🌐", "📝", "🎨",
+    "🔬", "💬", "📈", "🏗️", "🛒", "📱", "🔐", "☁️",
+    "🐛", "🧪", "📦", "🎯", "🔥", "🎵", "📷", "🏆",
+    "⚡", "🗂️", "🔑", "🌟", "🧩", "📡", "🎓", "💰",
+]
+
+
+def default_icon_for(session_id: str) -> str:
+    return ICON_CHOICES[zlib.crc32(session_id.encode()) % len(ICON_CHOICES)]
 
 
 def _load() -> list[dict]:
@@ -16,6 +34,7 @@ def _load() -> list[dict]:
     for s in sessions:
         s.setdefault("provider", "claude")
         s.setdefault("internal", False)
+        s.setdefault("icon", "")
     return sessions
 
 

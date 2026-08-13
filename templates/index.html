@@ -30,7 +30,7 @@
     <tr><th>Label</th><th>Provider</th><th>Stack</th><th>Status</th><th></th></tr>
     {% for s in sessions %}
     <tr>
-      <td><a href="{{ url_for('session_detail', session_id=s.id) }}">{{ s.label }}</a></td>
+      <td><a href="{{ url_for('session_detail', session_id=s.id) }}"><span aria-hidden="true">{{ s.display_icon }}</span> {{ s.label }}</a></td>
       <td>{{ s.get('provider', 'claude') | capitalize }}</td>
       <td><a href="{{ url_for('edit_stack_form', stack_id=s.stack.id) }}">{{ s.stack.name }}</a></td>
       <td>

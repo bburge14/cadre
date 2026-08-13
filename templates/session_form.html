@@ -23,6 +23,15 @@
   .repo-mode-panel.active { display: block; }
   .checkbox-label { display: flex; align-items: center; gap: 0.4rem; font-weight: normal; margin-top: 0.5rem; }
   .checkbox-label input { width: auto; accent-color: var(--accent); }
+  .icon-picker { display: inline-flex; align-items: center; gap: 0.5rem; position: relative; margin-top: 0.3rem; }
+  .icon-picker-current { width: 40px; height: 40px; border-radius: 50%; font-size: 1.3rem; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; padding: 0; }
+  .icon-picker-current.is-auto { opacity: 0.55; }
+  .icon-picker-current:hover { border-color: var(--accent); }
+  .icon-picker-grid { display: none; position: absolute; top: calc(100% + 0.4rem); left: 0; z-index: 5; grid-template-columns: repeat(8, 1fr); gap: 0.3rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem; box-shadow: var(--shadow); width: 280px; }
+  .icon-picker-grid.open { display: grid; }
+  .icon-picker-option { width: 30px; height: 30px; border-radius: 50%; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; cursor: pointer; padding: 0; }
+  .icon-picker-option:hover { background: var(--surface-2); border-color: var(--border); }
+  .icon-picker-clear { color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -43,6 +52,19 @@
   <form method="post" action="{{ url_for('edit_session', session_id=session.id) if session else url_for('create_session') }}">
     <label>label <span class="hint">(shown in claude.ai/code's session list)</span></label>
     <input name="label" id="session-label-field" value="{{ session.label if session else '' }}" oninput="updateFolderPreview()" {{ 'required' if session else '' }}>
+
+    <label>icon <span class="hint">(shown on the dashboard next to the label; leave unset for an automatic one)</span></label>
+    <input type="hidden" name="icon" id="icon-field" value="{{ session.icon if session else '' }}">
+    <div class="icon-picker">
+      <button type="button" class="icon-picker-current {{ '' if (session and session.icon) else 'is-auto' }}" id="icon-picker-current" onclick="toggleIconPicker()">{{ (session.icon if session else '') or (default_icon if session else '?') }}</button>
+      <span class="hint" id="icon-picker-hint">{{ 'custom' if (session and session.icon) else 'automatic' }}</span>
+      <div class="icon-picker-grid" id="icon-picker-grid">
+        <button type="button" class="icon-picker-option icon-picker-clear" onclick="selectIcon('')" title="Automatic">&#8635;</button>
+        {% for emoji in icon_choices %}
+        <button type="button" class="icon-picker-option" onclick="selectIcon('{{ emoji }}')">{{ emoji }}</button>
+        {% endfor %}
+      </div>
+    </div>
 
     {% if session %}
     <label>working directory <span class="hint">(absolute path, must already exist on this machine)</span></label>
@@ -153,6 +175,30 @@
   {% include '_dirbrowser_modal.html' %}
 
 <script>
+function toggleIconPicker() {
+  document.getElementById('icon-picker-grid').classList.toggle('open');
+}
+function selectIcon(emoji) {
+  document.getElementById('icon-field').value = emoji;
+  const current = document.getElementById('icon-picker-current');
+  const hint = document.getElementById('icon-picker-hint');
+  if (emoji) {
+    current.textContent = emoji;
+    current.classList.remove('is-auto');
+    hint.textContent = 'custom';
+  } else {
+    current.textContent = '{{ default_icon if session else "?" }}';
+    current.classList.add('is-auto');
+    hint.textContent = 'automatic';
+  }
+  document.getElementById('icon-picker-grid').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  const grid = document.getElementById('icon-picker-grid');
+  if (grid.classList.contains('open') && !e.target.closest('.icon-picker')) {
+    grid.classList.remove('open');
+  }
+});
 {% if not session %}
 const PROVIDER_REMOTE_CONTROL = {
   {% for provider in cli_providers %}"{{ provider.id }}": {{ provider.remote_control | tojson }}{{ "," if not loop.last }}

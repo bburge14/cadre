@@ -166,6 +166,7 @@ def _sessions_with_status() -> list[dict]:
             **entry,
             "status": session_manager.status(entry["id"]),
             "stack": _stack_for_workdir(entry["workdir"]),
+            "display_icon": entry.get("icon") or sessions_store.default_icon_for(entry["id"]),
         })
     return sessions
 
@@ -1699,6 +1700,7 @@ def new_session_form():
         default_base=str(settings.projects_root()),
         known_dirs=_known_directories(),
         stacks=_stack_picker_options(),
+        icon_choices=sessions_store.ICON_CHOICES,
     )
 
 
@@ -1850,6 +1852,9 @@ def create_session():
     # open terminal view -- with real cols/rows from the start, no resize
     # needed. See create()'s autostart docstring for the full diagnosis.
     result = session_manager.create(label, workdir, provider=provider_id, autostart=False)
+    icon = request.form.get("icon", "").strip()
+    if icon:
+        sessions_store.update(result["session_id"], icon=icon)
     flash(f"Created session '{label}'.", "success")
     return redirect(url_for("terminal_hub", session=result["session_id"], autostart=1))
 
@@ -2550,7 +2555,12 @@ def edit_session_form(session_id):
     if entry is None:
         flash("Unknown session.", "error")
         return redirect(url_for("index"))
-    return render_template("session_form.html", session=entry)
+    return render_template(
+        "session_form.html",
+        session=entry,
+        icon_choices=sessions_store.ICON_CHOICES,
+        default_icon=sessions_store.default_icon_for(session_id),
+    )
 
 
 @app.post("/sessions/<session_id>/edit")
@@ -2558,10 +2568,11 @@ def edit_session_form(session_id):
 def edit_session(session_id):
     label = request.form.get("label", "").strip()
     workdir = request.form.get("workdir", "").strip()
+    icon = request.form.get("icon", "").strip()
     if not label or not workdir:
         flash("Label and working directory are both required.", "error")
         return redirect(url_for("edit_session_form", session_id=session_id))
-    sessions_store.update(session_id, label=label, workdir=workdir)
+    sessions_store.update(session_id, label=label, workdir=workdir, icon=icon)
     flash("Session updated. Restart it to apply a changed working directory.", "success")
     return redirect(url_for("index"))
 
