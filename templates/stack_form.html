@@ -73,7 +73,7 @@
     <tr><th>Name</th><th>Description</th><th>Model</th><th></th></tr>
     {% for agent in stack_agents %}
     <tr>
-      <td><span style="display:inline-flex; align-items:center; gap:0.5rem;">{{ agent_avatar(agent.name) }}{{ provider_badge(agent.frontmatter.get('primary_provider', 'claude')) }}{{ agent.name }}</span></td>
+      <td><span style="display:inline-flex; align-items:center; gap:0.5rem;"><span class="avatar-stack">{{ agent_avatar(agent.name) }}{{ provider_badge(agent.frontmatter.get('primary_provider', 'claude')) }}</span>{{ agent.name }}</span></td>
       <td style="color:var(--text-dim);">{{ agent.frontmatter.get('description', '') }}</td>
       <td>{{ agent.frontmatter.get('model', 'inherit') }}</td>
       <td>

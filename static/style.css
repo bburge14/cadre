@@ -1186,6 +1186,14 @@ textarea { font-family: ui-monospace, monospace; font-size: 0.84rem; min-height:
 .provider-badge-codex { background: #412991; }
 .provider-badge-kimi { background: #000; }
 
+/* Avatar + provider badge as one unit: badge overlaps the avatar's own
+   corner (status-dot style) instead of sitting beside it as a second
+   separate circle -- two adjacent circles plus a name reads as busier
+   than one avatar with a small corner mark. */
+.avatar-stack { position: relative; display: inline-flex; flex-shrink: 0; }
+.avatar-stack .provider-badge { position: absolute; right: -4px; bottom: -4px; width: 13px; height: 13px; border: 2px solid var(--surface); }
+.avatar-stack .provider-badge svg { width: 7px; height: 7px; }
+
 /* ---- Inline help ---- */
 
 /* position: relative anchors the popover below to this trigger instead of

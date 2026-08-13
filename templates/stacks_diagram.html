@@ -9,14 +9,16 @@
 <script src="{{ url_for('static', filename='theme-effects.js') }}?v={{ asset_version }}"></script>
 <style>
   body { max-width: 900px; }
-  #diagram { position: relative; min-height: 420px; }
+  #diagram { position: relative; }
   svg#lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-  svg#lines line { stroke: var(--accent); stroke-width: 1.5; opacity: 0.55; }
-  .coordinator-row { display: flex; justify-content: center; margin-bottom: 4rem; }
-  .agent-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2rem; }
-  .node { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.7rem 1rem; font-size: 0.88rem; cursor: pointer; min-width: 140px; text-align: center; transition: border-color 0.12s ease, transform 0.05s ease; }
+  svg#lines path { fill: none; stroke-linecap: round; }
+  svg#lines path.line-coord { stroke: var(--accent); stroke-width: 1.5; opacity: 0.35; }
+  svg#lines path.line-spawn { stroke: #8b5cf6; stroke-width: 1.5; opacity: 0.45; }
+  .coordinator-row { display: flex; justify-content: center; margin-bottom: 4.5rem; }
+  .agent-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.4rem 1.2rem; }
+  .node { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.7rem 1.1rem; font-size: 0.88rem; cursor: pointer; min-width: 140px; text-align: center; transition: border-color 0.12s ease, transform 0.08s ease, box-shadow 0.08s ease; }
   .node.coordinator { border-color: transparent; background: var(--accent-soft-bg); border-image: var(--accent-gradient) 1; cursor: default; }
-  .node:hover:not(.coordinator) { border-color: var(--accent); transform: translateY(-1px); }
+  .node:hover:not(.coordinator) { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
   .panel { display: none; position: absolute; z-index: 2; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.8rem; margin-top: 0.5rem; width: 220px; font-size: 0.85rem; box-shadow: var(--shadow); }
   .panel.open { display: block; }
   .panel label { display: flex; align-items: center; gap: 0.5rem; margin: 0.3rem 0; }
@@ -37,7 +39,7 @@
       <p>Lines between two agents mean the first can call the second <em>itself</em>, without you asking for it by name. For example, if <code>debug-qa</code> can call <code>researcher</code>, it can go look something up on its own mid-task instead of stalling.</p>
       <p>Why restrict it: keeps an agent from wandering outside its lane (a <code>writer</code> probably shouldn't be able to spawn a <code>python-engineer</code>), and keeps delegation chains short and predictable instead of every agent being able to call every other agent.</p>
       <p>There's no wrong answer here. Start permissive (or use a preset's defaults) and tighten it only if an agent is calling something it shouldn't.</p>
-      <p>The small colored circle on each node is which AI actually does that agent's work (set via "primary AI for this agent's actual work" on its edit page): Claude by default, or another provider if you've delegated that agent's work elsewhere.</p>
+      <p>The small logo badge on each avatar is which AI actually does that agent's work (set via "primary AI for this agent's actual work" on its edit page): Claude by default, or another provider if you've delegated that agent's work elsewhere.</p>
     </div></details>
   </div>
   {% if not nodes %}
@@ -52,7 +54,7 @@
     <div class="agent-row">
       {% for n in nodes %}
       <div>
-        <div class="node" id="node-{{ n.name }}" onclick="togglePanel('{{ n.name }}')">{{ agent_avatar(n.name) }}{{ provider_badge(n.primary_provider) }}{{ n.name }}</div>
+        <div class="node" id="node-{{ n.name }}" onclick="togglePanel('{{ n.name }}')"><span class="avatar-stack">{{ agent_avatar(n.name) }}{{ provider_badge(n.primary_provider) }}</span>{{ n.name }}</div>
         <div class="panel" id="panel-{{ n.name }}">
           <form method="post" action="{{ save_action }}">
             <input type="hidden" name="agent_filename" value="{{ n.filename }}">
@@ -91,6 +93,14 @@ function drawLines() {
     return { x: r.left + r.width / 2 - cRect.left, y: r.top + r.height / 2 - cRect.top };
   }
 
+  function addCurve(x1, y1, x2, y2, cssClass) {
+    const midY = (y1 + y2) / 2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('class', cssClass);
+    path.setAttribute('d', `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
+    svg.appendChild(path);
+  }
+
   const coord = document.getElementById('node-coordinator');
   const coordCenter = centerOf(coord);
   const nodeData = {{ nodes | tojson }};
@@ -99,10 +109,7 @@ function drawLines() {
     const el = document.getElementById('node-' + n.name);
     if (!el) return;
     const c = centerOf(el);
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', coordCenter.x); line.setAttribute('y1', coordCenter.y + 18);
-    line.setAttribute('x2', c.x); line.setAttribute('y2', c.y - 20);
-    svg.appendChild(line);
+    addCurve(coordCenter.x, coordCenter.y + 18, c.x, c.y - 20, 'line-coord');
   });
 
   nodeData.forEach(n => {
@@ -113,11 +120,7 @@ function drawLines() {
       const toEl = document.getElementById('node-' + target);
       if (!toEl) return;
       const to = centerOf(toEl);
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
-      line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
-      line.setAttribute('stroke', '#8b5cf6');
-      svg.appendChild(line);
+      addCurve(from.x, from.y, to.x, to.y, 'line-spawn');
     });
   });
 }
