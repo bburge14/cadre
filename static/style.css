@@ -1154,10 +1154,12 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
   background: var(--surface); border: 1px solid var(--border-soft);
   border-radius: var(--radius); padding: 1rem 1.2rem; margin-bottom: 1.75rem;
 }
-.ai-status-row { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+.ai-status-row { display: flex; gap: 1.4rem; flex-wrap: wrap; }
 .ai-status-icon { position: relative; display: inline-flex; cursor: default; }
+.ai-status-icon .provider-badge { width: 40px; height: 40px; }
+.ai-status-icon .provider-badge svg { width: 22px; height: 22px; }
 .ai-status-dot {
-  position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px;
+  position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px;
   border-radius: 50%; border: 2px solid var(--surface); background: var(--text-faint);
 }
 .ai-status-dot.ok { background: var(--success-text); }

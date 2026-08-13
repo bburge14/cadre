@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -214,6 +215,17 @@ def claude_logged_in() -> bool:
 # equivalent of the GitHub/GitLab OAuth flow available for this.
 
 
+# 200 = genuinely valid. 429 = ALSO genuinely valid -- every one of these
+# providers applies rate limiting post-auth, per key, so getting rate-
+# limited *proves* the request authenticated successfully first. Treating
+# 429 as "invalid" (the bug here until 2026-08-13) meant a perfectly good
+# key intermittently showed as "not connected" any time that key's normal
+# session traffic happened to be near its own rate limit -- confirmed live
+# as the actual cause of Codex's reported intermittent "not connected".
+def _verify_status_ok(status_code: int) -> bool:
+    return status_code == 200 or status_code == 429
+
+
 def verify_anthropic_console_key(key: str) -> bool:
     try:
         resp = requests.get(
@@ -223,7 +235,7 @@ def verify_anthropic_console_key(key: str) -> bool:
         )
     except requests.RequestException:
         return False
-    return resp.status_code == 200
+    return _verify_status_ok(resp.status_code)
 
 
 def verify_gemini_key(key: str) -> bool:
@@ -235,7 +247,7 @@ def verify_gemini_key(key: str) -> bool:
         )
     except requests.RequestException:
         return False
-    return resp.status_code == 200
+    return _verify_status_ok(resp.status_code)
 
 
 def verify_openai_key(key: str) -> bool:
@@ -247,7 +259,7 @@ def verify_openai_key(key: str) -> bool:
         )
     except requests.RequestException:
         return False
-    return resp.status_code == 200
+    return _verify_status_ok(resp.status_code)
 
 
 def verify_moonshot_key(key: str) -> bool:
@@ -259,7 +271,7 @@ def verify_moonshot_key(key: str) -> bool:
         )
     except requests.RequestException:
         return False
-    return resp.status_code == 200
+    return _verify_status_ok(resp.status_code)
 
 
 _KEY_VERIFIERS = {
@@ -272,7 +284,17 @@ _KEY_VERIFIERS = {
 
 def verify_provider_key(provider_id: str, key: str) -> bool:
     verifier = _KEY_VERIFIERS.get(provider_id)
-    return verifier(key) if verifier else False
+    if not verifier:
+        return False
+    if verifier(key):
+        return True
+    # One quick retry before reporting "not connected" -- a single dropped
+    # connection or momentary timeout shouldn't read the same as an
+    # actually bad key. Short, fixed delay (not exponential backoff): this
+    # is a live status check behind a page load, not a background job, so
+    # it needs to resolve fast either way.
+    time.sleep(0.4)
+    return verifier(key)
 
 
 # ---- Real usage/cost numbers (Claude + Codex only) ----

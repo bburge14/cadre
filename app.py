@@ -2019,6 +2019,10 @@ def refresh_mcp_connector_status():
     return {"ok": True, "connector_status": providers.claude_mcp_connectors()}
 
 
+_HEARTBEAT_CACHE: dict[str, tuple[float, bool]] = {}
+_HEARTBEAT_CACHE_TTL_SECONDS = 30
+
+
 @app.get("/settings/providers/<provider_id>/heartbeat")
 @require_auth
 def provider_heartbeat(provider_id):
@@ -2035,7 +2039,20 @@ def provider_heartbeat(provider_id):
     key = settings.get("claude_console_api_key" if provider_id == "claude" else f"{provider_id}_api_key")
     if not key:
         return {"ok": True, "enabled": True, "connected": False, "reason": "no_key"}
+    # Only successful checks are cached, and only briefly -- this now fires
+    # on both Settings and the dashboard's AI Status widget, so navigating
+    # between the two shouldn't re-hit each provider's live API within a
+    # few seconds of the last good check. A FAILED check is deliberately
+    # never cached: caching a transient blip would turn one bad request
+    # into a full TTL window of showing "not connected" for a key that's
+    # actually fine, which is worse than today, not better, and exactly
+    # backwards for fixing an *intermittent* false negative.
+    cached = _HEARTBEAT_CACHE.get(provider_id)
+    if cached and time.time() - cached[0] < _HEARTBEAT_CACHE_TTL_SECONDS:
+        return {"ok": True, "enabled": True, "connected": True}
     connected = providers.verify_provider_key(provider_id, key)
+    if connected:
+        _HEARTBEAT_CACHE[provider_id] = (time.time(), True)
     return {"ok": True, "enabled": True, "connected": connected}
 
 
