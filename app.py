@@ -2331,6 +2331,18 @@ def save_terminal_theme():
     return {"ok": True, "applied": applied}
 
 
+@app.post("/settings/secrets/<key>/reveal")
+@require_auth
+def reveal_secret(key):
+    # Whitelisted to SECRET_SETTINGS specifically -- this is the one place
+    # in the app that deliberately breaks the "secrets never round-trip"
+    # rule (see settings_form's own comment), on purpose and on request,
+    # so it must not become a general "read any settings key" endpoint.
+    if key not in SECRET_SETTINGS:
+        return {"ok": False, "error": "not a revealable field"}, 404
+    return {"ok": True, "value": settings.get(key)}
+
+
 @app.post("/settings")
 @require_auth
 def save_settings():

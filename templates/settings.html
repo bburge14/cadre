@@ -290,6 +290,14 @@
 </head>
 <body>
   {% from '_topbar.html' import topbar %}
+  {% macro secret_input(name, is_set) %}
+  <div style="display:flex; gap:0.5rem;">
+    <input name="{{ name }}" id="secret-{{ name }}" type="password" placeholder="{{ 'Already set, leave blank to keep' if is_set else 'Not set' }}" style="flex:1;">
+    {% if is_set %}
+    <button type="button" class="btn btn-icon" id="secret-{{ name }}-btn" onclick="toggleRevealSecret('{{ name }}')" title="Show" aria-label="Show"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    {% endif %}
+  </div>
+  {% endmacro %}
   {{ topbar(active='settings') }}
   <h1>Settings
     <details class="help"><summary></summary><div class="help-body">
@@ -447,7 +455,7 @@
     <label>Client ID</label>
     <input name="github_client_id" value="{{ values.github_client_id }}">
     <label>Client Secret</label>
-    <input name="github_client_secret" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.github_client_secret else 'Not set' }}">
+    {{ secret_input('github_client_secret', secrets_set.github_client_secret) }}
       </div>
     </details>
 
@@ -475,7 +483,7 @@
     <label>Application ID</label>
     <input name="gitlab_client_id" value="{{ values.gitlab_client_id }}">
     <label>Secret</label>
-    <input name="gitlab_client_secret" type="password" placeholder="{{ 'Already set — leave blank to keep' if secrets_set.gitlab_client_secret else 'Not set' }}">
+    {{ secret_input('gitlab_client_secret', secrets_set.gitlab_client_secret) }}
       </div>
     </details>
     </div>
@@ -490,7 +498,7 @@
     {% if orchestration_candidates %}
     <select name="default_provider">
       {% for p in orchestration_candidates %}
-      <option value="{{ p.id }}" {{ 'selected' if p.id == default_provider else '' }}>{{ p.label }}{{ '' if p.orchestration_verified else ' (Agent Stacks unverified)' }}</option>
+      <option value="{{ p.id }}" {{ 'selected' if p.id == default_provider else '' }}>{{ p.label }}</option>
       {% endfor %}
     </select>
     {% else %}
@@ -558,7 +566,7 @@
             </div></details>
             {% endif %}
           </label>
-          <input name="{{ p.id }}_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set[p.id ~ '_api_key'] else 'Not set' }}">
+          {{ secret_input(p.id ~ '_api_key', secrets_set[p.id ~ '_api_key']) }}
         {% endif %}
 
         <label class="checkbox-label" style="margin-top:0.7rem;">
@@ -568,7 +576,7 @@
         {% if p.id == 'claude' %}
         <div id="claude-console-key-field" style="{{ '' if values.track_usage_claude else 'display:none;' }} margin-top:0.5rem;">
           <label>Anthropic Console API key <span class="hint">(separate from your Claude Code login, billed separately)</span></label>
-          <input name="claude_console_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set.claude_console_api_key else 'Not set' }}">
+          {{ secret_input('claude_console_api_key', secrets_set.claude_console_api_key) }}
         </div>
         {% endif %}
         {% if p.id in ('claude', 'codex') %}
@@ -585,7 +593,7 @@
               <p>Without this, the dashboard's usage tile just shows connected/not connected. With it, it shows real tokens and cost for the last 7 days.</p>
             </div></details>
           </label>
-          <input name="{{ p.id }}_admin_api_key" type="password" placeholder="{{ 'Already set, leave blank to keep' if secrets_set[p.id ~ '_admin_api_key'] else 'Not set' }}">
+          {{ secret_input(p.id ~ '_admin_api_key', secrets_set[p.id ~ '_admin_api_key']) }}
         </div>
         {% endif %}
       </div>
@@ -754,6 +762,32 @@ function switchTab(name) {
   history.replaceState(null, '', '#' + name);
   const activeTabField = document.getElementById('active-tab-field');
   if (activeTabField) activeTabField.value = name;
+}
+
+async function toggleRevealSecret(name) {
+  const input = document.getElementById('secret-' + name);
+  const btn = document.getElementById('secret-' + name + '-btn');
+  if (input.type === 'text') {
+    input.type = 'password';
+    input.value = '';
+    input.placeholder = 'Already set, leave blank to keep';
+    btn.title = 'Show';
+    btn.setAttribute('aria-label', 'Show');
+    return;
+  }
+  try {
+    const body = new URLSearchParams();
+    body.set('csrf_token', '{{ csrf_token() }}');
+    const res = await fetch('/settings/secrets/' + name + '/reveal', { method: 'POST', body });
+    const data = await res.json();
+    if (!data.ok) { alert(data.error || "Couldn't reveal that."); return; }
+    input.type = 'text';
+    input.value = data.value;
+    btn.title = 'Hide';
+    btn.setAttribute('aria-label', 'Hide');
+  } catch (e) {
+    alert("Couldn't reveal that: " + e);
+  }
 }
 (function () {
   const requested = location.hash.replace('#', '');

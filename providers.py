@@ -230,7 +230,13 @@ def verify_anthropic_console_key(key: str) -> bool:
     try:
         resp = requests.get(
             "https://api.anthropic.com/v1/models",
-            headers={"x-api-key": key, "anthropic-version": "2026-01-01"},
+            # 2023-06-01 is Anthropic's own documented version string, used
+            # correctly everywhere else in this file (fetch_claude_usage_
+            # cost). This function had 2026-01-01 instead -- confirmed live
+            # 2026-08-13 that Anthropic rejects it outright ("not a valid
+            # version", 400) regardless of the key, which is what was
+            # actually behind a real, valid key showing "key not accepted."
+            headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
             timeout=10,
         )
     except requests.RequestException:
