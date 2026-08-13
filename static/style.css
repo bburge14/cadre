@@ -1123,6 +1123,17 @@ table.list td.empty { color: var(--text-faint); padding: 1.4rem 1.1rem; }
 .agent-avatar-pink { background: rgba(236, 72, 153, 0.25); }
 .agent-avatar-red { background: rgba(239, 68, 68, 0.25); }
 
+/* ---- Avatar group (a stack's "team photo") ---- */
+.avatar-group { display: inline-flex; align-items: center; vertical-align: middle; }
+.avatar-group .agent-avatar { border: 2px solid var(--surface); margin-left: -8px; }
+.avatar-group .agent-avatar:first-child { margin-left: 0; }
+.avatar-more {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%; margin-left: -8px;
+  background: var(--surface-2); border: 2px solid var(--surface);
+  font-size: 0.62rem; font-weight: 700; color: var(--text-dim); flex-shrink: 0;
+}
+
 /* ---- Flash messages ---- */
 
 .flash { padding: 0.65rem 1rem; border-radius: var(--radius-sm); margin-bottom: 1.2rem; font-size: 0.86rem; border: 1px solid transparent; }

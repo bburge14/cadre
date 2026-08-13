@@ -162,7 +162,11 @@ def _sessions_with_status() -> list[dict]:
     for entry in sessions_store.list_sessions():
         if entry.get("internal"):
             continue
-        sessions.append({**entry, "status": session_manager.status(entry["id"])})
+        sessions.append({
+            **entry,
+            "status": session_manager.status(entry["id"]),
+            "stack": _stack_for_workdir(entry["workdir"]),
+        })
     return sessions
 
 
@@ -328,10 +332,12 @@ def logout():
 
 def _stacks_with_agent_counts() -> list[dict]:
     global_stack = _resolve_stack(_GLOBAL_STACK_ID)
-    stacks = [{**global_stack, "agent_count": len(agents_store.list_agents())}]
+    global_agents = agents_store.list_agents()
+    stacks = [{**global_stack, "agent_count": len(global_agents), "agent_names": [a.name for a in global_agents]}]
     for s in stacks_store.list_stacks():
         agents_dir = agents_store.project_agents_dir(s["workdir"])
-        stacks.append({**s, "agent_count": len(agents_store.list_agents(agents_dir=agents_dir))})
+        agents = agents_store.list_agents(agents_dir=agents_dir)
+        stacks.append({**s, "agent_count": len(agents), "agent_names": [a.name for a in agents]})
     return stacks
 
 
@@ -831,6 +837,34 @@ def _resolve_stack(stack_id: str) -> dict | None:
             "default_provider": settings.get("default_provider"),
         }
     return stacks_store.get(stack_id)
+
+
+def _stack_for_workdir(workdir: str) -> dict:
+    # A session's actual workdir is a subdirectory of its stack's own
+    # workdir (create_session names a folder after the label/repo under
+    # the stack's directory), not an exact match -- so this is a
+    # path-prefix lookup, preferring the most specific (longest) match in
+    # case stacks are ever nested. Falls back to Global, same as Claude
+    # Code's own nearest-ancestor .claude/agents/ resolution does for any
+    # directory not covered by a more specific stack.
+    try:
+        target = Path(workdir).resolve()
+    except OSError:
+        target = Path(workdir)
+    best = None
+    best_path = None
+    for s in stacks_store.list_stacks():
+        stack_dir = s.get("workdir")
+        if not stack_dir:
+            continue
+        try:
+            stack_path = Path(stack_dir).resolve()
+        except OSError:
+            continue
+        if target == stack_path or target.is_relative_to(stack_path):
+            if best_path is None or len(str(stack_path)) > len(str(best_path)):
+                best, best_path = s, stack_path
+    return best if best is not None else _resolve_stack(_GLOBAL_STACK_ID)
 
 
 def _stack_agents_dir(stack: dict) -> Path:
