@@ -426,11 +426,27 @@
     third-party apps from using the Claude Code subscription login for
     anything beyond running Claude Code itself, so tracking Claude usage
     needs a separate Console API key
-    (<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>,
+    (<a href="https://platform.claude.com" target="_blank">platform.claude.com</a>,
     billed independently from your Claude Code subscription), which only
     appears once that checkbox is checked. Each provider's card shows a
     live status badge once tracking is on: connected, "no key yet," or
     "key not accepted" if the stored key doesn't actually work.
+  </p>
+  <p>
+    Claude and Codex can go further: real tokens/cost for the last 7
+    days, not just connection status, if you also add that provider's
+    separate <strong>admin</strong>-scoped key (Anthropic Admin API key,
+    <code>sk-ant-admin01-...</code>; OpenAI org admin key) under the same
+    checkbox. Neither provider's regular key can pull this data, by their
+    own design. For Claude specifically, the Admin API also requires a
+    Claude Console <em>organization</em> (with billing set up) and the
+    "admin" role within it -- it doesn't exist at all for an individual
+    account, so this is a bigger step than the Console key above if
+    you've only ever used your regular Claude.ai/Claude Code login.
+    Currently only Claude's numbers have a UI: once its admin key is set,
+    they show as a small pill in the top nav bar (Claude runs this app's
+    own Agent Stacks, so it gets the always-visible spot). The dashboard's
+    "AI Status" section stays connection-only for all four providers.
   </p>
 
   <h2 id="connectors">Connectors (Gmail, Google Calendar, Google Drive)</h2>

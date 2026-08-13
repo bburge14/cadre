@@ -506,7 +506,7 @@
         that. Anthropic blocks third-party apps from using the Claude
         subscription login for anything beyond running Claude Code
         itself, so Claude usage tracking needs a separate Console API
-        key (<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>,
+        key (<a href="https://platform.claude.com" target="_blank">platform.claude.com</a>,
         billed separately from your Claude Code subscription).</p>
         <p>Gemini/Codex/Kimi reuse the same API key already used to run
         their sessions, nothing extra needed.</p>
@@ -577,8 +577,8 @@
             <span class="hint">(optional -- unlocks real token/cost numbers instead of just connected/not)</span>
             <details class="help"><summary></summary><div class="help-body">
               {% if p.id == 'claude' %}
-              <p>A separate <strong>Admin</strong> API key (starts <code>sk-ant-admin01-</code>), not the Console key above and not your Claude Code login. Create one at <a href="https://console.anthropic.com/settings/admin-keys" target="_blank">console.anthropic.com &rarr; Settings &rarr; Admin keys</a>.</p>
-              <p>Only available on an organization account: Anthropic doesn't offer Admin API keys for individual accounts at all.</p>
+              <p>A separate <strong>Admin</strong> API key (starts <code>sk-ant-admin01-</code>), not the Console key above and not your Claude Code login. Create one at <a href="https://platform.claude.com/settings/admin-keys" target="_blank">platform.claude.com &rarr; Settings &rarr; Admin keys</a>.</p>
+              <p>Two catches: it needs a Claude <strong>Console</strong> organization (the pay-as-you-go API platform, billed separately, not your regular Claude.ai/Claude Code login) with billing set up, and only an org member with the "admin" role can create the key. Solo and never used Console before? Signing up for it is what creates that organization -- Admin keys won't appear until you have one.</p>
               {% else %}
               <p>A separate <strong>Admin</strong> API key, not the project key above used to run Codex sessions. Create one at <a href="https://platform.openai.com/settings/organization/admin-keys" target="_blank">platform.openai.com &rarr; Settings &rarr; Admin keys</a>.</p>
               {% endif %}

@@ -314,43 +314,45 @@ _USAGE_PAGE_LIMIT = 10  # hard cap on pagination loops; a runaway/malicious
 
 
 def fetch_claude_usage_cost(admin_key: str, days: int = 7) -> dict:
-    starting_at = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT00:00:00Z")
+    # Deliberately NOT the general Usage/Cost API (usage_report/messages,
+    # cost_report) -- confirmed live 2026-08-13 that it reports 0 for a
+    # real, active Claude Code user. Reason: that API only tracks API-key
+    # -based programmatic requests. Cadre's Claude sessions authenticate
+    # via the CLI's own OAuth /login (a Pro/Max/Team subscription), which
+    # is an entirely separate billing/tracking pool -- confirmed via
+    # Anthropic's own Claude Code Analytics API docs, which explicitly
+    # distinguish `customer_type: "subscription"` (OAuth, what Cadre uses)
+    # from `customer_type: "api"` (key-based, what the general Usage API
+    # tracks). The Claude Code Analytics endpoint below is the one that
+    # actually sees OAuth/subscription usage. Same admin key works for
+    # both -- this was purely the wrong endpoint, not a wrong key.
     headers = {"anthropic-version": "2023-06-01", "x-api-key": admin_key}
 
-    total_cost_cents = 0.0
-    page = None
-    for _ in range(_USAGE_PAGE_LIMIT):
-        params = {"starting_at": starting_at}
-        if page:
-            params["page"] = page
-        resp = requests.get("https://api.anthropic.com/v1/organizations/cost_report", params=params, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        for bucket in data.get("data", []):
-            for r in bucket.get("results", []):
-                total_cost_cents += float(r["amount"])
-        if not data.get("has_more"):
-            break
-        page = data.get("next_page")
-
     total_tokens = 0
-    page = None
-    for _ in range(_USAGE_PAGE_LIMIT):
-        params = {"starting_at": starting_at, "bucket_width": "1d"}
-        if page:
-            params["page"] = page
-        resp = requests.get("https://api.anthropic.com/v1/organizations/usage_report/messages", params=params, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        for bucket in data.get("data", []):
-            for r in bucket.get("results", []):
-                total_tokens += (r.get("uncached_input_tokens") or 0) + (r.get("output_tokens") or 0)
-                total_tokens += r.get("cache_read_input_tokens") or 0
-                cache_creation = r.get("cache_creation") or {}
-                total_tokens += (cache_creation.get("ephemeral_1h_input_tokens") or 0) + (cache_creation.get("ephemeral_5m_input_tokens") or 0)
-        if not data.get("has_more"):
-            break
-        page = data.get("next_page")
+    total_cost_cents = 0.0
+    today = datetime.now(timezone.utc).date()
+    for offset in range(days):
+        starting_at = (today - timedelta(days=offset)).strftime("%Y-%m-%d")
+        page = None
+        for _ in range(_USAGE_PAGE_LIMIT):
+            params = {"starting_at": starting_at, "limit": 1000}
+            if page:
+                params["page"] = page
+            resp = requests.get(
+                "https://api.anthropic.com/v1/organizations/usage_report/claude_code",
+                params=params, headers=headers, timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for record in data.get("data", []):
+                for model in record.get("model_breakdown", []):
+                    tok = model.get("tokens") or {}
+                    total_tokens += (tok.get("input") or 0) + (tok.get("output") or 0)
+                    total_tokens += (tok.get("cache_read") or 0) + (tok.get("cache_creation") or 0)
+                    total_cost_cents += (model.get("estimated_cost") or {}).get("amount") or 0
+            if not data.get("has_more"):
+                break
+            page = data.get("next_page")
 
     return {"tokens": total_tokens, "cost_usd": round(total_cost_cents / 100, 2), "days": days}
 
