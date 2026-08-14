@@ -66,16 +66,27 @@
     <p class="hint">
       A long-running session accumulates context. Cost per turn climbs
       and quality can degrade well before you hit any hard limit.
-      "Hand off" starts a fresh session in this same directory and stops
-      this one (not deleted, just paused). If <code>project-scribe</code>
-      is keeping <code>PROJECT_STATUS.md</code> current here, the new
+      "Hand off" starts a fresh session and stops this one (not deleted,
+      just paused) -- stays in this same directory by default, or pick a
+      different stack below to hand off there instead (a stack owns its
+      own directory, so a new subfolder named after the label gets
+      created there, same as picking a stack on the New Session form
+      already does). If <code>project-scribe</code> is keeping
+      <code>PROJECT_STATUS.md</code> current wherever it lands, the new
       session is nudged via <code>CLAUDE.md</code> to read it first, so
       it picks up real context instead of starting cold.
     </p>
     <form method="post" action="{{ url_for('session_handoff', session_id=session.id) }}"
-          onsubmit="return confirm('Start a fresh session in this same directory and stop this one?');">
+          onsubmit="return confirm(document.getElementById('handoff-stack-select').value ? 'Start a fresh session in the selected stack and stop this one?' : 'Start a fresh session in this same directory and stop this one?');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn" type="submit">Hand off to a fresh session</button>
+      <label style="font-weight:normal;">Directory <span class="hint">(defaults to this session's own)</span></label>
+      <select name="stack_id" id="handoff-stack-select" style="max-width:320px;">
+        <option value="">This session's own directory</option>
+        {% for stack in stacks %}
+        <option value="{{ stack.id }}">{{ stack.name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit" style="margin-top:0.6rem;">Hand off to a fresh session</button>
     </form>
   </div>
 

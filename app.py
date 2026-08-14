@@ -2563,6 +2563,7 @@ def session_detail(session_id):
         matching_stack=matching_stack,
         icon_choices=sessions_store.ICON_CHOICES,
         default_icon=sessions_store.default_icon_for(session_id),
+        stacks=_stack_picker_options(),
     )
 
 
@@ -2623,21 +2624,47 @@ def session_terminal(session_id):
 @app.post("/sessions/<session_id>/handoff")
 @require_auth
 def session_handoff(session_id):
-    """Retires a bloated/long-running session by creating a fresh one in
-    the same directory (same provider) and stopping the old one -- for
-    this to actually save tokens rather than just moving the same
-    problem, the new session needs to actually pick up where the old one
-    left off, which is what ensure_continuity_nudge is for: it's the
-    thing that makes a fresh session go read PROJECT_STATUS.md instead
-    of re-deriving context from scratch."""
+    """Retires a bloated/long-running session by creating a fresh one and
+    stopping the old one -- for this to actually save tokens rather than
+    just moving the same problem, the new session needs to actually pick
+    up where the old one left off, which is what ensure_continuity_nudge
+    is for: it's the thing that makes a fresh session go read
+    PROJECT_STATUS.md instead of re-deriving context from scratch.
+
+    Defaults to the same directory as the old session (unchanged
+    behavior). Optionally hands off to a different, already-configured
+    stack instead -- a stack owns exactly one directory (stacks_store),
+    so "a different stack" necessarily means a different directory; this
+    auto-creates a subfolder under that stack's own workdir named after
+    the label, same as picking a stack on the New Session form already
+    does, rather than inventing a second, inconsistent convention here."""
     entry = sessions_store.get(session_id)
     if entry is None:
         flash("Unknown session.", "error")
         return redirect(url_for("index"))
 
-    presets.ensure_continuity_nudge(Path(entry["workdir"]))
+    label = f"{entry['label']} (new)"
+    stack_id = request.form.get("stack_id", "").strip()
+    if stack_id:
+        stack = _resolve_stack(stack_id)
+        if not stack:
+            flash("Unknown stack.", "error")
+            return redirect(url_for("session_detail", session_id=session_id))
+        base = Path(stack["workdir"]) if stack.get("workdir") else settings.projects_root()
+        slug = git_hosts.slugify_repo_name(label)
+        target_dir = base / slug
+        suffix = 2
+        while target_dir.exists():
+            target_dir = base / f"{slug}-{suffix}"
+            suffix += 1
+        target_dir.mkdir(parents=True, exist_ok=True)
+        workdir = str(target_dir)
+    else:
+        workdir = entry["workdir"]
 
-    result = session_manager.create(f"{entry['label']} (new)", entry["workdir"], provider=entry.get("provider", "claude"))
+    presets.ensure_continuity_nudge(Path(workdir))
+
+    result = session_manager.create(label, workdir, provider=entry.get("provider", "claude"))
     session_manager.stop(session_id)
     flash(f"Handed off to a new session (pid {result.get('pid')}) — the old one is stopped, not deleted.", "success")
     return redirect(url_for("session_detail", session_id=result["session_id"]))
