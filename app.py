@@ -2637,7 +2637,10 @@ def session_handoff(session_id):
     so "a different stack" necessarily means a different directory; this
     auto-creates a subfolder under that stack's own workdir named after
     the label, same as picking a stack on the New Session form already
-    does, rather than inventing a second, inconsistent convention here."""
+    does. Confirmed live 2026-08-14 this can't just be an empty folder
+    -- the old directory's actual files (repo, working tree state
+    included) get copied over, not cloned fresh, so uncommitted changes
+    survive the move too, not just committed history."""
     entry = sessions_store.get(session_id)
     if entry is None:
         flash("Unknown session.", "error")
@@ -2659,6 +2662,25 @@ def session_handoff(session_id):
             suffix += 1
         target_dir.mkdir(parents=True, exist_ok=True)
         workdir = str(target_dir)
+        # A different stack means a different directory (stacks own
+        # exactly one each), but the actual project shouldn't just vanish
+        # because of that -- copy the old directory's real files (repo
+        # included, working tree state included, not just a fresh clone
+        # that would silently drop uncommitted changes) into the new one.
+        old_dir = Path(entry["workdir"])
+        if old_dir.is_dir():
+            shutil.copytree(old_dir, target_dir, dirs_exist_ok=True)
+            # Same defensive re-link create_session() already does for an
+            # existing local directory that turns out to be a connected
+            # host's repo -- the copied .git/config carries the remote
+            # URL over on its own, but not necessarily a working
+            # credential helper for push/pull from this new location.
+            try:
+                detected = git_hosts.detect_git_host(workdir)
+                if detected and git_hosts.get_token(detected):
+                    git_hosts.link_workdir(workdir, detected)
+            except Exception as exc:
+                print(f"git_hosts re-link after handoff failed for {workdir}: {exc}")
     else:
         workdir = entry["workdir"]
 
