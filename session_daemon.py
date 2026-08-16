@@ -434,15 +434,41 @@ def _spawn(
         return {"ok": True, "already_running": False, "pid": pty_session.pid}
 
 
+def _has_ever_run(session_id: str, provider_id: str) -> bool:
+    """Whether this session_id has a real prior conversation to resume --
+    confirmed live 2026-08-15 that start() always passing resume=True
+    was a real bug: a session created with autostart=False (every new
+    session goes through this -- see create_session()'s autostart
+    docstring in app.py) has genuinely never been spawned yet the first
+    time the terminal hub's own ?autostart=1 flow calls start() on it,
+    so --resume <id> fails with "No conversation found," since Claude
+    Code has no transcript under an id that was only ever Cadre's own
+    made-up uuid, never handed to a real conversation.
+
+    Only meaningful for Claude: Gemini/Codex/Kimi's resume_args() already
+    unconditionally falls back to new_session_args() (see its own
+    docstring -- there's no confirmed way to resume those three at all
+    yet), so this check would be a no-op for them either way. Claude
+    writes a transcript file per session id under ~/.claude/projects/ --
+    same path convention session_action()'s wipe_history already relies
+    on -- so a file actually existing there is the real, disk-persisted
+    signal (survives a daemon restart, unlike checking _runtime) that a
+    genuine conversation happened under this id before."""
+    if provider_id != "claude":
+        return True
+    return any(Path.home().glob(f".claude/projects/*/{session_id}.jsonl"))
+
+
 def start(
     session_id: str, cols: int | None = None, rows: int | None = None, unattended: bool = False,
 ) -> dict:
     entry = sessions_store.get(session_id)
     if entry is None:
         return {"ok": False, "error": "unknown session"}
+    provider_id = entry.get("provider", "claude")
     return _spawn(
-        session_id, entry["workdir"], entry["label"], resume=True,
-        provider_id=entry.get("provider", "claude"), cols=cols, rows=rows, unattended=unattended,
+        session_id, entry["workdir"], entry["label"], resume=_has_ever_run(session_id, provider_id),
+        provider_id=provider_id, cols=cols, rows=rows, unattended=unattended,
     )
 
 
