@@ -8,6 +8,7 @@ import yaml
 import agent_formats
 import agents_store
 import config
+import providers
 import skills_store
 
 PRESETS_DIR = config.BUNDLE_DIR / "presets"
@@ -148,10 +149,11 @@ def load_divisions() -> dict:
 # caveat) -- Codex is positioned specifically around coding, Gemini's
 # standout is its large context window (favors research/document-heavy
 # work), Claude covers everything else as the general-purpose default.
-# Purely a UI hint on an agent's own edit page ("primary AI for this
-# agent's actual work") -- never sets primary_provider itself, that stays
-# an explicit per-agent choice a person makes, same as the delegation
-# feature already worked before this existed.
+# Also drives actual activation now (see activate() below), not just the
+# "Recommended" hint on an agent's own edit page -- direct correction
+# 2026-08-15: the original ask was for activation to auto-select this,
+# not just display it, and it was never wired up that far the first
+# time around.
 _DIVISION_RECOMMENDED_PROVIDER = {
     "Engineering": "codex",
     "Testing": "codex",
@@ -188,7 +190,15 @@ def list_library_agents() -> list[agents_store.AgentFile]:
 
 def activate(agent_ids: list[str], agents_dir: Path | None = None) -> list[str]:
     """Copies each requested template into agents_dir (default: the global
-    ~/.claude/agents/). Returns the filenames actually written."""
+    ~/.claude/agents/). Returns the filenames actually written.
+
+    Each agent's primary_provider is auto-set to its recommended_provider
+    if -- and only if -- that provider is actually usable right now
+    (installed and authenticated/API-keyed, same check that gates
+    whether a session can run with it at all). Falls back to Claude
+    (the template's own implicit default, left unset) if the
+    recommendation isn't connected, rather than silently pointing a
+    fresh agent at a provider that would just fail to run."""
     written = []
     for agent_id in agent_ids:
         parsed = _read_template(_template_path(agent_id))
@@ -196,6 +206,9 @@ def activate(agent_ids: list[str], agents_dir: Path | None = None) -> list[str]:
             continue
         frontmatter, body = parsed
         frontmatter, body = attach_default_skills(agent_id, frontmatter, body)
+        recommended = recommended_provider(agent_id)
+        if recommended != "claude" and providers.usable(recommended):
+            frontmatter["primary_provider"] = recommended
         filename = f"{agent_id}.md"
         agents_store.write_agent(filename, frontmatter, body, agents_dir=agents_dir)
         written.append(filename)
