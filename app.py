@@ -2687,6 +2687,17 @@ def session_handoff(session_id):
     presets.ensure_continuity_nudge(Path(workdir))
 
     result = session_manager.create(label, workdir, provider=entry.get("provider", "claude"))
+    if not result.get("ok", True) or "session_id" not in result:
+        # Confirmed live 2026-08-24: the daemon RPC can genuinely fail
+        # (a real socket timeout under load, not hypothetical -- see
+        # session_manager._send's "could not reach session_daemon"
+        # fallback), and this used to crash with an unhandled KeyError
+        # instead of surfacing anything useful. The old session is still
+        # fully intact either way -- stop() below only runs once we know
+        # the new one actually exists, so a failed hand-off never leaves
+        # you with neither.
+        flash(f"Hand-off failed: {result.get('error', 'unknown error')}. The old session is untouched -- try again.", "error")
+        return redirect(url_for("session_detail", session_id=session_id))
     session_manager.stop(session_id)
     flash(f"Handed off to a new session (pid {result.get('pid')}) — the old one is stopped, not deleted.", "success")
     return redirect(url_for("session_detail", session_id=result["session_id"]))
